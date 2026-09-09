@@ -6,6 +6,10 @@ export function createSaveWorld(historicalSnapshot, options = {}) {
     meta: {
       schemaVersion: 1,
       sourceSeason: historicalSnapshot.season,
+      historicalDatabase: {
+        databaseVersion: historicalSnapshot.databaseVersion ?? null,
+        sourceChecksum: historicalSnapshot.sourceChecksum ?? null,
+      },
       seed: String(options.seed ?? `${historicalSnapshot.season}-default`),
       createdAt: options.createdAt ?? new Date().toISOString(),
     },
