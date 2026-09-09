@@ -1,6 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { advanceDay, createRng, createSaveWorld, createSeasonSnapshot } from "../src/index.js";
+import {
+  advanceDay,
+  advanceDays,
+  createRng,
+  createSaveWorld,
+  createSeasonSnapshot,
+  deserializeSaveWorld,
+  listSupportedSeasons,
+  loadHistoricalSeason,
+  runHeadlessSimulation,
+  serializeSaveWorld,
+  SIM_EVENT,
+} from "../src/index.js";
 
 const db = {
   manifest: { databaseVersion: "f1db-test", sourceSha256: "abc123", readiness: { "1980": "READY" } },
@@ -77,4 +89,49 @@ test("world clock advances without touching historical snapshot", () => {
   assert.equal(save.clock.date, "1980-01-02");
   assert.equal(save.clock.day, 2);
   assert.equal(snapshot.season, 1980);
+});
+
+test("validated historical loader exposes only supported seasons", () => {
+  assert.deepEqual(listSupportedSeasons(db), [1980]);
+  const snapshot = loadHistoricalSeason(db, 1980);
+  assert.equal(snapshot.readinessStatus, "READY");
+  assert.throws(() => loadHistoricalSeason({ ...db, manifest: { readiness: { "1980": "BLOCKED" } } }, 1980), /blocked/i);
+});
+
+test("time engine emits calendar events and allows systems to react", () => {
+  const snapshot = loadHistoricalSeason({
+    ...db,
+    calendar: [{ year: 1980, round: 1, gp_id: "gp_1", gp_name: "Test GP", track_id: "tr_1", race_date: "1980-01-03" }],
+  }, 1980);
+  const save = createSaveWorld(snapshot, { startDate: "1980-01-01", createdAt: "1980-01-01T00:00:00.000Z" });
+  const system = {
+    eventTypes: [SIM_EVENT.RACE_DAY],
+    handle({ saveWorld, event }) {
+      saveWorld.history.events.push({ type: "test.race_seen", date: event.date });
+      return { type: "test.news_generated", payload: { gp: event.payload.gp_name } };
+    },
+  };
+  const result = advanceDays(save, 2, [system]);
+  assert.equal(result.events.filter((item) => item.type === SIM_EVENT.RACE_DAY).length, 1);
+  assert.equal(result.events.filter((item) => item.type === "test.news_generated").length, 1);
+  assert.deepEqual(save.history.events, [{ type: "test.race_seen", date: "1980-01-03" }]);
+});
+
+test("save serialization round-trips independently", () => {
+  const save = createSaveWorld(loadHistoricalSeason(db, 1980), { createdAt: "1980-01-01T00:00:00.000Z" });
+  const serialized = serializeSaveWorld(save, { savedAt: "1980-01-01T12:00:00.000Z" });
+  const restored = deserializeSaveWorld(serialized);
+  restored.world.teams[0].team_name = "Changed after load";
+  assert.equal(save.world.teams[0].team_name, "Williams");
+  assert.equal(restored.meta.historicalDatabase.databaseVersion, "f1db-test");
+});
+
+test("headless harness advances a career without UI", () => {
+  const database = {
+    ...db,
+    calendar: [{ year: 1980, round: 1, gp_id: "gp_1", gp_name: "Test GP", track_id: "tr_1", race_date: "1980-01-03" }],
+  };
+  const result = runHeadlessSimulation(database, { season: 1980, days: 3, seed: "headless-test", createdAt: "1980-01-01T00:00:00.000Z" });
+  assert.equal(result.summary.finalDate, "1980-01-04");
+  assert.equal(result.summary.scheduledRaceDaysReached, 1);
 });
