@@ -8,6 +8,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "test:data": "python -m unittest discover -s tools/db/tests -v",
+    "db:audit": "python tools/db/import_master.py"
   }
 }
