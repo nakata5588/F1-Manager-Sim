@@ -27,21 +27,32 @@ The project keeps five concerns separate:
 - **Game Systems** — contracts, development, finances, staff, sponsors and management mechanics.
 - **UI** — presentation and player interaction; never the authoritative simulation state.
 
-See `docs/ARCHITECTURE.md`, `docs/DATABASE_AUDIT_2026-09-10.md` and `docs/DATA_WORKFLOW.md`.
+See `docs/ARCHITECTURE.md`, `docs/DATABASE_AUDIT_2026-09-10.md`, `docs/DATABASE_READINESS_1980.md` and `docs/DATA_WORKFLOW.md`.
 
 ## Parallel database development
 
 The historical master database is expected to improve continuously while the simulation is developed. The importer/validator forms a stable boundary so a newer database version can be audited and adopted without rewriting simulation code or altering existing saves.
 
+The importer preserves source provenance, normalizes known legacy column aliases, validates IDs and relationships, repairs only unambiguous name/ID mismatches, versions the database by SHA-256, and emits a season-readiness report.
+
 ## Development
 
-Requires Node.js 22+.
+Core simulation development requires Node.js 22+. Historical database tooling uses Python 3.11+ and only the standard library.
 
 ```bash
 npm test
+npm run test:data
 ```
 
-The repository is intentionally starting with a small dependency-free simulation core. UI/framework dependencies will be added when the domain and save boundaries are stable.
+Audit a master workbook without modifying it:
+
+```bash
+npm run db:audit -- /path/to/f1_db.xlsx --season 1980 --full-world
+```
+
+Generated files are written to `build/historical/` and are intentionally not committed. A newer workbook can be dropped through the same command to produce a new manifest, validation report and readiness result.
+
+The repository is intentionally starting with a small simulation core. UI/framework dependencies will be added when the domain and save boundaries are stable.
 
 ## Legacy project
 
