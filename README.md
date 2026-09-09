@@ -27,7 +27,11 @@ The project keeps five concerns separate:
 - **Game Systems** — contracts, development, finances, staff, sponsors and management mechanics.
 - **UI** — presentation and player interaction; never the authoritative simulation state.
 
-See `docs/ARCHITECTURE.md` and `docs/DATABASE_AUDIT_2026-09-10.md`.
+See `docs/ARCHITECTURE.md`, `docs/DATABASE_AUDIT_2026-09-10.md` and `docs/DATA_WORKFLOW.md`.
+
+## Parallel database development
+
+The historical master database is expected to improve continuously while the simulation is developed. The importer/validator forms a stable boundary so a newer database version can be audited and adopted without rewriting simulation code or altering existing saves.
 
 ## Development
 
