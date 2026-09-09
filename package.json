@@ -1,0 +1,13 @@
+{
+  "name": "f1-manager-sim",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Persistent historical Formula One management and world simulation.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}
