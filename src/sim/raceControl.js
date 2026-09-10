@@ -17,6 +17,16 @@ function flag(value, fallback = false) {
   return fallback;
 }
 
+function positiveInteger(sources, names, fallback) {
+  for (const source of sources) {
+    for (const name of names) {
+      const parsed = Number(source?.[name]);
+      if (Number.isFinite(parsed) && parsed > 0) return Math.max(1, Math.round(parsed));
+    }
+  }
+  return fallback;
+}
+
 export function resolveRaceControlPolicy(saveWorld) {
   const era = saveWorld.world?.eraSafety ?? {};
   const params = saveWorld.world?.raceModelParams ?? {};
@@ -36,6 +46,7 @@ export function resolveRaceControlPolicy(saveWorld) {
   );
   const yellowFlags = flag(era.yellow_flags ?? params.yellow_flags, false);
   const redFlags = flag(era.red_flags ?? params.red_flags, false);
+  const sources = [era, params, rules];
 
   return {
     yellowFlags,
@@ -44,6 +55,9 @@ export function resolveRaceControlPolicy(saveWorld) {
     virtualSafetyCar,
     safetyCarMode: modernSafetyCar ? "available" : "unavailable_in_era",
     vscMode: virtualSafetyCar ? "available" : "unavailable_in_era",
+    safetyCarDurationLaps: positiveInteger(sources, ["safety_car_duration_laps", "safety_car_min_laps"], 3),
+    virtualSafetyCarDurationLaps: positiveInteger(sources, ["virtual_safety_car_duration_laps", "vsc_duration_laps"], 2),
+    redFlagRestartLaps: positiveInteger(sources, ["red_flag_restart_delay_laps", "red_flag_neutral_laps"], 1),
     source: era.source ?? (Object.keys(era).length ? "era_safety" : "rules_unspecified"),
   };
 }
@@ -60,7 +74,7 @@ function driverCrashRating(saveWorld, driverId) {
   return clamp(numeric(dynamic.crash_likelihood ?? rating.crash_likelihood, 20), 0, 100);
 }
 
-function incidentSeverity(saveWorld, race, event) {
+export function incidentSeverity(saveWorld, race, event) {
   const explicit = numeric(event.severity ?? event.severityScore ?? event.severity_score);
   if (explicit !== null) return clamp(explicit, 0, 100);
   const track = trackForRace(saveWorld, race);
@@ -76,11 +90,76 @@ function localYellow(event, severity) {
   return {
     type: "local_yellow",
     lap: event.lap,
+    startLap: event.lap,
+    endLap: Number(event.lap ?? 0) + duration - 1,
+    durationLaps: duration,
     driverId: event.driverId ?? null,
     severity: Number(severity.toFixed(2)),
     clearsAfterLap: Number(event.lap ?? 0) + duration,
-    effectStatus: "recorded_pending_sector_model",
+    effectStatus: "live_global_approximation_pending_sector_model",
+    source: "severity_policy",
   };
+}
+
+export function decideLiveRaceControl(saveWorld, race, event, suppliedPolicy = null) {
+  if (event?.type !== "retirement" || event?.reason !== "incident") return null;
+  const policy = suppliedPolicy ?? resolveRaceControlPolicy(saveWorld);
+  const severity = incidentSeverity(saveWorld, race, event);
+  const lap = Math.max(1, Math.round(Number(event.lap ?? 1)));
+
+  if (policy.redFlags && severity >= 90) {
+    const duration = Math.max(1, Number(policy.redFlagRestartLaps ?? 1));
+    return {
+      type: "red_flag",
+      lap,
+      startLap: lap,
+      endLap: lap + duration,
+      durationLaps: duration,
+      restartLap: lap + duration,
+      driverId: event.driverId ?? null,
+      severity: Number(severity.toFixed(2)),
+      fieldCompression: 0.02,
+      overtakingAllowed: false,
+      effectStatus: "live",
+      source: "era_race_control",
+    };
+  }
+
+  if (policy.modernSafetyCar && severity >= 65) {
+    const duration = Math.max(1, Number(policy.safetyCarDurationLaps ?? 3));
+    return {
+      type: "safety_car",
+      lap,
+      startLap: lap,
+      endLap: lap + duration - 1,
+      durationLaps: duration,
+      driverId: event.driverId ?? null,
+      severity: Number(severity.toFixed(2)),
+      fieldCompression: 0.15,
+      overtakingAllowed: false,
+      effectStatus: "live",
+      source: "era_race_control",
+    };
+  }
+
+  if (policy.virtualSafetyCar && severity >= 55) {
+    const duration = Math.max(1, Number(policy.virtualSafetyCarDurationLaps ?? 2));
+    return {
+      type: "virtual_safety_car",
+      lap,
+      startLap: lap,
+      endLap: lap + duration - 1,
+      durationLaps: duration,
+      driverId: event.driverId ?? null,
+      severity: Number(severity.toFixed(2)),
+      fieldCompression: null,
+      overtakingAllowed: false,
+      effectStatus: "live",
+      source: "era_race_control",
+    };
+  }
+
+  return policy.yellowFlags ? localYellow(event, severity) : null;
 }
 
 export function reviewRaceTimeline(saveWorld, race) {
@@ -100,7 +179,7 @@ export function reviewRaceTimeline(saveWorld, race) {
         driverId: event.driverId ?? null,
         severity: Number(severity.toFixed(2)),
         decision: "candidate",
-        effectStatus: "awaiting_resumable_race_control",
+        effectStatus: race.timeline?.raceControlLive ? "already_applied_live" : "awaiting_resumable_race_control",
       });
     }
 
@@ -111,7 +190,7 @@ export function reviewRaceTimeline(saveWorld, race) {
         driverId: event.driverId ?? null,
         severity: Number(severity.toFixed(2)),
         decision: "candidate",
-        effectStatus: "awaiting_resumable_race_control",
+        effectStatus: race.timeline?.raceControlLive ? "already_applied_live" : "awaiting_resumable_race_control",
       });
       continue;
     }
@@ -123,7 +202,7 @@ export function reviewRaceTimeline(saveWorld, race) {
         driverId: event.driverId ?? null,
         severity: Number(severity.toFixed(2)),
         decision: "candidate",
-        effectStatus: "awaiting_resumable_race_control",
+        effectStatus: race.timeline?.raceControlLive ? "already_applied_live" : "awaiting_resumable_race_control",
       });
       continue;
     }
@@ -135,9 +214,11 @@ export function reviewRaceTimeline(saveWorld, race) {
     policy,
     interventions,
     reviews,
-    status: reviews.length ? "control_review_pending_live_engine" : "reviewed",
-    note: reviews.length
-      ? "Safety Car/VSC/red-flag candidates are recorded but not allowed to rewrite an already-resolved race. They become active control decisions in the resumable race engine."
-      : "Only era-available control mechanisms were considered.",
+    status: race.timeline?.raceControlLive ? "applied_live" : reviews.length ? "control_review_pending_live_engine" : "reviewed",
+    note: race.timeline?.raceControlLive
+      ? "Era-available Race Control interventions were applied during temporal simulation; this review is an audit summary only."
+      : reviews.length
+        ? "Safety Car/VSC/red-flag candidates are recorded but not allowed to rewrite an already-resolved race. They become active control decisions in the resumable race engine."
+        : "Only era-available control mechanisms were considered.",
   };
 }
