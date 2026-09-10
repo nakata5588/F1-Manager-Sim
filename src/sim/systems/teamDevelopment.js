@@ -23,6 +23,7 @@ const COMPONENTS = [
 ];
 
 function numeric(value, fallback = null) {
+  if (value === null || value === undefined || value === "") return fallback;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
