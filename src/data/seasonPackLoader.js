@@ -89,8 +89,9 @@ function staffLoadout(payload, season) {
     .filter((row) => isTrue(row[flag]) || isTrue(row.import_on_new_save) || isTrue(row.load_into_save_default));
 }
 function staffMatches(assignment, row) {
-  return assignment?.staff_id === row?.staff_id && assignment?.team_id === row?.team_id
-    && (!assignment?.role || assignment.role === row?.role);
+  return assignment?.staff_id === row?.staff_id
+    && (!row?.team_id || assignment?.team_id === row.team_id)
+    && (!row?.role || !assignment?.role || assignment.role === row.role);
 }
 function loaderStaffRows(payload, season, suffix) {
   const assignments = staffLoadout(payload, season);
@@ -350,7 +351,7 @@ export function loadSeasonPackPayload(payload, options = {}) {
     futureEntities: future,
     futureDrivers: [...futureDriverIds].map((id) => ({ driver_id: id, ...(availability.get(id) ?? {}) })),
     futureStaff: [], futureTeams: [...futureTeamIds].map((id) => ({ team_id: id })),
-    sourcePackage: { databaseVersion, packageVersion: payload.version ?? null, packageType: payload.type, season, created: payload.created ?? null, notes: payload.notes ?? null, sourcePath, sourceSha256: sourceChecksum, readiness: { [String(season)]: "season_pack_materialized" } },
+    sourcePackage: { databaseVersion, version: payload.version ?? null, packageVersion: payload.version ?? null, packageType: payload.type, season, created: payload.created ?? null, notes: payload.notes ?? null, sourcePath, sourceSha256: sourceChecksum, readiness: { [String(season)]: "season_pack_materialized" } },
     seasonPack: context(payload, season),
   });
 }
