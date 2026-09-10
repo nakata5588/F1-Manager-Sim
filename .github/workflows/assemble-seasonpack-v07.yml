@@ -1,0 +1,38 @@
+name: Assemble SeasonPack v0.7
+
+on:
+  push:
+    branches: ["feature/season-pack-loader-1980"]
+    paths:
+      - ".github/workflows/assemble-seasonpack-v07.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reconstruct byte-identical payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data/season-packs/1980
+          base64 -d .tmp-seasonpack-payload/part-00 | gzip -dc > data/season-packs/1980/season-pack-1980.v0.7.json
+          echo "df563cbf163e41e749fd096035b3c013a6607ee335be91e798082de13db5dc36  data/season-packs/1980/season-pack-1980.v0.7.json" | sha256sum -c -
+      - name: Commit stable payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/season-packs/1980/season-pack-1980.v0.7.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "data: add Season Pack 1980 v0.7 payload"
+          git push origin HEAD:feature/season-pack-loader-1980
