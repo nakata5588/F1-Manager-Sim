@@ -29,6 +29,7 @@ export function createRaceTimelineSystem() {
       payload.strategyApplied = true;
       updateStoredHistory(saveWorld, payload);
 
+      const controls = result.timeline.controlPeriods ?? [];
       return {
         type: RACE_TIMELINE_EVENT.APPLIED,
         payload: {
@@ -40,6 +41,11 @@ export function createRaceTimelineSystem() {
           overtakes: result.timeline.events.filter((row) => row.type === "overtake").length,
           pit_stops: result.timeline.events.filter((row) => row.type === "pit_stop").length,
           weather_changes: result.timeline.events.filter((row) => row.type === "weather_change").length,
+          race_control_periods: controls.length,
+          local_yellows: controls.filter((row) => row.type === "local_yellow").length,
+          safety_cars: controls.filter((row) => row.type === "safety_car").length,
+          virtual_safety_cars: controls.filter((row) => row.type === "virtual_safety_car").length,
+          red_flags: controls.filter((row) => row.type === "red_flag").length,
         },
       };
     },
