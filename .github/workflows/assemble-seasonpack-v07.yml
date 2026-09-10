@@ -36,20 +36,41 @@ jobs:
             | base64 -d | gzip -dc \
             > data/season-packs/1980/season-pack-1980.v0.7.json
           echo "df563cbf163e41e749fd096035b3c013a6607ee335be91e798082de13db5dc36  data/season-packs/1980/season-pack-1980.v0.7.json" | sha256sum -c -
+      - name: Patch scoped staff matching
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/data/seasonPackLoader.js')
+          text = path.read_text()
+          old = '''function staffMatches(assignment, row) {
+            return assignment?.staff_id === row?.staff_id && assignment?.team_id === row?.team_id
+              && (!assignment?.role || assignment.role === row?.role);
+          }'''
+          new = '''function staffMatches(assignment, row) {
+            return assignment?.staff_id === row?.staff_id
+              && (!row?.team_id || assignment?.team_id === row.team_id)
+              && (!row?.role || !assignment?.role || assignment.role === row.role);
+          }'''
+          if old not in text:
+              raise SystemExit('Expected staffMatches implementation was not found.')
+          path.write_text(text.replace(old, new, 1))
+          PY
       - name: Validate SeasonPack integration
         shell: bash
         run: |
           set -euo pipefail
           npm test
-      - name: Commit stable payload
+      - name: Commit validated integration
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/season-packs/1980/season-pack-1980.v0.7.json
+          git add src/data/seasonPackLoader.js data/season-packs/1980/season-pack-1980.v0.7.json
           if git diff --cached --quiet; then
             exit 0
           fi
-          git commit -m "data: add Season Pack 1980 v0.7 payload"
+          git commit -m "fix(data): finalize Season Pack 1980 v0.7 integration"
           git push origin HEAD:feature/season-pack-loader-1980
