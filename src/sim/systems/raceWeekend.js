@@ -2,7 +2,10 @@ import { createRng } from "../random.js";
 import { SIM_EVENT } from "../timeEngine.js";
 
 export const RACE_EVENT = Object.freeze({
+  WEEKEND_STARTED: "race.weekend_started",
+  PRACTICE_COMPLETED: "race.practice_completed",
   QUALIFYING_COMPLETED: "race.qualifying_completed",
+  GRID_SET: "race.grid_set",
   COMPLETED: "race.completed",
   SKIPPED: "race.skipped",
 });
@@ -10,11 +13,14 @@ export const RACE_EVENT = Object.freeze({
 const DRIVER_FIELDS = Object.freeze({
   qualifying: ["qualifying", "pace"],
   pace: ["pace", "qualifying"],
+  start: ["start_launch", "starts", "racecraft"],
   racecraft: ["racecraft", "race_intelligence"],
   wet: ["wet_skill", "wet_ability"],
   consistency: ["consistency"],
   tyre: ["tire_management", "tyre_management"],
   intelligence: ["race_intelligence", "racecraft"],
+  feedback: ["technical_feedback", "feedback"],
+  adaptability: ["adaptability"],
   crash: ["crash_likelihood"],
 });
 
@@ -86,9 +92,12 @@ function currentRace(saveWorld, event) {
     ?? {};
 }
 
-function currentTrack(saveWorld, event, race) {
-  const id = event.payload?.track_id ?? race.track_id ?? race.circuit_id;
+function trackById(saveWorld, id) {
   return (saveWorld.world?.tracks ?? []).find((row) => row.track_id === id || row.circuit_id === id) ?? {};
+}
+
+function currentTrack(saveWorld, event, race) {
+  return trackById(saveWorld, event.payload?.track_id ?? race.track_id ?? race.circuit_id);
 }
 
 function dependency(track, names, fallback) {
@@ -146,40 +155,201 @@ function wetRace(race, track) {
   return text.includes("wet") || text.includes("rain") || text.includes("storm");
 }
 
-function qualifyingScore(saveWorld, entrant, event, track) {
+function rulesNumber(rules, names, fallback = null) {
+  for (const name of names) {
+    const value = Number(rules?.[name]);
+    if (Number.isFinite(value) && value > 0) return Math.round(value);
+  }
+  return fallback;
+}
+
+function weekendStore(saveWorld) {
+  saveWorld.world.raceWeekendState ??= { active: {} };
+  saveWorld.world.raceWeekendState.active ??= {};
+  return saveWorld.world.raceWeekendState;
+}
+
+function weekendKey(saveWorld, event) {
+  return `${saveWorld.clock.season}:${event.payload?.gp_id ?? event.payload?.round ?? event.date}`;
+}
+
+function activeWeekend(saveWorld, key) {
+  return weekendStore(saveWorld).active[key] ?? null;
+}
+
+function engineeringSupport(saveWorld, teamId) {
+  const assignments = saveWorld.world?.employment?.staff ?? {};
+  const ids = Object.entries(assignments)
+    .filter(([, row]) => row?.teamId === teamId && row?.status === "employed")
+    .map(([id]) => id);
+  if (!ids.length) return 50;
+
+  const values = ids.map((id) => {
+    const state = saveWorld.world?.careerState?.staff?.[id] ?? {};
+    const dynamic = state.attributes ?? {};
+    const ratingRow = (saveWorld.world?.staffRatings ?? []).find((row) => row.staff_id === id) ?? {};
+    return (
+      normalizeRating(dynamic.technical ?? ratingRow.technical, 50) * 0.5
+      + normalizeRating(dynamic.data_analysis ?? ratingRow.data_analysis, 50) * 0.3
+      + normalizeRating(dynamic.communication ?? ratingRow.communication, 50) * 0.2
+    );
+  });
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function idealSetup(track) {
+  const power = dependency(track, ["power_dependency", "engine_dependency", "power_sensitivity"], 0.45);
+  const aero = dependency(track, ["aero_dependency", "downforce_dependency", "aero_sensitivity"], 0.5);
+  const technical = dependency(track, ["technicality", "technical_difficulty", "handling_dependency"], 0.5);
+  return {
+    aeroBalance: round(30 + aero * 60, 2),
+    mechanicalGrip: round(35 + technical * 55, 2),
+    gearing: round(30 + power * 60, 2),
+    cooling: round(48 + power * 18 + technical * 8, 2),
+  };
+}
+
+function setupQuality(actual, ideal) {
+  const fields = Object.keys(ideal);
+  const meanError = fields.reduce((sum, field) => sum + Math.abs(numeric(actual[field], ideal[field]) - ideal[field]), 0) / fields.length;
+  return round(clamp(100 - meanError * 2.35, 25, 100), 2);
+}
+
+function simulatePractice(saveWorld, weekend, event) {
+  const track = trackById(saveWorld, weekend.trackId);
+  const ideal = idealSetup(track);
+  const rules = saveWorld.world?.qualifyingRules ?? saveWorld.world?.rules ?? {};
+  const windows = rulesNumber(rules, ["practice_session_count", "practice_sessions", "free_practice_sessions"], 2);
+  const source = rulesNumber(rules, ["practice_session_count", "practice_sessions", "free_practice_sessions"], null) ? "season_rules" : "simulation_default";
+
+  const results = weekend.entrants.map((entry) => {
+    const feedback = driverAttribute(saveWorld, entry.driverId, DRIVER_FIELDS.feedback, 50);
+    const adaptability = driverAttribute(saveWorld, entry.driverId, DRIVER_FIELDS.adaptability, 50);
+    const consistency = driverAttribute(saveWorld, entry.driverId, DRIVER_FIELDS.consistency, 50);
+    const engineering = engineeringSupport(saveWorld, entry.teamId);
+    const learningRate = clamp((feedback * 0.34 + adaptability * 0.22 + consistency * 0.14 + engineering * 0.3) / 100, 0.2, 0.95);
+    const baseRng = createRng(`${saveWorld.meta.seed}|${weekend.key}|practice-base|${entry.driverId}`);
+    const actual = {};
+    for (const [field, target] of Object.entries(ideal)) {
+      const initialError = (baseRng.next() - 0.5) * 40;
+      const retainedError = initialError * Math.pow(1 - learningRate * 0.48, windows);
+      actual[field] = round(clamp(target + retainedError, 0, 100), 2);
+    }
+    const knowledgeNoise = createRng(`${saveWorld.meta.seed}|${weekend.key}|practice-knowledge|${entry.driverId}`).next() * 4 - 2;
+    const knowledge = clamp(25 + learningRate * 58 + windows * 4 + knowledgeNoise, 20, 100);
+    return {
+      driverId: entry.driverId,
+      teamId: entry.teamId,
+      practiceWindows: windows,
+      setupKnowledge: round(knowledge, 2),
+      setupQuality: setupQuality(actual, ideal),
+      setup: actual,
+      idealSetup: ideal,
+    };
+  });
+
+  weekend.practice = { windows, source, results };
+  weekend.phase = "practice_completed";
+  return weekend.practice;
+}
+
+function setupFor(weekend, driverId) {
+  return weekend.practice?.results?.find((row) => row.driverId === driverId) ?? { setupQuality: 50, setupKnowledge: 50 };
+}
+
+function qualifyingScore(saveWorld, entrant, weekend, event, track, session) {
   const qualifying = driverAttribute(saveWorld, entrant.driverId, DRIVER_FIELDS.qualifying);
   const pace = driverAttribute(saveWorld, entrant.driverId, DRIVER_FIELDS.pace);
   const car = carPerformance(saveWorld, entrant.teamId, track);
   const enginePower = average(engineForTeam(saveWorld, entrant.teamId), ["power"], 50);
   const form = formScore(saveWorld, entrant.driverId);
-  const rng = createRng(`${saveWorld.meta.seed}|${event.id}|qualifying|${entrant.driverId}`);
+  const setup = setupFor(weekend, entrant.driverId);
+  const setupEffect = (setup.setupQuality - 50) * 0.055 + (setup.setupKnowledge - 50) * 0.012;
+  const rng = createRng(`${saveWorld.meta.seed}|${event.id}|qualifying|${session}|${entrant.driverId}`);
   const noise = (rng.next() - 0.5) * 3;
-  return round(qualifying * 0.42 + pace * 0.18 + car * 0.29 + enginePower * 0.08 + form * 0.03 + noise);
+  return round(qualifying * 0.4 + pace * 0.17 + car * 0.28 + enginePower * 0.08 + form * 0.025 + setupEffect + noise);
 }
 
-function raceScore(saveWorld, entrant, gridPosition, event, track, isWet) {
+function simulateQualifying(saveWorld, weekend, event) {
+  const track = trackById(saveWorld, weekend.trackId);
+  const rules = saveWorld.world?.qualifyingRules ?? {};
+  const sessions = rulesNumber(rules, ["session_count", "qualifying_sessions", "number_of_sessions"], 1);
+  const maxStarters = rulesNumber(rules, ["max_starters", "race_grid_size", "grid_size", "max_grid_size"], null);
+  const attempts = weekend.entrants.map((entry) => {
+    const sessionScores = Array.from({ length: sessions }, (_, index) => ({
+      session: index + 1,
+      score: qualifyingScore(saveWorld, entry, weekend, event, track, index + 1),
+    }));
+    const best = Math.max(...sessionScores.map((row) => row.score));
+    return { ...entry, sessions: sessionScores, bestScore: best };
+  });
+
+  const classification = attempts
+    .sort((a, b) => b.bestScore - a.bestScore || a.driverId.localeCompare(b.driverId))
+    .map((entry, index) => ({
+      position: index + 1,
+      driverId: entry.driverId,
+      teamId: entry.teamId,
+      score: entry.bestScore,
+      sessions: entry.sessions,
+      status: maxStarters !== null && index >= maxStarters ? "DNQ" : "QUALIFIED",
+    }));
+
+  weekend.qualifying = {
+    sessions,
+    maxStarters,
+    ruleSource: (sessions !== 1 || maxStarters !== null) ? "season_rules" : "simulation_default",
+    classification,
+  };
+  weekend.phase = "qualifying_completed";
+  return weekend.qualifying;
+}
+
+function buildGrid(weekend) {
+  const qualified = (weekend.qualifying?.classification ?? []).filter((row) => row.status === "QUALIFIED");
+  const grid = qualified.map((row, index) => ({
+    grid: index + 1,
+    driverId: row.driverId,
+    teamId: row.teamId,
+    qualifyingPosition: row.position,
+    qualifyingScore: row.score,
+    penaltyPlaces: 0,
+  }));
+  weekend.grid = grid;
+  weekend.phase = "grid_set";
+  return grid;
+}
+
+function raceScore(saveWorld, entrant, gridPosition, weekend, event, track, isWet) {
   const pace = driverAttribute(saveWorld, entrant.driverId, DRIVER_FIELDS.pace);
   const racecraft = driverAttribute(saveWorld, entrant.driverId, DRIVER_FIELDS.racecraft);
   const consistency = driverAttribute(saveWorld, entrant.driverId, DRIVER_FIELDS.consistency);
   const tyre = driverAttribute(saveWorld, entrant.driverId, DRIVER_FIELDS.tyre);
   const intelligence = driverAttribute(saveWorld, entrant.driverId, DRIVER_FIELDS.intelligence);
   const wet = driverAttribute(saveWorld, entrant.driverId, DRIVER_FIELDS.wet);
+  const start = driverAttribute(saveWorld, entrant.driverId, DRIVER_FIELDS.start);
   const car = carPerformance(saveWorld, entrant.teamId, track);
   const form = formScore(saveWorld, entrant.driverId);
+  const setup = setupFor(weekend, entrant.driverId);
+  const overtakingDifficulty = dependency(track, ["overtaking_difficulty", "passing_difficulty"], 0.5);
   const rng = createRng(`${saveWorld.meta.seed}|${event.id}|race-performance|${entrant.driverId}`);
   const noise = (rng.next() - 0.5) * 4;
-  const gridBonus = Math.max(0, 3 - (gridPosition - 1) * 0.12);
+  const gridBonus = Math.max(0, (3.3 + overtakingDifficulty * 1.4) - (gridPosition - 1) * (0.11 + overtakingDifficulty * 0.06));
+  const startEffect = (start - 50) * 0.018;
+  const setupEffect = (setup.setupQuality - 50) * 0.038;
 
   const driverScore = isWet
-    ? pace * 0.15 + racecraft * 0.18 + consistency * 0.12 + tyre * 0.08 + intelligence * 0.1 + wet * 0.22
-    : pace * 0.23 + racecraft * 0.2 + consistency * 0.14 + tyre * 0.1 + intelligence * 0.11 + wet * 0.02;
-  return round(driverScore + car * 0.23 + form * 0.02 + gridBonus + noise);
+    ? pace * 0.14 + racecraft * 0.18 + consistency * 0.12 + tyre * 0.08 + intelligence * 0.1 + wet * 0.22
+    : pace * 0.22 + racecraft * 0.2 + consistency * 0.14 + tyre * 0.1 + intelligence * 0.11 + wet * 0.02;
+  return round(driverScore + car * 0.23 + form * 0.02 + gridBonus + startEffect + setupEffect + noise);
 }
 
-function retirementOutcome(saveWorld, entrant, event, race) {
+function retirementOutcome(saveWorld, entrant, weekend, event) {
   const reliabilityScore = reliability(saveWorld, entrant.teamId);
   const crashLikelihood = driverAttribute(saveWorld, entrant.driverId, DRIVER_FIELDS.crash, 20);
-  const mechanicalProbability = clamp(0.015 + (100 - reliabilityScore) * 0.0032, 0.01, 0.42);
+  const setup = setupFor(weekend, entrant.driverId);
+  const setupStress = Math.max(0, 60 - setup.setupQuality) * 0.00035;
+  const mechanicalProbability = clamp(0.015 + (100 - reliabilityScore) * 0.0032 + setupStress, 0.01, 0.42);
   const incidentProbability = clamp(0.008 + crashLikelihood * 0.0011, 0.008, 0.16);
   const mechRng = createRng(`${saveWorld.meta.seed}|${event.id}|mechanical|${entrant.driverId}`);
   const incidentRng = createRng(`${saveWorld.meta.seed}|${event.id}|incident|${entrant.driverId}`);
@@ -188,7 +358,7 @@ function retirementOutcome(saveWorld, entrant, event, race) {
   else if (incidentRng.next() < incidentProbability) reason = "incident";
   if (!reason) return { retired: false, reason: null, reliability: round(reliabilityScore, 2), completedLaps: null };
 
-  const laps = Math.max(1, Math.round(numeric(race.laps ?? race.race_laps ?? race.total_laps, 60)));
+  const laps = Math.max(1, Math.round(numeric(weekend.race.laps ?? weekend.race.race_laps ?? weekend.race.total_laps, 60)));
   const progressRng = createRng(`${saveWorld.meta.seed}|${event.id}|retirement-lap|${entrant.driverId}`);
   return {
     retired: true,
@@ -198,25 +368,18 @@ function retirementOutcome(saveWorld, entrant, event, race) {
   };
 }
 
-function buildWeekend(saveWorld, event) {
-  const race = currentRace(saveWorld, event);
-  const track = currentTrack(saveWorld, event, race);
-  const entries = entrants(saveWorld);
-  if (!entries.length) return null;
-
-  const qualifying = entries
-    .map((entry) => ({ ...entry, score: qualifyingScore(saveWorld, entry, event, track) }))
-    .sort((a, b) => b.score - a.score || a.driverId.localeCompare(b.driverId))
-    .map((entry, index) => ({ position: index + 1, driverId: entry.driverId, teamId: entry.teamId, score: entry.score }));
-  const grid = new Map(qualifying.map((row) => [row.driverId, row.position]));
-  const isWet = wetRace(race, track);
-  const rawRace = entries.map((entry) => {
-    const outcome = retirementOutcome(saveWorld, entry, event, race);
+function simulateRace(saveWorld, weekend, event) {
+  const track = trackById(saveWorld, weekend.trackId);
+  const isWet = wetRace(weekend.race, track);
+  const entrantsById = new Map(weekend.entrants.map((entry) => [entry.driverId, entry]));
+  const rawRace = (weekend.grid ?? []).map((gridRow) => {
+    const entry = entrantsById.get(gridRow.driverId);
+    const outcome = retirementOutcome(saveWorld, entry, weekend, event);
     return {
       driverId: entry.driverId,
       teamId: entry.teamId,
-      grid: grid.get(entry.driverId),
-      score: raceScore(saveWorld, entry, grid.get(entry.driverId), event, track, isWet),
+      grid: gridRow.grid,
+      score: raceScore(saveWorld, entry, gridRow.grid, weekend, event, track, isWet),
       ...outcome,
     };
   });
@@ -233,54 +396,111 @@ function buildWeekend(saveWorld, event) {
     performanceIndex: row.score,
     reliability: row.reliability,
   }));
+  weekend.conditions = isWet ? "wet" : "dry_or_unspecified";
+  weekend.classification = classification;
+  weekend.phase = "completed";
+  return classification;
+}
 
-  return {
+function startWeekend(saveWorld, event) {
+  const store = weekendStore(saveWorld);
+  const state = saveWorld.simulation.systemState["race.weekend"] ??= { completed: [] };
+  const key = weekendKey(saveWorld, event);
+  if (state.completed.includes(key) || store.active[key]?.phase === "completed") return null;
+
+  const race = currentRace(saveWorld, event);
+  const track = currentTrack(saveWorld, event, race);
+  const entries = entrants(saveWorld);
+  if (!entries.length) {
+    state.completed.push(key);
+    state.completed.sort();
+    return { type: RACE_EVENT.SKIPPED, payload: { gp_id: event.payload?.gp_id ?? null, reason: "no_race_drivers" } };
+  }
+
+  const weekend = {
+    key,
     season: Number(saveWorld.clock.season),
     gpId: event.payload?.gp_id ?? race.gp_id ?? null,
     gpName: event.payload?.gp_name ?? race.gp_name ?? null,
     round: numeric(event.payload?.round ?? race.round),
     trackId: event.payload?.track_id ?? race.track_id ?? race.circuit_id ?? null,
     date: event.date,
-    conditions: isWet ? "wet" : "dry_or_unspecified",
-    qualifying,
-    classification,
+    phase: "started",
+    entrants: entries,
+    race: structuredClone(race),
+    trackName: track.track_name ?? track.circuit_name ?? null,
+  };
+  store.active[key] = weekend;
+  return {
+    type: RACE_EVENT.WEEKEND_STARTED,
+    payload: { weekend_key: key, gp_id: weekend.gpId, round: weekend.round, entrants: entries.length },
+  };
+}
+
+function finishWeekend(saveWorld, weekend, event) {
+  simulateRace(saveWorld, weekend, event);
+  const state = saveWorld.simulation.systemState["race.weekend"] ??= { completed: [] };
+  if (!state.completed.includes(weekend.key)) state.completed.push(weekend.key);
+  state.completed.sort();
+  saveWorld.history.races ??= [];
+  const archived = structuredClone(weekend);
+  delete archived.race;
+  saveWorld.history.races.push(archived);
+  return {
+    type: RACE_EVENT.COMPLETED,
+    payload: archived,
   };
 }
 
 export function createRaceWeekendSystem() {
   return {
     id: "race.weekend",
-    eventTypes: [SIM_EVENT.RACE_DAY],
+    eventTypes: [SIM_EVENT.RACE_DAY, RACE_EVENT.WEEKEND_STARTED, RACE_EVENT.PRACTICE_COMPLETED, RACE_EVENT.QUALIFYING_COMPLETED, RACE_EVENT.GRID_SET],
     handle({ saveWorld, event }) {
-      const state = saveWorld.simulation.systemState[this.id] ??= { completed: [] };
-      const key = `${saveWorld.clock.season}:${event.payload?.gp_id ?? event.payload?.round ?? event.date}`;
-      if (state.completed.includes(key)) return null;
+      if (event.type === SIM_EVENT.RACE_DAY) return startWeekend(saveWorld, event);
+      const key = event.payload?.weekend_key ?? null;
+      const weekend = key ? activeWeekend(saveWorld, key) : null;
+      if (!weekend) return null;
 
-      const weekend = buildWeekend(saveWorld, event);
-      if (!weekend) {
-        state.completed.push(key);
-        return { type: RACE_EVENT.SKIPPED, payload: { gp_id: event.payload?.gp_id ?? null, reason: "no_race_drivers" } };
+      if (event.type === RACE_EVENT.WEEKEND_STARTED) {
+        const practice = simulatePractice(saveWorld, weekend, event);
+        return {
+          type: RACE_EVENT.PRACTICE_COMPLETED,
+          payload: {
+            weekend_key: key,
+            gp_id: weekend.gpId,
+            practice_windows: practice.windows,
+            average_setup_quality: round(practice.results.reduce((sum, row) => sum + row.setupQuality, 0) / practice.results.length, 2),
+            results: practice.results,
+          },
+        };
       }
 
-      saveWorld.history.races ??= [];
-      saveWorld.history.races.push(structuredClone(weekend));
-      state.completed.push(key);
-      state.completed.sort();
-      return [
-        {
+      if (event.type === RACE_EVENT.PRACTICE_COMPLETED) {
+        const qualifying = simulateQualifying(saveWorld, weekend, event);
+        return {
           type: RACE_EVENT.QUALIFYING_COMPLETED,
           payload: {
+            weekend_key: key,
             gp_id: weekend.gpId,
             round: weekend.round,
-            pole_driver_id: weekend.qualifying[0]?.driverId ?? null,
-            classification: weekend.qualifying,
+            pole_driver_id: qualifying.classification.find((row) => row.status === "QUALIFIED")?.driverId ?? null,
+            sessions: qualifying.sessions,
+            max_starters: qualifying.maxStarters,
+            classification: qualifying.classification,
           },
-        },
-        {
-          type: RACE_EVENT.COMPLETED,
-          payload: weekend,
-        },
-      ];
+        };
+      }
+
+      if (event.type === RACE_EVENT.QUALIFYING_COMPLETED) {
+        const grid = buildGrid(weekend);
+        return {
+          type: RACE_EVENT.GRID_SET,
+          payload: { weekend_key: key, gp_id: weekend.gpId, grid, starters: grid.length },
+        };
+      }
+
+      return finishWeekend(saveWorld, weekend, event);
     },
   };
 }
