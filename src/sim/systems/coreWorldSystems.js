@@ -8,6 +8,7 @@ import { createAiEmploymentDecisionSystem, createEmploymentMarketSystem } from "
 import { createTeamEconomySystem } from "./teamEconomy.js";
 import { createTeamDevelopmentSystem } from "./teamDevelopment.js";
 import { createSeasonRolloverSystem } from "./seasonRollover.js";
+import { createRaceStrategySystem } from "./raceStrategy.js";
 import { createRaceWeekendSystem } from "./raceWeekend.js";
 import { createChampionshipSystem } from "./championship.js";
 
@@ -31,6 +32,7 @@ export function createCoreWorldSystems(options = {}) {
       projectDurationMonths: options.projectDurationMonths,
     }),
     createSeasonRolloverSystem(),
+    createRaceStrategySystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createRaceWeekendSystem(),
     createChampionshipSystem(),
   ];
