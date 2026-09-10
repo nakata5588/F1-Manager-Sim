@@ -71,7 +71,7 @@ test("explicit weather timeline creates an in-race transition and wet skill affe
     { lap: 5, condition: "wet" },
   ]);
   const weakWet = structuredClone(strongWet);
-  weakWet.world.driverRatings.find((row) => row.driver_id === "A").wet_skill = 10;
+  weakWet.world.driverRatings.find((row) => row.driver_id === "A").wet_skill = 20;
 
   const good = simulateTemporalRace(strongWet, baseWeekend());
   const bad = simulateTemporalRace(weakWet, baseWeekend());
