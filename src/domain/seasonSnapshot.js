@@ -19,6 +19,19 @@ const inCareerWindow = (driver, year) => {
   return Number(year) >= start && Number(year) <= end;
 };
 
+const activationYear = (row) => {
+  const raw = row.activation_year
+    ?? row.world_or_talent_activation_year
+    ?? row.world_activation_year
+    ?? row.talent_activation_year
+    ?? row.event_year;
+  const value = Number(raw);
+  return Number.isInteger(value) ? value : null;
+};
+
+const entityType = (row) => String(row.entity_type ?? row.type ?? "").toLowerCase();
+const entityId = (row) => row.entity_id ?? row.id ?? null;
+
 export function createSeasonSnapshot(database, year) {
   const season = Number(year);
   if (!Number.isInteger(season)) throw new TypeError("Season year must be an integer.");
@@ -40,21 +53,37 @@ export function createSeasonSnapshot(database, year) {
   const calendar = exactYear(database.calendar, season);
   const activeTrackIds = new Set(calendar.map((row) => row.track_id));
 
+  const drivers = (database.drivers ?? []).filter(
+    (row) => contractedDriverIds.has(row.driver_id) || ratedDriverIds.has(row.driver_id) || inCareerWindow(row, season)
+  );
+  const staff = (database.staff ?? []).filter(
+    (row) => contractedStaffIds.has(row.staff_id) || ratedStaffIds.has(row.staff_id)
+  );
+  const teams = (database.teams ?? []).filter((row) => activeTeamIds.has(row.team_id));
+
+  const futureSource = database.futureEntities ?? database.availabilityTimeline ?? [];
+  const futureEntities = futureSource.filter((row) => {
+    const activation = activationYear(row);
+    return activation !== null && activation >= season && entityId(row);
+  });
+  const currentDriverIds = new Set(drivers.map((row) => row.driver_id));
+  const currentStaffIds = new Set(staff.map((row) => row.staff_id));
+  const currentTeamIds = new Set(teams.map((row) => row.team_id));
+  const futureDriverIds = new Set(futureEntities.filter((row) => entityType(row) === "driver").map(entityId));
+  const futureStaffIds = new Set(futureEntities.filter((row) => entityType(row) === "staff").map(entityId));
+  const futureTeamIds = new Set(futureEntities.filter((row) => ["team", "constructor", "organisation", "organization"].includes(entityType(row))).map(entityId));
+
   const snapshot = {
     season,
     databaseVersion: database.manifest?.databaseVersion ?? null,
     sourceChecksum: database.manifest?.sourceSha256 ?? null,
     readinessStatus: database.manifest?.readiness?.[String(season)] ?? null,
-    teams: (database.teams ?? []).filter((row) => activeTeamIds.has(row.team_id)),
+    teams,
     teamBrands,
-    drivers: (database.drivers ?? []).filter(
-      (row) => contractedDriverIds.has(row.driver_id) || ratedDriverIds.has(row.driver_id) || inCareerWindow(row, season)
-    ),
+    drivers,
     driverRatings,
     contracts,
-    staff: (database.staff ?? []).filter(
-      (row) => contractedStaffIds.has(row.staff_id) || ratedStaffIds.has(row.staff_id)
-    ),
+    staff,
     staffRatings,
     staffContracts,
     engines: (database.engines ?? []).filter((row) => activeEngineIds.has(row.engine_id)),
@@ -67,6 +96,10 @@ export function createSeasonSnapshot(database, year) {
     qualifyingRules: effectiveYear(database.qualifyingRules, season),
     eraSafety: effectiveYear(database.eraSafety, season),
     accidentModel: effectiveYear(database.accidentModel, season),
+    futureEntities,
+    futureDrivers: (database.drivers ?? []).filter((row) => futureDriverIds.has(row.driver_id) && !currentDriverIds.has(row.driver_id)),
+    futureStaff: (database.staff ?? []).filter((row) => futureStaffIds.has(row.staff_id) && !currentStaffIds.has(row.staff_id)),
+    futureTeams: (database.teams ?? []).filter((row) => futureTeamIds.has(row.team_id) && !currentTeamIds.has(row.team_id)),
   };
 
   return deepFreeze(snapshot);
