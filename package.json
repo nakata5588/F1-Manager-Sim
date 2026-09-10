@@ -12,6 +12,7 @@
     "test:data": "python -m unittest discover -s tools/db/tests -v",
     "db:audit": "python tools/db/import_master.py",
     "sim:headless": "node scripts/headless-sim.js",
+    "sim:long-run": "node scripts/long-run-sim.js",
     "seasonpack:materialize": "node scripts/materialize-season-pack.js",
     "save:from-season-pack": "node scripts/materialize-season-pack.js"
   }
