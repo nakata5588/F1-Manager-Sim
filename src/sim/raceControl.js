@@ -58,6 +58,7 @@ export function resolveRaceControlPolicy(saveWorld) {
     safetyCarDurationLaps: positiveInteger(sources, ["safety_car_duration_laps", "safety_car_min_laps"], 3),
     virtualSafetyCarDurationLaps: positiveInteger(sources, ["virtual_safety_car_duration_laps", "vsc_duration_laps"], 2),
     redFlagRestartLaps: positiveInteger(sources, ["red_flag_restart_delay_laps", "red_flag_neutral_laps"], 1),
+    durationDataStatus: "explicit_when_supplied_otherwise_simulation_default",
     source: era.source ?? (Object.keys(era).length ? "era_safety" : "rules_unspecified"),
   };
 }
@@ -96,6 +97,8 @@ function localYellow(event, severity) {
     driverId: event.driverId ?? null,
     severity: Number(severity.toFixed(2)),
     clearsAfterLap: Number(event.lap ?? 0) + duration,
+    fieldCompression: null,
+    overtakingAllowed: false,
     effectStatus: "live_global_approximation_pending_sector_model",
     source: "severity_policy",
   };
@@ -113,7 +116,7 @@ export function decideLiveRaceControl(saveWorld, race, event, suppliedPolicy = n
       type: "red_flag",
       lap,
       startLap: lap,
-      endLap: lap + duration,
+      endLap: lap + duration - 1,
       durationLaps: duration,
       restartLap: lap + duration,
       driverId: event.driverId ?? null,
