@@ -5,6 +5,8 @@ import { createCareerDevelopmentSystem } from "./careerDevelopment.js";
 import { createRetirementSystem } from "./retirement.js";
 import { createRetirementEmploymentSystem } from "./retirementEmployment.js";
 import { createAiEmploymentDecisionSystem, createEmploymentMarketSystem } from "./employmentMarket.js";
+import { createTeamEconomySystem } from "./teamEconomy.js";
+import { createTeamDevelopmentSystem } from "./teamDevelopment.js";
 
 export function createCoreWorldSystems(options = {}) {
   return [
@@ -18,6 +20,12 @@ export function createCoreWorldSystems(options = {}) {
     createAiEmploymentDecisionSystem({
       controlledTeamIds: options.controlledTeamIds ?? [],
       defaultContractYears: options.defaultContractYears ?? 2,
+    }),
+    createTeamEconomySystem(),
+    createTeamDevelopmentSystem({
+      controlledTeamIds: options.controlledTeamIds ?? [],
+      minimumCashReserve: options.minimumCashReserve,
+      projectDurationMonths: options.projectDurationMonths,
     }),
   ];
 }

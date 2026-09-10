@@ -13,4 +13,6 @@ export { createCareerDevelopmentSystem } from "./sim/systems/careerDevelopment.j
 export { createRetirementSystem, retirementProbability } from "./sim/systems/retirement.js";
 export { createRetirementEmploymentSystem } from "./sim/systems/retirementEmployment.js";
 export { EMPLOYMENT_EVENT, createAiEmploymentDecisionSystem, createEmploymentMarketSystem } from "./sim/systems/employmentMarket.js";
+export { TEAM_FINANCE_EVENT, createTeamEconomySystem } from "./sim/systems/teamEconomy.js";
+export { TEAM_DEVELOPMENT_EVENT, createTeamDevelopmentSystem } from "./sim/systems/teamDevelopment.js";
 export { createCoreWorldSystems } from "./sim/systems/coreWorldSystems.js";
