@@ -15,4 +15,7 @@ export { createRetirementEmploymentSystem } from "./sim/systems/retirementEmploy
 export { EMPLOYMENT_EVENT, createAiEmploymentDecisionSystem, createEmploymentMarketSystem } from "./sim/systems/employmentMarket.js";
 export { TEAM_FINANCE_EVENT, createTeamEconomySystem } from "./sim/systems/teamEconomy.js";
 export { TEAM_DEVELOPMENT_EVENT, createTeamDevelopmentSystem } from "./sim/systems/teamDevelopment.js";
+export { SEASON_EVENT, createSeasonRolloverSystem } from "./sim/systems/seasonRollover.js";
+export { RACE_EVENT, createRaceWeekendSystem } from "./sim/systems/raceWeekend.js";
+export { CHAMPIONSHIP_EVENT, createChampionshipSystem, parsePointsSystem } from "./sim/systems/championship.js";
 export { createCoreWorldSystems } from "./sim/systems/coreWorldSystems.js";
