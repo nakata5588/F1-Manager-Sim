@@ -7,6 +7,8 @@ export { createSaveWorld } from "./save/createSaveWorld.js";
 export { deserializeSaveWorld, SAVE_FORMAT, SAVE_SCHEMA_VERSION, serializeSaveWorld } from "./save/serialization.js";
 export { createRng } from "./sim/random.js";
 export { availableTyreCompounds, createRaceStrategyPlan, evaluateRaceStrategy } from "./sim/raceStrategy.js";
+export { currentStrategyStint, reviseRaceStrategy, selectLiveTyreCompound } from "./sim/liveStrategy.js";
+export { advanceLiveRaceSession, applyLiveStrategyInstruction, clearCompletedLiveRaceSession, getLiveRaceSession, recommendLiveStrategyInstruction, startLiveRaceSession } from "./sim/liveRaceController.js";
 export { decideLiveRaceControl, incidentSeverity, resolveRaceControlPolicy, reviewRaceTimeline } from "./sim/raceControl.js";
 export { simulateTemporalRace } from "./sim/raceTimeline.js";
 export { advanceDay } from "./sim/clock.js";
@@ -20,7 +22,7 @@ export { createCareerDevelopmentSystem } from "./sim/systems/careerDevelopment.j
 export { createRetirementSystem, retirementProbability } from "./sim/systems/retirement.js";
 export { createRetirementEmploymentSystem } from "./sim/systems/retirementEmployment.js";
 export { EMPLOYMENT_EVENT, createAiEmploymentDecisionSystem, createEmploymentMarketSystem } from "./sim/systems/employmentMarket.js";
-export { RACE_ENTRY_EVENT, createRaceEntrySystem } from "./sim/systems/raceEntry.js";
+export { RACE_ENTRY_EVENT, createRaceEntrySystem } from "./sim/sim/systems/raceEntry.js";
 export { TEAM_FINANCE_EVENT, createTeamEconomySystem } from "./sim/systems/teamEconomy.js";
 export { TEAM_DEVELOPMENT_EVENT, createTeamDevelopmentSystem } from "./sim/systems/teamDevelopment.js";
 export { SEASON_EVENT, createSeasonRolloverSystem } from "./sim/systems/seasonRollover.js";
