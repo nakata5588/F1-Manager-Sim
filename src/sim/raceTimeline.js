@@ -1,3 +1,4 @@
+import { decideLiveRaceControl, resolveRaceControlPolicy } from "./raceControl.js";
 import { createRng } from "./random.js";
 
 function numeric(value, fallback = null) {
@@ -45,10 +46,7 @@ function currentTrack(saveWorld, weekend, race) {
 }
 
 function raceLaps(weekend, race) {
-  return Math.max(1, Math.round(numeric(
-    race.laps ?? race.race_laps ?? race.total_laps ?? weekend.totalLaps,
-    60,
-  )));
+  return Math.max(1, Math.round(numeric(race.laps ?? race.race_laps ?? race.total_laps ?? weekend.totalLaps, 60)));
 }
 
 function conditionName(value) {
@@ -72,12 +70,7 @@ function parseTimeline(value) {
 }
 
 function weatherPlan(saveWorld, weekend, race, track, laps) {
-  const explicit = parseTimeline(
-    race.weather_timeline
-      ?? race.weatherTimeline
-      ?? race.condition_timeline
-      ?? race.conditions_timeline,
-  )
+  const explicit = parseTimeline(race.weather_timeline ?? race.weatherTimeline ?? race.condition_timeline ?? race.conditions_timeline)
     .map((row) => ({
       lap: Math.max(1, Math.round(numeric(row?.lap ?? row?.from_lap ?? row?.start_lap, 1))),
       condition: conditionName(row?.condition ?? row?.weather ?? row?.state),
@@ -93,21 +86,13 @@ function weatherPlan(saveWorld, weekend, race, track, laps) {
     return { source: "explicit_timeline", changes: explicit.filter((row) => row.lap <= laps) };
   }
 
-  const transitionLap = numeric(
-    race.weather_change_lap
-      ?? race.rain_start_lap
-      ?? race.wet_from_lap
-      ?? race.condition_change_lap,
-  );
+  const transitionLap = numeric(race.weather_change_lap ?? race.rain_start_lap ?? race.wet_from_lap ?? race.condition_change_lap);
   if (transitionLap !== null && transitionLap >= 1 && transitionLap <= laps) {
     const initial = conditionName(race.start_weather ?? race.weather_start ?? race.weather_condition ?? race.weather) ?? "dry";
     const next = conditionName(race.end_weather ?? race.weather_end ?? race.weather_after_change) ?? (initial === "dry" ? "wet" : "dry");
     return {
       source: "explicit_transition",
-      changes: [
-        { lap: 1, condition: initial },
-        { lap: Math.round(transitionLap), condition: next },
-      ],
+      changes: [{ lap: 1, condition: initial }, { lap: Math.round(transitionLap), condition: next }],
     };
   }
 
@@ -321,6 +306,34 @@ function attemptPasses(saveWorld, weekend, lap, order, states, track, pitters, e
   }
 }
 
+function compressRunningField(order, states, factor) {
+  const leaderId = order.find((id) => states.get(id)?.status === "RUNNING");
+  const leader = leaderId ? states.get(leaderId) : null;
+  if (!leader) return;
+  for (const id of order) {
+    const state = states.get(id);
+    if (!state || state.status !== "RUNNING" || id === leaderId) continue;
+    const gap = Math.max(0, state.elapsedIndex - leader.elapsedIndex);
+    state.elapsedIndex = leader.elapsedIndex + gap * factor;
+  }
+}
+
+function controlPenalty(control) {
+  if (!control) return 0;
+  if (control.type === "safety_car") return 2.5;
+  if (control.type === "virtual_safety_car") return 1.55;
+  if (control.type === "local_yellow") return 0.35;
+  if (control.type === "red_flag") return 2.8;
+  return 0;
+}
+
+function strongerControl(current, candidate) {
+  const weight = { red_flag: 4, safety_car: 3, virtual_safety_car: 2, local_yellow: 1 };
+  if (!current) return candidate;
+  if (!candidate) return current;
+  return (weight[candidate.type] ?? 0) > (weight[current.type] ?? 0) ? candidate : current;
+}
+
 function classify(order, states, baselineRows, laps) {
   const baselineById = new Map(baselineRows.map((row) => [row.driverId, row]));
   const runningOrder = order.filter((id) => states.get(id)?.status === "RUNNING");
@@ -349,7 +362,42 @@ function classify(order, states, baselineRows, laps) {
   });
 }
 
-export function simulateTemporalRace(saveWorld, weekend) {
+function serializeStates(states) {
+  return Object.fromEntries([...states.entries()].map(([id, state]) => [id, structuredClone(state)]));
+}
+
+function restoreStates(raw) {
+  return new Map(Object.entries(raw ?? {}).map(([id, state]) => [id, structuredClone(state)]));
+}
+
+function buildResumeState(weekend, lap, order, states, events, snapshots, leaderByLap, controlPeriods, lastCondition, activeControl) {
+  return {
+    version: 1,
+    model: "lap_index_v2_resumable",
+    weekendKey: weekend.key,
+    lap,
+    order: [...order],
+    states: serializeStates(states),
+    events: structuredClone(events),
+    snapshots: structuredClone(snapshots),
+    leaderByLap: [...leaderByLap],
+    controlPeriods: structuredClone(controlPeriods),
+    lastCondition,
+    activeControl: activeControl ? structuredClone(activeControl) : null,
+  };
+}
+
+function validateResumeState(weekend, resumeState) {
+  if (!resumeState) return;
+  if (Number(resumeState.version) !== 1 || resumeState.weekendKey !== weekend.key) {
+    throw new Error("Resume state does not belong to this race weekend.");
+  }
+  if (!Number.isInteger(Number(resumeState.lap)) || !Array.isArray(resumeState.order) || !resumeState.states) {
+    throw new Error("Resume state is incomplete.");
+  }
+}
+
+export function simulateTemporalRace(saveWorld, weekend, options = {}) {
   if (!weekend?.key || !Array.isArray(weekend.classification) || !Array.isArray(weekend.grid)) {
     throw new TypeError("A completed race weekend with grid and classification is required.");
   }
@@ -360,28 +408,52 @@ export function simulateTemporalRace(saveWorld, weekend) {
   const weather = weatherPlan(saveWorld, weekend, race, track, laps);
   const fuel = fuelModel(race, laps);
   const baselineRows = weekend.classification.filter((row) => (weekend.grid ?? []).some((grid) => grid.driverId === row.driverId));
+  const resumeState = options.resumeState ?? null;
+  validateResumeState(weekend, resumeState);
+
   const strategyWasAlreadyApplied = Boolean(weekend.strategyApplied);
-  const states = new Map(baselineRows.map((row) => [row.driverId, initialDriverState(saveWorld, weekend, row, laps, strategyWasAlreadyApplied)]));
-  const order = (weekend.grid ?? []).map((row) => row.driverId).filter((id) => states.has(id));
-  const events = [];
-  const snapshots = [];
-  const leaderByLap = [];
+  const states = resumeState
+    ? restoreStates(resumeState.states)
+    : new Map(baselineRows.map((row) => [row.driverId, initialDriverState(saveWorld, weekend, row, laps, strategyWasAlreadyApplied)]));
+  const order = resumeState
+    ? [...resumeState.order]
+    : (weekend.grid ?? []).map((row) => row.driverId).filter((id) => states.has(id));
+  const events = resumeState ? structuredClone(resumeState.events ?? []) : [];
+  const snapshots = resumeState ? structuredClone(resumeState.snapshots ?? []) : [];
+  const leaderByLap = resumeState ? [...(resumeState.leaderByLap ?? [])] : [];
+  const controlPeriods = resumeState ? structuredClone(resumeState.controlPeriods ?? []) : [];
   const weatherChanges = weather.changes.map((row) => ({ ...row }));
   const fuelSummary = {};
-  let lastCondition = conditionAt(weather, 1);
+  const policy = resolveRaceControlPolicy(saveWorld);
+  let activeControl = resumeState?.activeControl ? structuredClone(resumeState.activeControl) : null;
+  let lastCondition = resumeState?.lastCondition ?? conditionAt(weather, Math.max(1, Number(resumeState?.lap ?? 1)));
+  const startLap = Number(resumeState?.lap ?? 0) + 1;
+  const requestedStop = Number(options.stopAfterLap ?? laps);
+  const endLap = Math.min(laps, Math.max(startLap - 1, Number.isFinite(requestedStop) ? Math.round(requestedStop) : laps));
 
-  for (let lap = 1; lap <= laps; lap += 1) {
+  for (let lap = startLap; lap <= endLap; lap += 1) {
+    if (activeControl && lap > activeControl.endLap) {
+      events.push({
+        lap,
+        type: activeControl.type === "red_flag" ? "race_restart" : "race_control_clear",
+        control: activeControl.type,
+      });
+      activeControl = null;
+    }
+
     const condition = conditionAt(weather, lap);
     if (lap > 1 && condition !== lastCondition) events.push({ lap, type: "weather_change", from: lastCondition, to: condition });
     lastCondition = condition;
     const pitters = new Set();
+    let newControl = null;
 
     for (const id of [...order]) {
       const state = states.get(id);
       if (!state || state.status !== "RUNNING") continue;
       const strategy = strategyFor(weekend, id);
       const lapState = lapCost(saveWorld, weekend, state, lap, condition, fuel, strategy);
-      state.lastLapCost = lapState.cost;
+      const controlCost = controlPenalty(activeControl);
+      state.lastLapCost = lapState.cost + controlCost;
       state.tyreWear = lapState.tyre.wear;
       if (lapState.tyre.wear !== null) state.maxTyreWear = Math.max(state.maxTyreWear, lapState.tyre.wear);
       state.fuelKg = lapState.fuel.fuelKg;
@@ -404,11 +476,14 @@ export function simulateTemporalRace(saveWorld, weekend) {
       if (incidentRng.next() < state.failure.incident) {
         state.status = "DNF";
         state.reason = "incident";
-        events.push({ lap, type: "retirement", driverId: id, reason: "incident" });
+        const incident = { lap, type: "retirement", driverId: id, reason: "incident" };
+        events.push(incident);
+        const decision = decideLiveRaceControl(saveWorld, weekend, incident, policy);
+        newControl = strongerControl(newControl, decision);
         continue;
       }
 
-      state.elapsedIndex += lapState.cost;
+      state.elapsedIndex += state.lastLapCost;
       state.completedLaps = lap;
 
       const stop = pitStopAt(strategy, lap);
@@ -428,16 +503,45 @@ export function simulateTemporalRace(saveWorld, weekend) {
       }
     }
 
+    if (newControl) {
+      activeControl = strongerControl(activeControl, newControl);
+      controlPeriods.push(structuredClone(newControl));
+      events.push({
+        lap,
+        type: "race_control",
+        control: newControl.type,
+        driverId: newControl.driverId,
+        severity: newControl.severity,
+        startLap: newControl.startLap,
+        endLap: newControl.endLap,
+        restartLap: newControl.restartLap ?? null,
+      });
+    }
+
     const running = order.filter((id) => states.get(id)?.status === "RUNNING");
     const retired = order.filter((id) => states.get(id)?.status !== "RUNNING");
     order.splice(0, order.length, ...running, ...retired);
-    attemptPasses(saveWorld, weekend, lap, order, states, track, pitters, events);
-    leaderByLap.push(order.find((id) => states.get(id)?.status === "RUNNING") ?? null);
 
+    const controlApplies = activeControl && lap >= activeControl.startLap && lap <= activeControl.endLap;
+    if (controlApplies && numeric(activeControl.fieldCompression) !== null) {
+      compressRunningField(order, states, clamp(Number(activeControl.fieldCompression), 0, 1));
+    }
+    if (!controlApplies || activeControl.overtakingAllowed !== false) {
+      attemptPasses(saveWorld, weekend, lap, order, states, track, pitters, events);
+    }
+
+    leaderByLap.push(order.find((id) => states.get(id)?.status === "RUNNING") ?? null);
     const interval = Math.max(1, Math.round(laps / 6));
     const changedWeather = weatherChanges.some((row) => row.lap === lap && lap !== 1);
-    if (lap === 1 || lap === laps || lap % interval === 0 || changedWeather || pitters.size > 0) {
-      recordSnapshot(snapshots, lap, order, states, changedWeather ? "weather_change" : pitters.size ? "pit_cycle" : lap === laps ? "finish" : "interval");
+    const controlChanged = Boolean(newControl);
+    if (lap === 1 || lap === laps || lap % interval === 0 || changedWeather || pitters.size > 0 || controlChanged) {
+      recordSnapshot(
+        snapshots,
+        lap,
+        order,
+        states,
+        controlChanged ? newControl.type : changedWeather ? "weather_change" : pitters.size ? "pit_cycle" : lap === laps ? "finish" : "interval",
+      );
     }
   }
 
@@ -450,7 +554,8 @@ export function simulateTemporalRace(saveWorld, weekend) {
     }
   }
 
-  const classification = classify(order, states, baselineRows, laps);
+  const completed = endLap >= laps;
+  const classification = completed ? classify(order, states, baselineRows, laps) : null;
   const tyreSummary = {};
   for (const state of states.values()) {
     tyreSummary[state.driverId] = {
@@ -460,18 +565,28 @@ export function simulateTemporalRace(saveWorld, weekend) {
     };
   }
 
+  const nextResumeState = completed
+    ? null
+    : buildResumeState(weekend, endLap, order, states, events, snapshots, leaderByLap, controlPeriods, lastCondition, activeControl);
+
   return {
     classification,
+    resumeState: nextResumeState,
     timeline: {
-      version: 1,
-      model: "lap_index_v1",
-      lapsSimulated: laps,
+      version: 2,
+      model: "lap_index_v2_resumable",
+      completed,
+      lapsSimulated: endLap,
+      totalLaps: laps,
       weather: { source: weather.source, changes: weatherChanges },
       fuel: { ...fuel, drivers: fuelSummary },
       events,
       leaderByLap,
       snapshots,
       tyreSummary,
+      raceControlLive: true,
+      raceControlPolicy: policy,
+      controlPeriods,
     },
   };
 }
