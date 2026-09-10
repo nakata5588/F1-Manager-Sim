@@ -12,10 +12,7 @@ export function parsePointsSystem(value) {
   if (Array.isArray(value)) return value.map(Number).filter(Number.isFinite);
   const text = String(value ?? "").trim();
   if (!text) return [];
-  return text
-    .split(/[-,;\s/]+/)
-    .map(Number)
-    .filter(Number.isFinite);
+  return text.split(/[-,;\s/]+/).map(Number).filter(Number.isFinite);
 }
 
 function pointsForWorld(saveWorld) {
@@ -39,8 +36,10 @@ function ensureChampionship(saveWorld, season = saveWorld.clock.season) {
     saveWorld.world.championship = {
       season: Number(season),
       scoringMode: pointsSystem.length ? "gross_points" : "unscored_missing_rules",
+      standingsStatus: pointsSystem.length ? "provisional_era_rules_pending" : "rules_missing",
+      constructorScoringMode: pointsSystem.length ? "sum_driver_gross_points" : "unscored_missing_rules",
       note: pointsSystem.length
-        ? "Official discard/best-results rules require explicit Season Database support; gross points are retained losslessly."
+        ? "Gross points are retained losslessly. Official era-specific discard/counting and constructor rules require explicit Season Database support before an official champion is declared."
         : "No race points system was supplied by the Season Database, so results are retained without inventing championship points.",
       pointsSystem,
       racesCompleted: 0,
@@ -107,11 +106,12 @@ function updateFromRace(saveWorld, event) {
     payload: {
       season: championship.season,
       races_completed: championship.racesCompleted,
-      leader_driver_id: championship.driverStandings[0]?.id ?? null,
-      leader_constructor_id: championship.constructorStandings[0]?.id ?? null,
+      gross_leader_driver_id: championship.driverStandings[0]?.id ?? null,
+      gross_leader_constructor_id: championship.constructorStandings[0]?.id ?? null,
       driver_standings: championship.driverStandings,
       constructor_standings: championship.constructorStandings,
       scoring_mode: championship.scoringMode,
+      standings_status: championship.standingsStatus,
     },
   };
 }
@@ -125,7 +125,7 @@ export function createChampionshipSystem() {
         const championship = ensureChampionship(saveWorld, saveWorld.clock.season);
         return {
           type: CHAMPIONSHIP_EVENT.INITIALIZED,
-          payload: { season: championship.season, points_system: championship.pointsSystem, scoring_mode: championship.scoringMode },
+          payload: { season: championship.season, points_system: championship.pointsSystem, scoring_mode: championship.scoringMode, standings_status: championship.standingsStatus },
         };
       }
 
@@ -138,15 +138,16 @@ export function createChampionshipSystem() {
             type: CHAMPIONSHIP_EVENT.ARCHIVED,
             payload: {
               season: archived.season,
-              driver_champion_id: archived.driverStandings?.[0]?.id ?? null,
-              constructor_champion_id: archived.constructorStandings?.[0]?.id ?? null,
+              gross_points_leader_driver_id: archived.driverStandings?.[0]?.id ?? null,
+              gross_points_leader_constructor_id: archived.constructorStandings?.[0]?.id ?? null,
               scoring_mode: archived.scoringMode,
+              standings_status: archived.standingsStatus,
             },
           });
         }
         events.push({
           type: CHAMPIONSHIP_EVENT.INITIALIZED,
-          payload: { season: championship.season, points_system: championship.pointsSystem, scoring_mode: championship.scoringMode },
+          payload: { season: championship.season, points_system: championship.pointsSystem, scoring_mode: championship.scoringMode, standings_status: championship.standingsStatus },
         });
         return events;
       }
