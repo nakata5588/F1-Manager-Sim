@@ -7,6 +7,9 @@ import { createRetirementEmploymentSystem } from "./retirementEmployment.js";
 import { createAiEmploymentDecisionSystem, createEmploymentMarketSystem } from "./employmentMarket.js";
 import { createTeamEconomySystem } from "./teamEconomy.js";
 import { createTeamDevelopmentSystem } from "./teamDevelopment.js";
+import { createSeasonRolloverSystem } from "./seasonRollover.js";
+import { createRaceWeekendSystem } from "./raceWeekend.js";
+import { createChampionshipSystem } from "./championship.js";
 
 export function createCoreWorldSystems(options = {}) {
   return [
@@ -27,5 +30,8 @@ export function createCoreWorldSystems(options = {}) {
       minimumCashReserve: options.minimumCashReserve,
       projectDurationMonths: options.projectDurationMonths,
     }),
+    createSeasonRolloverSystem(),
+    createRaceWeekendSystem(),
+    createChampionshipSystem(),
   ];
 }
