@@ -22,7 +22,15 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p data/season-packs/1980
-          base64 -d .tmp-seasonpack-payload/part-00 | gzip -dc > data/season-packs/1980/season-pack-1980.v0.7.json
+          cat \
+            .tmp-seasonpack-payload/v2-part-00 \
+            .tmp-seasonpack-payload/v2-part-01 \
+            .tmp-seasonpack-payload/v2-part-02 \
+            .tmp-seasonpack-payload/v2-part-03 \
+            .tmp-seasonpack-payload/v2-part-04 \
+            .tmp-seasonpack-payload/v2-part-05 \
+            | base64 -d | gzip -dc \
+            > data/season-packs/1980/season-pack-1980.v0.7.json
           echo "df563cbf163e41e749fd096035b3c013a6607ee335be91e798082de13db5dc36  data/season-packs/1980/season-pack-1980.v0.7.json" | sha256sum -c -
       - name: Commit stable payload
         shell: bash
