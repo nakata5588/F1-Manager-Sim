@@ -1,12 +1,24 @@
 import { loadHistoricalSeason } from "../domain/historicalWorld.js";
 import { createSaveWorld } from "../save/createSaveWorld.js";
 import { advanceDays, initializeSimulation, SIM_EVENT } from "./timeEngine.js";
+import { createCoreWorldSystems } from "./systems/coreWorldSystems.js";
 
 function countEligibleEntities(saveWorld) {
   return Object.values(saveWorld.world?.entityAvailability ?? {}).reduce(
     (total, collection) => total + Object.values(collection ?? {}).filter((entry) => entry?.status === "eligible").length,
     0,
   );
+}
+
+function employmentSummary(saveWorld) {
+  const employment = saveWorld.world?.employment ?? {};
+  return {
+    employedDrivers: Object.keys(employment.drivers ?? {}).length,
+    employedStaff: Object.keys(employment.staff ?? {}).length,
+    freeDrivers: employment.freeAgents?.drivers?.length ?? 0,
+    freeStaff: employment.freeAgents?.staff?.length ?? 0,
+    openVacancies: (employment.vacancies ?? []).filter((row) => row.status === "open").length,
+  };
 }
 
 export function runHeadlessSimulation(database, options = {}) {
@@ -20,7 +32,10 @@ export function runHeadlessSimulation(database, options = {}) {
     startDate: options.startDate ?? `${season}-01-01`,
     createdAt: options.createdAt,
   });
-  const systems = options.systems ?? [];
+  const systems = options.systems ?? createCoreWorldSystems({
+    controlledTeamIds: options.controlledTeamIds ?? [],
+    defaultContractYears: options.defaultContractYears ?? 2,
+  });
   const initialization = initializeSimulation(saveWorld, systems);
   const result = advanceDays(saveWorld, days, systems);
   const events = [...initialization.events, ...result.events];
@@ -38,6 +53,8 @@ export function runHeadlessSimulation(database, options = {}) {
       drivers: saveWorld.world.drivers?.length ?? 0,
       futureEntities: saveWorld.world.futureEntities?.length ?? 0,
       eligibleEntities: countEligibleEntities(saveWorld),
+      transfers: saveWorld.history.transfers.length,
+      ...employmentSummary(saveWorld),
       scheduledRaceDaysReached: raceDays.length,
       raceDays: raceDays.map((item) => ({ date: item.date, ...item.payload })),
     },
