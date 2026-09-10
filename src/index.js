@@ -1,6 +1,8 @@
 export { createSeasonSnapshot } from "./domain/seasonSnapshot.js";
 export { getSeasonReadiness, listSupportedSeasons, loadHistoricalSeason } from "./domain/historicalWorld.js";
 export { loadSeasonPackPayload, parseSeasonPackPayload, seasonPackSheetRows, SeasonPackValidationError, validateSeasonPackPayload } from "./data/seasonPackLoader.js";
+export { applySeasonPackOverlay, overlaySourceChecksum, SeasonPackOverlayError } from "./data/seasonPackOverlay.js";
+export { loadSeasonPackRuntimePayload, validateSeasonPackRuntimePayload } from "./data/seasonPackRuntime.js";
 export { createSaveWorld } from "./save/createSaveWorld.js";
 export { deserializeSaveWorld, SAVE_FORMAT, SAVE_SCHEMA_VERSION, serializeSaveWorld } from "./save/serialization.js";
 export { createRng } from "./sim/random.js";

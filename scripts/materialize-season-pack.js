@@ -2,8 +2,11 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import { gunzipSync } from "node:zlib";
 
-import { loadSeasonPackPayload, SeasonPackValidationError, validateSeasonPackPayload } from "../src/data/seasonPackLoader.js";
+import { applySeasonPackOverlay, overlaySourceChecksum } from "../src/data/seasonPackOverlay.js";
+import { loadSeasonPackRuntimePayload, validateSeasonPackRuntimePayload } from "../src/data/seasonPackRuntime.js";
+import { SeasonPackValidationError } from "../src/data/seasonPackLoader.js";
 import { createSaveWorld } from "../src/save/createSaveWorld.js";
 import { serializeSaveWorld } from "../src/save/serialization.js";
 
@@ -11,10 +14,10 @@ function usage() {
   return [
     "Usage:",
     "  node scripts/materialize-season-pack.js <season-pack.json> [output-save.json] [seed]",
-    "  node scripts/materialize-season-pack.js --season-pack <payload.json> [--out <save.json>] [--seed <seed>] [--start-date YYYY-MM-DD]",
+    "  node scripts/materialize-season-pack.js --season-pack <payload.json> [--overlay <overlay.json|overlay.json.gz>] [--out <save.json>] [--seed <seed>] [--start-date YYYY-MM-DD]",
     "",
-    "Canonical 1980 example:",
-    "  npm run seasonpack:materialize -- --season-pack data/season-packs/1980/season-pack-1980.v0.7.json --out tmp/1980-loader-test.save.json --seed 1980-loader-test",
+    "Canonical 1980 v0.8 example:",
+    "  npm run seasonpack:materialize -- --season-pack data/season-packs/1980/season-pack-1980.v0.7.json --overlay data/season-packs/1980/season-pack-1980.v0.8.overlay.json.gz --out tmp/1980-loader-test.save.json --seed 1980-loader-test",
   ].join("\n");
 }
 
@@ -23,6 +26,7 @@ function parseArguments(argv) {
   if (!argv[0].startsWith("--")) {
     return {
       seasonPack: argv[0],
+      overlay: null,
       out: argv[1] ?? null,
       seed: argv[2] ?? null,
       startDate: null,
@@ -42,23 +46,39 @@ function parseArguments(argv) {
   if (!parsed["season-pack"]) throw new Error(`--season-pack is required.\n${usage()}`);
   return {
     seasonPack: parsed["season-pack"],
+    overlay: parsed.overlay ?? null,
     out: parsed.out ?? null,
     seed: parsed.seed ?? null,
     startDate: parsed["start-date"] ?? null,
   };
 }
 
+function parseOverlay(raw, path) {
+  const bytes = path.endsWith(".gz") ? gunzipSync(raw) : raw;
+  return JSON.parse(bytes.toString("utf8"));
+}
+
 async function main() {
   const args = parseArguments(process.argv.slice(2));
   const inputPath = resolve(args.seasonPack);
   const raw = await readFile(inputPath);
-  const sourceChecksum = createHash("sha256").update(raw).digest("hex");
-  const payload = JSON.parse(raw.toString("utf8"));
+  let payload = JSON.parse(raw.toString("utf8"));
+  let sourceChecksum = createHash("sha256").update(raw).digest("hex");
+  let sourcePath = inputPath;
 
-  validateSeasonPackPayload(payload);
-  const snapshot = loadSeasonPackPayload(payload, {
+  if (args.overlay) {
+    const overlayPath = resolve(args.overlay);
+    const overlayRaw = await readFile(overlayPath);
+    const overlay = parseOverlay(overlayRaw, overlayPath);
+    payload = applySeasonPackOverlay(payload, overlay);
+    sourceChecksum = overlaySourceChecksum(overlay) ?? createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+    sourcePath = `${inputPath} + ${overlayPath}`;
+  }
+
+  validateSeasonPackRuntimePayload(payload);
+  const snapshot = loadSeasonPackRuntimePayload(payload, {
     sourceChecksum,
-    sourcePath: inputPath,
+    sourcePath,
   });
   const save = createSaveWorld(snapshot, {
     seed: args.seed ?? `${snapshot.season}-season-pack`,
@@ -86,6 +106,9 @@ async function main() {
     races: snapshot.calendar.length,
     startingRaceEntries: snapshot.startingRaceEntries.length,
     fullEntrants: counts.fullEntrants ?? null,
+    carPerformanceModels: counts.carPerformanceModels ?? null,
+    engineModels: counts.engineModels ?? null,
+    tyreModels: counts.tyreModels ?? null,
   }, null, 2));
 }
 
