@@ -102,6 +102,12 @@ function projectionState(saveWorld) {
   return saveWorld.simulation.systemState["race.entries"] ??= { projection: null };
 }
 
+function employmentAssignments(saveWorld) {
+  saveWorld.world.employment ??= {};
+  saveWorld.world.employment.drivers ??= {};
+  return saveWorld.world.employment.drivers;
+}
+
 // Compatibility bridge while Race Weekend still reads the employment projection.
 // The authoritative participation state remains world.raceEntryState; original
 // employment roles are restored immediately after the weekend is resolved.
@@ -109,7 +115,7 @@ function projectToEmployment(saveWorld) {
   const state = ensureState(saveWorld);
   const system = projectionState(saveWorld);
   if (system.projection) return;
-  const assignments = saveWorld.world.employment?.drivers ??= {};
+  const assignments = employmentAssignments(saveWorld);
   const backup = {};
   for (const entry of state.current) {
     const current = assignments[entry.driverId];
@@ -129,7 +135,7 @@ function restoreEmployment(saveWorld) {
   const system = projectionState(saveWorld);
   const backup = system.projection;
   if (!backup) return;
-  const assignments = saveWorld.world.employment?.drivers ??= {};
+  const assignments = employmentAssignments(saveWorld);
   for (const [driverId, original] of Object.entries(backup)) {
     if (original === null) delete assignments[driverId];
     else assignments[driverId] = original;
