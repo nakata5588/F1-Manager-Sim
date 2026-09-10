@@ -5,6 +5,7 @@ on:
     branches: ["feature/season-pack-loader-1980"]
     paths:
       - ".github/workflows/assemble-seasonpack-v07.yml"
+      - ".tmp-seasonpack-payload/**"
 
 permissions:
   contents: write
@@ -28,10 +29,18 @@ jobs:
             .tmp-seasonpack-payload/v2-part-02 \
             .tmp-seasonpack-payload/v2-part-03 \
             .tmp-seasonpack-payload/v2-part-04 \
-            .tmp-seasonpack-payload/v2-part-05 \
+            .tmp-seasonpack-payload/v3-part-05-a \
+            .tmp-seasonpack-payload/v3-part-05-b \
+            .tmp-seasonpack-payload/v3-part-05-c \
+            .tmp-seasonpack-payload/v3-part-05-d \
             | base64 -d | gzip -dc \
             > data/season-packs/1980/season-pack-1980.v0.7.json
           echo "df563cbf163e41e749fd096035b3c013a6607ee335be91e798082de13db5dc36  data/season-packs/1980/season-pack-1980.v0.7.json" | sha256sum -c -
+      - name: Validate SeasonPack integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test
       - name: Commit stable payload
         shell: bash
         run: |
