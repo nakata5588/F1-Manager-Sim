@@ -20,8 +20,7 @@ export function parsePointsSystem(value) {
 
 function pointsForWorld(saveWorld) {
   const rules = saveWorld.world?.rules ?? {};
-  const parsed = parsePointsSystem(rules.points_system ?? rules.pointsSystem ?? rules.race_points);
-  return parsed.length ? parsed : [10, 6, 4, 3, 2, 1];
+  return parsePointsSystem(rules.points_system ?? rules.pointsSystem ?? rules.race_points);
 }
 
 function emptyEntry(id) {
@@ -36,11 +35,14 @@ function sortStandings(entries) {
 
 function ensureChampionship(saveWorld, season = saveWorld.clock.season) {
   if (!saveWorld.world.championship || Number(saveWorld.world.championship.season) !== Number(season)) {
+    const pointsSystem = pointsForWorld(saveWorld);
     saveWorld.world.championship = {
       season: Number(season),
-      scoringMode: "gross_points",
-      note: "Official discard/best-results rules require explicit Season Database support; gross points are retained losslessly.",
-      pointsSystem: pointsForWorld(saveWorld),
+      scoringMode: pointsSystem.length ? "gross_points" : "unscored_missing_rules",
+      note: pointsSystem.length
+        ? "Official discard/best-results rules require explicit Season Database support; gross points are retained losslessly."
+        : "No race points system was supplied by the Season Database, so results are retained without inventing championship points.",
+      pointsSystem,
       racesCompleted: 0,
       drivers: {},
       constructors: {},
