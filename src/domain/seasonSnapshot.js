@@ -9,6 +9,18 @@ const effectiveYear = (rows, year) => {
   return eligible.reduce((latest, row) => Number(row.year) > Number(latest.year) ? row : latest);
 };
 
+const activeInSeason = (row, season) => {
+  const exact = Number(row?.year);
+  if (Number.isInteger(exact)) return exact === season;
+  const start = Number(row?.contract_start ?? row?.start_year ?? row?.start_season);
+  const end = Number(row?.contract_until ?? row?.end_year ?? row?.end_season);
+  if (Number.isFinite(start) && season < start) return false;
+  if (Number.isFinite(end) && season > end) return false;
+  const date = String(row?.date ?? "");
+  if (/^\d{4}-\d{2}-\d{2}/.test(date)) return Number(date.slice(0, 4)) === season;
+  return true;
+};
+
 const inCareerWindow = (driver, year) => {
   const startRaw = driver.career_start_year ?? driver.f1_rookie_season;
   if (startRaw === null || startRaw === undefined || startRaw === "") return false;
@@ -73,6 +85,11 @@ export function createSeasonSnapshot(database, year) {
   const futureStaffIds = new Set(futureEntities.filter((row) => entityType(row) === "staff").map(entityId));
   const futureTeamIds = new Set(futureEntities.filter((row) => ["team", "constructor", "organisation", "organization"].includes(entityType(row))).map(entityId));
 
+  const teamFinancials = (database.teamFinancials ?? []).filter((row) => activeTeamIds.has(row.team_id) && activeInSeason(row, season));
+  const sponsorContracts = (database.sponsorContracts ?? []).filter((row) => activeTeamIds.has(row.team_id) && activeInSeason(row, season));
+  const financeLedger = (database.financeLedger ?? []).filter((row) => activeTeamIds.has(row.team_id) && activeInSeason(row, season));
+  const rdProjects = (database.rdProjects ?? []).filter((row) => activeTeamIds.has(row.team_id) && activeInSeason(row, season));
+
   const snapshot = {
     season,
     databaseVersion: database.manifest?.databaseVersion ?? null,
@@ -90,6 +107,10 @@ export function createSeasonSnapshot(database, year) {
     teamEngines,
     carStats: exactYear(database.carStats, season).filter((row) => activeTeamIds.has(row.team_id)),
     facilities: exactYear(database.facilities, season).filter((row) => activeTeamIds.has(row.team_id)),
+    teamFinancials,
+    sponsorContracts,
+    financeLedger,
+    rdProjects,
     tracks: (database.tracks ?? []).filter((row) => activeTrackIds.has(row.track_id)),
     calendar,
     rules: effectiveYear(database.rules, season),
