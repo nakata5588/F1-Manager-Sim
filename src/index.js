@@ -7,7 +7,7 @@ export { createSaveWorld } from "./save/createSaveWorld.js";
 export { deserializeSaveWorld, SAVE_FORMAT, SAVE_SCHEMA_VERSION, serializeSaveWorld } from "./save/serialization.js";
 export { createRng } from "./sim/random.js";
 export { availableTyreCompounds, createRaceStrategyPlan, evaluateRaceStrategy } from "./sim/raceStrategy.js";
-export { resolveRaceControlPolicy, reviewRaceTimeline } from "./sim/raceControl.js";
+export { decideLiveRaceControl, incidentSeverity, resolveRaceControlPolicy, reviewRaceTimeline } from "./sim/raceControl.js";
 export { simulateTemporalRace } from "./sim/raceTimeline.js";
 export { advanceDay } from "./sim/clock.js";
 export { advanceDays, dispatchSimulationEvents, initializeSimulation, SIM_EVENT } from "./sim/timeEngine.js";
