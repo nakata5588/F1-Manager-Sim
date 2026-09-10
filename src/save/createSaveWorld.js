@@ -19,6 +19,10 @@ export function createSaveWorld(historicalSnapshot, options = {}) {
       day: 1,
     },
     world: clonedWorld,
+    simulation: {
+      nextEventSequence: 0,
+      systemState: {},
+    },
     history: {
       events: [],
       championships: [],

@@ -6,6 +6,8 @@ import {
   createRng,
   createSaveWorld,
   createSeasonSnapshot,
+  createContractMilestoneSystem,
+  CONTRACT_EVENT,
   deserializeSaveWorld,
   listSupportedSeasons,
   loadHistoricalSeason,
@@ -134,4 +136,28 @@ test("headless harness advances a career without UI", () => {
   const result = runHeadlessSimulation(database, { season: 1980, days: 3, seed: "headless-test", createdAt: "1980-01-01T00:00:00.000Z" });
   assert.equal(result.summary.finalDate, "1980-01-04");
   assert.equal(result.summary.scheduledRaceDaysReached, 1);
+});
+
+test("simulation event sequence remains globally monotonic across multiple advances", () => {
+  const save = createSaveWorld(loadHistoricalSeason(db, 1980), { startDate: "1980-01-01" });
+  const first = advanceDays(save, 1);
+  const second = advanceDays(save, 1);
+  assert.ok(first.events.at(-1).sequence < second.events[0].sequence);
+  assert.equal(save.simulation.nextEventSequence, second.events.at(-1).sequence + 1);
+});
+
+test("contract milestone system emits each expiry once when a new season starts", () => {
+  const database = {
+    ...db,
+    contracts: [{ year: 1980, team_id: "t_1", driver_id: "d_1", role: "main_driver", contract_start: 1979, contract_until: 1980 }],
+  };
+  const snapshot = loadHistoricalSeason(database, 1980);
+  const save = createSaveWorld(snapshot, { startDate: "1980-12-31" });
+  const system = createContractMilestoneSystem();
+  const result = advanceDays(save, 1, [system]);
+  const expiries = result.events.filter((item) => item.type === CONTRACT_EVENT.EXPIRED);
+  assert.equal(expiries.length, 1);
+  assert.equal(expiries[0].payload.driver_id, "d_1");
+  const later = advanceDays(save, 1, [system]);
+  assert.equal(later.events.filter((item) => item.type === CONTRACT_EVENT.EXPIRED).length, 0);
 });

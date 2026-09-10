@@ -40,7 +40,9 @@ function scheduledEvents(saveWorld, previousSeason) {
 export function dispatchSimulationEvents(saveWorld, initialEvents, systems = []) {
   const queue = [...initialEvents];
   const processed = [];
-  let sequence = 0;
+  if (!saveWorld.simulation) saveWorld.simulation = { nextEventSequence: 0, systemState: {} };
+  if (!saveWorld.simulation.systemState) saveWorld.simulation.systemState = {};
+  let sequence = Number(saveWorld.simulation.nextEventSequence ?? 0);
   const MAX_EVENTS = 10_000;
 
   while (queue.length > 0) {
@@ -55,6 +57,7 @@ export function dispatchSimulationEvents(saveWorld, initialEvents, systems = [])
     };
     sequence += 1;
     processed.push(current);
+    saveWorld.simulation.nextEventSequence = sequence;
 
     for (const system of systems) {
       if (!system || typeof system.handle !== "function") continue;

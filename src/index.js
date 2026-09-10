@@ -6,3 +6,4 @@ export { createRng } from "./sim/random.js";
 export { advanceDay } from "./sim/clock.js";
 export { advanceDays, dispatchSimulationEvents, SIM_EVENT } from "./sim/timeEngine.js";
 export { runHeadlessSimulation } from "./sim/headless.js";
+export { CONTRACT_EVENT, createContractMilestoneSystem } from "./sim/systems/contractMilestones.js";
