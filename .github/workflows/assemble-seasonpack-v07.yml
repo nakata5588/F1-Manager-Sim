@@ -36,7 +36,7 @@ jobs:
             | base64 -d | gzip -dc \
             > data/season-packs/1980/season-pack-1980.v0.7.json
           echo "df563cbf163e41e749fd096035b3c013a6607ee335be91e798082de13db5dc36  data/season-packs/1980/season-pack-1980.v0.7.json" | sha256sum -c -
-      - name: Patch scoped staff matching
+      - name: Patch loader compatibility
         shell: bash
         run: |
           set -euo pipefail
@@ -44,18 +44,23 @@ jobs:
           from pathlib import Path
           path = Path('src/data/seasonPackLoader.js')
           text = path.read_text()
-          old = '''function staffMatches(assignment, row) {
+          old_staff = '''function staffMatches(assignment, row) {
             return assignment?.staff_id === row?.staff_id && assignment?.team_id === row?.team_id
               && (!assignment?.role || assignment.role === row?.role);
           }'''
-          new = '''function staffMatches(assignment, row) {
+          new_staff = '''function staffMatches(assignment, row) {
             return assignment?.staff_id === row?.staff_id
               && (!row?.team_id || assignment?.team_id === row.team_id)
               && (!row?.role || !assignment?.role || assignment.role === row.role);
           }'''
-          if old not in text:
+          if old_staff not in text:
               raise SystemExit('Expected staffMatches implementation was not found.')
-          path.write_text(text.replace(old, new, 1))
+          text = text.replace(old_staff, new_staff, 1)
+          old_source = 'sourcePackage: { databaseVersion, packageVersion: payload.version ?? null, packageType: payload.type, season,'
+          new_source = 'sourcePackage: { databaseVersion, version: payload.version ?? null, packageVersion: payload.version ?? null, packageType: payload.type, season,'
+          if old_source not in text:
+              raise SystemExit('Expected sourcePackage implementation was not found.')
+          path.write_text(text.replace(old_source, new_source, 1))
           PY
       - name: Validate SeasonPack integration
         shell: bash
