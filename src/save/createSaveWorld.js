@@ -28,6 +28,8 @@ export function createSaveWorld(historicalSnapshot, options = {}) {
       championships: [],
       transfers: [],
       retirements: [],
+      finances: [],
+      development: [],
       records: [],
     },
   };
