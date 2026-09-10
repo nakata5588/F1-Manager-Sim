@@ -13,10 +13,12 @@ import sys
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
     from tools.db.normalize import dump_json, normalize_workbook, strip_provenance
+    from tools.db.normalize_v04 import is_v04_workbook, normalize_workbook_v04
     from tools.db.validate import readiness_for_season
     from tools.db.xlsx_reader import read_xlsx
 else:
     from .normalize import dump_json, normalize_workbook, strip_provenance
+    from .normalize_v04 import is_v04_workbook, normalize_workbook_v04
     from .validate import readiness_for_season
     from .xlsx_reader import read_xlsx
 
@@ -36,7 +38,11 @@ def main() -> int:
         parser.error("The importer currently expects an .xlsx workbook.")
 
     workbook = read_xlsx(args.workbook)
-    world, issues = normalize_workbook(workbook, args.workbook)
+    if is_v04_workbook(workbook):
+        world, issues = normalize_workbook_v04(workbook, args.workbook)
+    else:
+        world, issues = normalize_workbook(workbook, args.workbook)
+
     seasons = args.seasons or [1980]
     readiness = [readiness_for_season(world, season, issues) for season in seasons]
 
@@ -65,7 +71,12 @@ def main() -> int:
         output_world = world if not args.no_provenance else strip_provenance(world)
         dump_json(args.out / "canonical-world.json", output_world)
 
-    print(json.dumps({"databaseVersion": manifest["databaseVersion"], "readiness": manifest["readiness"], "issues": manifest["issueCounts"]}, indent=2))
+    print(json.dumps({
+        "databaseVersion": manifest["databaseVersion"],
+        "sourceSchema": manifest.get("sourceSchema", "legacy"),
+        "readiness": manifest["readiness"],
+        "issues": manifest["issueCounts"],
+    }, indent=2))
     return 1 if any(item["status"] == "BLOCKED" for item in readiness) else 0
 
 
