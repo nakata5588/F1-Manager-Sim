@@ -4,6 +4,7 @@ export { createSaveWorld } from "./save/createSaveWorld.js";
 export { deserializeSaveWorld, SAVE_FORMAT, SAVE_SCHEMA_VERSION, serializeSaveWorld } from "./save/serialization.js";
 export { createRng } from "./sim/random.js";
 export { availableTyreCompounds, createRaceStrategyPlan, evaluateRaceStrategy } from "./sim/raceStrategy.js";
+export { simulateTemporalRace } from "./sim/raceTimeline.js";
 export { advanceDay } from "./sim/clock.js";
 export { advanceDays, dispatchSimulationEvents, initializeSimulation, SIM_EVENT } from "./sim/timeEngine.js";
 export { runHeadlessSimulation } from "./sim/headless.js";
@@ -19,5 +20,6 @@ export { TEAM_DEVELOPMENT_EVENT, createTeamDevelopmentSystem } from "./sim/syste
 export { SEASON_EVENT, createSeasonRolloverSystem } from "./sim/systems/seasonRollover.js";
 export { STRATEGY_EVENT, createRaceStrategySystem } from "./sim/systems/raceStrategy.js";
 export { RACE_EVENT, createRaceWeekendSystem } from "./sim/systems/raceWeekend.js";
+export { RACE_TIMELINE_EVENT, createRaceTimelineSystem } from "./sim/systems/raceTimeline.js";
 export { CHAMPIONSHIP_EVENT, createChampionshipSystem, parsePointsSystem } from "./sim/systems/championship.js";
 export { createCoreWorldSystems } from "./sim/systems/coreWorldSystems.js";
