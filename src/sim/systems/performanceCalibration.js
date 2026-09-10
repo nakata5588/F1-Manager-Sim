@@ -22,6 +22,7 @@ const COMPONENTS = Object.freeze([
 ]);
 
 function numeric(value, fallback = null) {
+  if (value === null || value === undefined || value === "") return fallback;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
@@ -193,9 +194,9 @@ export function calibratedCarComponents(saveWorld, teamId, track, phase, current
   const result = {};
 
   for (const field of COMPONENTS) {
-    // Do not create era-inappropriate components that did not exist in the
-    // canonical car state. Calibration only reshapes dimensions already present.
-    if (numeric(current?.[field]) === null && numeric(source?.[field]) === null) continue;
+    // A null source field means the component is not part of this era's car
+    // model. Ignore placeholder zeroes that older saves may have materialized.
+    if (numeric(source?.[field]) === null) continue;
     result[field] = round(clamp(targets[field] + numeric(deltas[field], 0)), 4);
   }
   return result;
