@@ -74,28 +74,54 @@ function initialize(saveWorld) {
   return state;
 }
 
-function removeDriver(saveWorld, driverId, reason) {
-  if (!driverId) return null;
+function startSeason(saveWorld, event) {
   const state = ensureState(saveWorld);
-  const before = state.current.length;
-  state.current = state.current.filter((entry) => entry.driverId !== driverId);
-  if (state.current.length === before) return null;
+  const season = Number(event.payload?.season ?? saveWorld.clock.season);
+  if (!Number.isFinite(season) || state.season === season) return null;
+  state.season = season;
+  state.source = "save_world_dynamic";
   state.revision += 1;
-  return { reason, driverId };
+  return { reason: "season_started", season };
 }
 
-function addSignedDriver(saveWorld, event) {
+function removeDriver(saveWorld, driverId, reason, teamId = null) {
+  if (!driverId) return null;
+  const state = ensureState(saveWorld);
+  const entry = state.current.find((row) => row.driverId === driverId);
+  if (!entry || (teamId && entry.teamId !== teamId)) return null;
+  state.current = state.current.filter((row) => row.driverId !== driverId);
+  state.revision += 1;
+  return { reason, driverId, teamId: entry.teamId };
+}
+
+function upsertSignedDriver(saveWorld, event) {
   if (String(event.payload?.worker_type ?? "driver").toLowerCase() !== "driver") return null;
   const driverId = event.payload?.worker_id;
   const teamId = event.payload?.team_id;
   const role = event.payload?.role ?? "driver";
   if (!driverId || !teamId || !raceRole(role)) return null;
+
   const state = ensureState(saveWorld);
-  if (state.current.some((entry) => entry.driverId === driverId)) return null;
-  state.current.push(normalizeEntry({ driverId, teamId, role }, "simulation_contract"));
+  const index = state.current.findIndex((entry) => entry.driverId === driverId);
+  const previous = index >= 0 ? state.current[index] : null;
+  const next = normalizeEntry({ driverId, teamId, role }, "simulation_contract");
+  if (previous) {
+    next.entrantId = previous.entrantId;
+    next.carNumber = previous.carNumber;
+    next.tyreSupplier = previous.tyreSupplier;
+    state.current[index] = next;
+  } else {
+    state.current.push(next);
+  }
   sortEntries(state.current);
+  state.source = "save_world_dynamic";
   state.revision += 1;
-  return { reason: "race_driver_signed", driverId, teamId };
+  return {
+    reason: previous && previous.teamId !== teamId ? "race_driver_reassigned" : "race_driver_signed",
+    driverId,
+    teamId,
+    previousTeamId: previous?.teamId ?? null,
+  };
 }
 
 function projectionState(saveWorld) {
@@ -160,6 +186,7 @@ export function createRaceEntrySystem() {
     id: "race.entries",
     eventTypes: [
       SIM_EVENT.CAREER_STARTED,
+      SIM_EVENT.SEASON_STARTED,
       SIM_EVENT.RACE_DAY,
       CONTRACT_EVENT.EXPIRED,
       EMPLOYMENT_EVENT.CONTRACT_SIGNED,
@@ -181,7 +208,14 @@ export function createRaceEntrySystem() {
         };
       }
 
+      if (event.type === SIM_EVENT.SEASON_STARTED) {
+        const change = startSeason(saveWorld, event);
+        return change ? updateEvent(ensureState(saveWorld), change) : null;
+      }
+
       if (event.type === SIM_EVENT.RACE_DAY) {
+        // `seasonPack.roundEntryReference` is audit/calibration data only. Race-day
+        // participation evolves from the Save World and is never scripted from it.
         projectToEmployment(saveWorld);
         return null;
       }
@@ -192,7 +226,12 @@ export function createRaceEntrySystem() {
       }
 
       if (event.type === CONTRACT_EVENT.EXPIRED) {
-        const change = removeDriver(saveWorld, event.payload?.driver_id, "contract_expired");
+        const change = removeDriver(
+          saveWorld,
+          event.payload?.driver_id,
+          "contract_expired",
+          event.payload?.team_id ?? null,
+        );
         return change ? updateEvent(ensureState(saveWorld), change) : null;
       }
 
@@ -201,7 +240,7 @@ export function createRaceEntrySystem() {
         return change ? updateEvent(ensureState(saveWorld), change) : null;
       }
 
-      const change = addSignedDriver(saveWorld, event);
+      const change = upsertSignedDriver(saveWorld, event);
       return change ? updateEvent(ensureState(saveWorld), change) : null;
     },
   };
