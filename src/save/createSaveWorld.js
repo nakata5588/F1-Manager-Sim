@@ -27,6 +27,7 @@ export function createSaveWorld(historicalSnapshot, options = {}) {
       events: [],
       championships: [],
       transfers: [],
+      retirements: [],
       records: [],
     },
   };
