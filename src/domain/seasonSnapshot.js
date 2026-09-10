@@ -21,6 +21,16 @@ const activeInSeason = (row, season) => {
   return true;
 };
 
+const tyreActiveInSeason = (row, season) => {
+  const exact = Number(row?.year ?? row?.season);
+  if (Number.isInteger(exact)) return exact === season;
+  const start = Number(row?.valid_from_year ?? row?.introduced_year ?? row?.from_year ?? row?.start_year);
+  const end = Number(row?.valid_to_year ?? row?.retired_year ?? row?.to_year ?? row?.end_year);
+  if (Number.isFinite(start) && season < start) return false;
+  if (Number.isFinite(end) && season > end) return false;
+  return true;
+};
+
 const inCareerWindow = (driver, year) => {
   const startRaw = driver.career_start_year ?? driver.f1_rookie_season;
   if (startRaw === null || startRaw === undefined || startRaw === "") return false;
@@ -89,6 +99,8 @@ export function createSeasonSnapshot(database, year) {
   const sponsorContracts = (database.sponsorContracts ?? []).filter((row) => activeTeamIds.has(row.team_id) && activeInSeason(row, season));
   const financeLedger = (database.financeLedger ?? []).filter((row) => activeTeamIds.has(row.team_id) && activeInSeason(row, season));
   const rdProjects = (database.rdProjects ?? []).filter((row) => activeTeamIds.has(row.team_id) && activeInSeason(row, season));
+  const tyreSource = database.tyres ?? database.tyreCatalog ?? database.tyresCatalog ?? database.tyersCatalog ?? [];
+  const tyres = tyreSource.filter((row) => tyreActiveInSeason(row, season));
 
   const snapshot = {
     season,
@@ -111,6 +123,7 @@ export function createSeasonSnapshot(database, year) {
     sponsorContracts,
     financeLedger,
     rdProjects,
+    tyres,
     tracks: (database.tracks ?? []).filter((row) => activeTrackIds.has(row.track_id)),
     calendar,
     rules: effectiveYear(database.rules, season),
