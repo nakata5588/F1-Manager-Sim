@@ -4,6 +4,8 @@ import { ENTITY_EVENT } from "./entityAvailability.js";
 export const CAREER_EVENT = Object.freeze({
   INITIALIZED: "career.lifecycle_initialized",
   PROFILE_ACTIVATED: "career.profile_activated",
+  DEVELOPED: "career.developed",
+  RETIRED: "career.retired",
 });
 
 function isoDate(value) {
