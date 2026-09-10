@@ -25,16 +25,7 @@ function teamBrand(saveWorld, teamId) {
 }
 
 function startingCash(team, brand, financial) {
-  const candidates = [
-    financial?.cash_balance,
-    financial?.cash,
-    financial?.starting_budget,
-    team?.cash_balance,
-    team?.starting_budget,
-    team?.budget,
-    brand?.starting_budget,
-    brand?.budget,
-  ];
+  const candidates = [financial?.cash_balance, financial?.cash, financial?.starting_budget, team?.cash_balance, team?.starting_budget, team?.budget, brand?.starting_budget, brand?.budget];
   for (const value of candidates) {
     const parsed = Number(value);
     if (Number.isFinite(parsed)) return parsed;
@@ -71,15 +62,17 @@ function initializeTeams(saveWorld, date) {
 }
 
 function rowActiveInSeason(row, season) {
-  const exact = Number(row?.year);
-  if (Number.isInteger(exact)) return exact === season;
   const startRaw = row?.contract_start ?? row?.start_year ?? row?.start_season;
   const endRaw = row?.contract_until ?? row?.end_year ?? row?.end_season;
   const start = Number(startRaw);
   const end = Number(endRaw);
-  if (Number.isFinite(start) && season < start) return false;
-  if (Number.isFinite(end) && season > end) return false;
-  return true;
+  if (Number.isFinite(start) || Number.isFinite(end)) {
+    if (Number.isFinite(start) && season < start) return false;
+    if (Number.isFinite(end) && season > end) return false;
+    return true;
+  }
+  const exact = Number(row?.year);
+  return Number.isInteger(exact) ? exact === season : true;
 }
 
 function sponsorIncome(saveWorld, teamId, season) {
@@ -87,12 +80,11 @@ function sponsorIncome(saveWorld, teamId, season) {
   for (const contract of saveWorld.world?.sponsorContracts ?? []) {
     if (contract.team_id !== teamId || !rowActiveInSeason(contract, season)) continue;
     const monthly = Number(contract.monthly_fee ?? contract.monthly_income);
-    if (Number.isFinite(monthly)) {
-      total += monthly;
-      continue;
+    if (Number.isFinite(monthly)) total += monthly;
+    else {
+      const annual = Number(contract.annual_income ?? contract.annual_value ?? contract.value);
+      if (Number.isFinite(annual)) total += annual / 12;
     }
-    const annual = Number(contract.annual_income ?? contract.annual_value ?? contract.value);
-    if (Number.isFinite(annual)) total += annual / 12;
   }
   return total;
 }
@@ -102,14 +94,9 @@ function assignmentSalary(saveWorld, teamId, type, season) {
   const contracts = type === "driver" ? saveWorld.world?.contracts : saveWorld.world?.staffContracts;
   const idField = type === "driver" ? "driver_id" : "staff_id";
   let total = 0;
-
   for (const [id, assignment] of Object.entries(employment ?? {})) {
     if (assignment?.teamId !== teamId || assignment?.status !== "employed") continue;
-    const matching = [...(contracts ?? [])].reverse().find((row) => (
-      row?.[idField] === id
-      && row.team_id === teamId
-      && rowActiveInSeason(row, season)
-    ));
+    const matching = [...(contracts ?? [])].reverse().find((row) => row?.[idField] === id && row.team_id === teamId && rowActiveInSeason(row, season));
     if (!matching) continue;
     const annual = Number(matching.annual_salary ?? matching.salary ?? matching.wage);
     if (Number.isFinite(annual)) total += annual / 12;
@@ -134,7 +121,6 @@ function closeMonth(saveWorld, event) {
   const state = ensureTeamState(saveWorld);
   const season = Number(saveWorld.clock.season);
   const output = [];
-
   for (const teamId of Object.keys(state).sort()) {
     const team = state[teamId];
     const sponsors = sponsorIncome(saveWorld, teamId, season);
@@ -145,30 +131,13 @@ function closeMonth(saveWorld, event) {
     const income = sponsors;
     const expenses = driverSalaries + staffSalaries + maintenance + operations;
     const net = income - expenses;
-
     team.cash = roundMoney(numeric(team.cash) + net);
     team.monthlyIncome = roundMoney(income);
     team.monthlyExpenses = roundMoney(expenses);
     team.monthlyNet = roundMoney(net);
-    team.financialStatus = team.cash < 0 ? "distressed" : team.cash < Math.max(100000, team.openingCash * 0.08) ? "tight" : "stable";
+    team.financialStatus = team.openingCash === 0 && team.cash === 0 && income === 0 && expenses === 0 ? "unknown" : team.cash < 0 ? "distressed" : team.cash < Math.max(100000, team.openingCash * 0.08) ? "tight" : "stable";
     team.lastFinanceDate = event.date;
-
-    const record = {
-      date: event.date,
-      season,
-      teamId,
-      income: roundMoney(income),
-      expenses: roundMoney(expenses),
-      net: roundMoney(net),
-      closingCash: team.cash,
-      breakdown: {
-        sponsors: roundMoney(sponsors),
-        driverSalaries: roundMoney(driverSalaries),
-        staffSalaries: roundMoney(staffSalaries),
-        facilityMaintenance: roundMoney(maintenance),
-        operations: roundMoney(operations),
-      },
-    };
+    const record = { date: event.date, season, teamId, income: roundMoney(income), expenses: roundMoney(expenses), net: roundMoney(net), closingCash: team.cash, breakdown: { sponsors: roundMoney(sponsors), driverSalaries: roundMoney(driverSalaries), staffSalaries: roundMoney(staffSalaries), facilityMaintenance: roundMoney(maintenance), operations: roundMoney(operations) } };
     saveWorld.history.finances.push(record);
     output.push({ type: TEAM_FINANCE_EVENT.MONTH_CLOSED, payload: record });
   }
