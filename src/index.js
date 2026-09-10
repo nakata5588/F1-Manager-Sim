@@ -8,3 +8,6 @@ export { advanceDays, dispatchSimulationEvents, initializeSimulation, SIM_EVENT 
 export { runHeadlessSimulation } from "./sim/headless.js";
 export { CONTRACT_EVENT, createContractMilestoneSystem } from "./sim/systems/contractMilestones.js";
 export { ENTITY_EVENT, createEntityAvailabilitySystem } from "./sim/systems/entityAvailability.js";
+export { ageOnDate, CAREER_EVENT, createCareerLifecycleSystem } from "./sim/systems/careerLifecycle.js";
+export { EMPLOYMENT_EVENT, createAiEmploymentDecisionSystem, createEmploymentMarketSystem } from "./sim/systems/employmentMarket.js";
+export { createCoreWorldSystems } from "./sim/systems/coreWorldSystems.js";
