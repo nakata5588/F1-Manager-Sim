@@ -24,6 +24,7 @@ export { TEAM_FINANCE_EVENT, createTeamEconomySystem } from "./sim/systems/teamE
 export { TEAM_DEVELOPMENT_EVENT, createTeamDevelopmentSystem } from "./sim/systems/teamDevelopment.js";
 export { SEASON_EVENT, createSeasonRolloverSystem } from "./sim/systems/seasonRollover.js";
 export { STRATEGY_EVENT, createRaceStrategySystem } from "./sim/systems/raceStrategy.js";
+export { PERFORMANCE_CALIBRATION_EVENT, calibratedCarComponents, calibrateTyreStrategies, createPerformanceCalibrationSystem } from "./sim/systems/performanceCalibration.js";
 export { RACE_EVENT, createRaceWeekendSystem } from "./sim/systems/raceWeekend.js";
 export { RACE_TIMELINE_EVENT, createRaceTimelineSystem } from "./sim/systems/raceTimeline.js";
 export { RACE_CONTROL_EVENT, createRaceControlSystem } from "./sim/systems/raceControl.js";
