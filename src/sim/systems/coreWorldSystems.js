@@ -10,6 +10,7 @@ import { createTeamDevelopmentSystem } from "./teamDevelopment.js";
 import { createSeasonRolloverSystem } from "./seasonRollover.js";
 import { createRaceStrategySystem } from "./raceStrategy.js";
 import { createRaceWeekendSystem } from "./raceWeekend.js";
+import { createRaceTimelineSystem } from "./raceTimeline.js";
 import { createChampionshipSystem } from "./championship.js";
 
 export function createCoreWorldSystems(options = {}) {
@@ -32,8 +33,12 @@ export function createCoreWorldSystems(options = {}) {
       projectDurationMonths: options.projectDurationMonths,
     }),
     createSeasonRolloverSystem(),
+    // Strategy must lock synchronously before raceWeekend archives the GRID_SET event.
     createRaceStrategySystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createRaceWeekendSystem(),
+    // The temporal layer replaces the aggregate race classification before the
+    // championship system consumes RACE_COMPLETED.
+    createRaceTimelineSystem(),
     createChampionshipSystem(),
   ];
 }
