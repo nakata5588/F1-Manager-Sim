@@ -10,6 +10,7 @@ import { createTeamEconomySystem } from "./teamEconomy.js";
 import { createTeamDevelopmentSystem } from "./teamDevelopment.js";
 import { createSeasonRolloverSystem } from "./seasonRollover.js";
 import { createRaceStrategySystem } from "./raceStrategy.js";
+import { createPerformanceCalibrationSystem } from "./performanceCalibration.js";
 import { createRaceWeekendSystem } from "./raceWeekend.js";
 import { createRaceTimelineSystem } from "./raceTimeline.js";
 import { createRaceControlSystem } from "./raceControl.js";
@@ -39,8 +40,12 @@ export function createCoreWorldSystems(options = {}) {
       projectDurationMonths: options.projectDurationMonths,
     }),
     createSeasonRolloverSystem(),
-    // Strategy must lock synchronously before raceWeekend archives the GRID_SET event.
+    // Strategy locks before calibration so supplier/track tyre traits can refine
+    // the generated stints before raceWeekend archives the GRID_SET event.
     createRaceStrategySystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
+    // v0.8 calibration reshapes only the active session baseline. Dynamic R&D
+    // deltas are preserved and the mutable development car is restored after the race.
+    createPerformanceCalibrationSystem(),
     createRaceWeekendSystem(),
     // The temporal layer replaces the aggregate race classification before the
     // championship system consumes RACE_COMPLETED.
