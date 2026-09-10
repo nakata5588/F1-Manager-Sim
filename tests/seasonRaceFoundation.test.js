@@ -125,7 +125,7 @@ test("race weekend is deterministic and is not driven by Current Ability alone",
   assert.deepEqual(a.history.races, b.history.races);
   assert.equal(a.history.races.length, 1);
   const weekend = a.history.races[0];
-  assert.equal(weekend.qualifying[0].driverId, "FAST");
+  assert.equal(weekend.qualifying.classification[0].driverId, "FAST");
   assert.equal(weekend.classification[0].driverId, "FAST");
   assert.equal(weekend.classification[0].status, "FINISHED");
   assert.equal(a.world.careerState.drivers.FAST.currentAbility, 40);
@@ -133,7 +133,7 @@ test("race weekend is deterministic and is not driven by Current Ability alone",
 });
 
 test("low reliability can create an explicit mechanical DNF", () => {
-  const save = directRaceSave("dnf-1", true);
+  const save = directRaceSave("dnf-3", true);
   save.world.employment.drivers = { FAST: save.world.employment.drivers.FAST };
   save.world.drivers = save.world.drivers.filter((row) => row.driver_id === "FAST");
   save.world.driverRatings = save.world.driverRatings.filter((row) => row.driver_id === "FAST");
