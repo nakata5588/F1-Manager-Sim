@@ -35,17 +35,21 @@ export function runHeadlessSimulation(database, options = {}) {
   const systems = options.systems ?? createCoreWorldSystems({
     controlledTeamIds: options.controlledTeamIds ?? [],
     defaultContractYears: options.defaultContractYears ?? 2,
+    minimumCashReserve: options.minimumCashReserve,
+    projectDurationMonths: options.projectDurationMonths,
   });
   const initialization = initializeSimulation(saveWorld, systems);
   const result = advanceDays(saveWorld, days, systems);
   const events = [...initialization.events, ...result.events];
   const raceDays = events.filter((item) => item.type === SIM_EVENT.RACE_DAY);
+  const championship = saveWorld.world?.championship ?? {};
 
   return {
     saveWorld,
     events,
     summary: {
       season,
+      currentSeason: saveWorld.clock.season,
       daysAdvanced: days,
       finalDate: saveWorld.clock.date,
       databaseVersion: saveWorld.meta.historicalDatabase.databaseVersion,
@@ -54,6 +58,13 @@ export function runHeadlessSimulation(database, options = {}) {
       futureEntities: saveWorld.world.futureEntities?.length ?? 0,
       eligibleEntities: countEligibleEntities(saveWorld),
       transfers: saveWorld.history.transfers.length,
+      retirements: saveWorld.history.retirements?.length ?? 0,
+      completedRaces: saveWorld.history.races?.length ?? 0,
+      archivedChampionships: saveWorld.history.championships?.length ?? 0,
+      championshipRacesCompleted: championship.racesCompleted ?? 0,
+      championshipLeaderDriverId: championship.driverStandings?.[0]?.id ?? null,
+      championshipLeaderConstructorId: championship.constructorStandings?.[0]?.id ?? null,
+      championshipScoringMode: championship.scoringMode ?? null,
       ...employmentSummary(saveWorld),
       scheduledRaceDaysReached: raceDays.length,
       raceDays: raceDays.map((item) => ({ date: item.date, ...item.payload })),
