@@ -5,6 +5,7 @@ import { createCareerDevelopmentSystem } from "./careerDevelopment.js";
 import { createRetirementSystem } from "./retirement.js";
 import { createRetirementEmploymentSystem } from "./retirementEmployment.js";
 import { createAiEmploymentDecisionSystem, createEmploymentMarketSystem } from "./employmentMarket.js";
+import { createRaceEntrySystem } from "./raceEntry.js";
 import { createTeamEconomySystem } from "./teamEconomy.js";
 import { createTeamDevelopmentSystem } from "./teamDevelopment.js";
 import { createSeasonRolloverSystem } from "./seasonRollover.js";
@@ -26,6 +27,10 @@ export function createCoreWorldSystems(options = {}) {
       controlledTeamIds: options.controlledTeamIds ?? [],
       defaultContractYears: options.defaultContractYears ?? 2,
     }),
+    // Race participation is a separate concept from employment. The entry
+    // system is initialized after employment so Season Pack race entries can
+    // override a contractual role without changing the contract itself.
+    createRaceEntrySystem(),
     createTeamEconomySystem(),
     createTeamDevelopmentSystem({
       controlledTeamIds: options.controlledTeamIds ?? [],
