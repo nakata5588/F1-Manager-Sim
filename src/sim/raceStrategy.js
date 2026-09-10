@@ -36,6 +36,11 @@ function compoundCondition(row) {
   return "dry";
 }
 
+function supplierId(row) {
+  const value = row?.supplier_id ?? row?.supplierId ?? row?.manufacturer_id ?? row?.manufacturer ?? row?.tyre_supplier ?? row?.tire_supplier ?? row?.tyre_id;
+  return value === null || value === undefined ? null : String(value).trim().toLowerCase();
+}
+
 function durabilityLaps(row) {
   const direct = numeric(
     row?.durability_laps
@@ -54,6 +59,7 @@ function normalizeCompound(row) {
   const wetGrip = normalizedRating(row?.wet_grip ?? row?.rain_grip, compoundCondition(row) === "wet" ? dryGrip : 30);
   return {
     compoundId: id,
+    supplierId: supplierId(row),
     name: compoundName(row),
     condition: compoundCondition(row),
     dryGrip,
@@ -63,9 +69,17 @@ function normalizeCompound(row) {
   };
 }
 
-export function availableTyreCompounds(saveWorld, wet = false) {
+export function availableTyreCompounds(saveWorld, wet = false, teamId = null) {
   const rows = saveWorld.world?.tyres ?? [];
-  const normalized = rows.map(normalizeCompound).filter(Boolean);
+  let normalized = rows.map(normalizeCompound).filter(Boolean);
+  const assignedSupplier = teamId === null || teamId === undefined
+    ? null
+    : saveWorld.world?.teamTyreSuppliers?.[teamId] ?? null;
+  if (assignedSupplier) {
+    const supplier = String(assignedSupplier).trim().toLowerCase();
+    const supplierRows = normalized.filter((row) => row.supplierId === supplier);
+    if (supplierRows.length) normalized = supplierRows;
+  }
   const condition = wet ? "wet" : "dry";
   const matching = normalized.filter((row) => row.condition === condition);
   return matching.length ? matching : normalized;
@@ -151,7 +165,7 @@ export function createRaceStrategyPlan(saveWorld, weekend, entrant, options = {}
   const wet = Boolean(options.wet);
   const controlledTeams = new Set(options.controlledTeamIds ?? []);
   const laps = raceLaps(weekend);
-  const compounds = availableTyreCompounds(saveWorld, wet);
+  const compounds = availableTyreCompounds(saveWorld, wet, entrant.teamId);
   const explicit = explicitPlan(saveWorld, weekend, entrant);
   const explicitStints = normalizeExplicitPlan(explicit, compounds, laps);
 
