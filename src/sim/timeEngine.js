@@ -1,6 +1,7 @@
 import { advanceDay } from "./clock.js";
 
 export const SIM_EVENT = Object.freeze({
+  CAREER_STARTED: "sim.career_started",
   DAY_ADVANCED: "sim.day_advanced",
   MONTH_STARTED: "sim.month_started",
   SEASON_STARTED: "sim.season_started",
@@ -73,6 +74,20 @@ export function dispatchSimulationEvents(saveWorld, initialEvents, systems = [])
   }
 
   return processed;
+}
+
+export function initializeSimulation(saveWorld, systems = []) {
+  if (!saveWorld?.clock?.date || !saveWorld?.clock?.season) {
+    throw new TypeError("A valid Save World clock is required to initialize simulation systems.");
+  }
+  const state = saveWorld.simulation?.systemState ?? {};
+  if (state.__simulationInitialized) return { events: [] };
+
+  const events = dispatchSimulationEvents(saveWorld, [
+    event(SIM_EVENT.CAREER_STARTED, saveWorld.clock.date, { season: saveWorld.clock.season }),
+  ], systems);
+  saveWorld.simulation.systemState.__simulationInitialized = true;
+  return { events };
 }
 
 export function advanceDays(saveWorld, days, systems = []) {
