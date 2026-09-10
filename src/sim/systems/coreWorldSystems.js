@@ -12,6 +12,7 @@ import { createSeasonRolloverSystem } from "./seasonRollover.js";
 import { createRaceStrategySystem } from "./raceStrategy.js";
 import { createRaceWeekendSystem } from "./raceWeekend.js";
 import { createRaceTimelineSystem } from "./raceTimeline.js";
+import { createRaceControlSystem } from "./raceControl.js";
 import { createChampionshipSystem } from "./championship.js";
 
 export function createCoreWorldSystems(options = {}) {
@@ -44,6 +45,10 @@ export function createCoreWorldSystems(options = {}) {
     // The temporal layer replaces the aggregate race classification before the
     // championship system consumes RACE_COMPLETED.
     createRaceTimelineSystem(),
+    // Race Control reviews only mechanisms made available by the era rules.
+    // It deliberately does not rewrite an already-resolved timeline; live
+    // neutralisation/restarts belong to the resumable race engine.
+    createRaceControlSystem(),
     createChampionshipSystem(),
   ];
 }
