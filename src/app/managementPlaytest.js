@@ -68,13 +68,23 @@ export function developerArchiveInboxItem(session, itemId) {
 
 export function developerResolveInboxDecision(session, itemId, optionId) {
   const saveWorld = requireSession(session);
-  const { resolution } = resolveManagementInboxDecision(saveWorld, itemId, optionId);
-  if (resolution.kind === "contract_counter") {
+  const item = listManagementInbox(saveWorld, { includeArchived: true, limit: 0 }).find((row) => row.id === itemId);
+  if (!item) throw new Error(`Inbox item '${itemId}' does not exist.`);
+  if (!item.decision || item.decision.status !== "pending") throw new Error(`Inbox item '${itemId}' has no pending decision.`);
+  if (!item.decision.options.some((option) => option.id === optionId)) {
+    throw new Error(`Decision option '${optionId}' is not available for '${itemId}'.`);
+  }
+
+  if (item.decision.kind === "contract_counter") {
     const raw = optionId === "accept_counter"
-      ? acceptDriverContractCounterEvent(saveWorld, resolution.refId)
-      : withdrawDriverContractNegotiationEvent(saveWorld, resolution.refId);
+      ? acceptDriverContractCounterEvent(saveWorld, item.decision.refId)
+      : withdrawDriverContractNegotiationEvent(saveWorld, item.decision.refId);
+    // Apply the authoritative gameplay consequence before marking the UI-facing
+    // decision resolved. A failed dispatch therefore cannot leave a false
+    // resolved decision behind in Save World.
     dispatchManagementEvent(session, raw);
   }
+  resolveManagementInboxDecision(saveWorld, itemId, optionId);
   return developerInbox(session);
 }
 
