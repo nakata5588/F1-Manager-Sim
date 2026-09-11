@@ -14,6 +14,7 @@ export const MARKET_EVENT = Object.freeze({
   PLAYER_DRIVER_TARGETED: "market.player_driver_targeted",
   EXTERNAL_OFFER_ACCEPTED: "market.external_offer_accepted",
   EXTERNAL_OFFER_EXPIRED: "market.external_offer_expired",
+  COMPETING_OFFERS_CLOSED: "market.competing_offers_closed",
 });
 
 function numeric(value, fallback = 0) {
@@ -23,6 +24,18 @@ function numeric(value, fallback = 0) {
 
 function clamp(value, minimum = 0, maximum = 1) {
   return Math.min(maximum, Math.max(minimum, value));
+}
+
+function dateValue(value) {
+  const parsed = Date.parse(`${String(value ?? "").slice(0, 10)}T00:00:00Z`);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function dueOnOrBefore(expiresAt, eventDate) {
+  const expiry = dateValue(expiresAt);
+  const current = dateValue(eventDate);
+  if (expiry === null || current === null) return String(expiresAt ?? "") <= String(eventDate ?? "");
+  return expiry <= current;
 }
 
 function controlledTeams(saveWorld, configured) {
@@ -40,15 +53,19 @@ function driverMetrics(saveWorld, driverId) {
   };
 }
 
+function futureAssignments(saveWorld, driverId) {
+  return saveWorld.world?.employment?.futureAssignments?.drivers?.[driverId] ?? [];
+}
+
 function hasFutureAssignment(saveWorld, driverId) {
-  return (saveWorld.world?.employment?.futureAssignments?.drivers?.[driverId] ?? []).length > 0;
+  return futureAssignments(saveWorld, driverId).length > 0;
 }
 
 function maybeCreateCompetingOffer(saveWorld, event, options = {}) {
   const negotiationId = event.payload?.negotiation_id ?? null;
   if (!negotiationId) return null;
   const negotiation = ensureContractNegotiationState(saveWorld).negotiations.find((row) => row.id === negotiationId);
-  if (!negotiation || negotiation.workerType !== "driver" || negotiation.status === "accepted") return null;
+  if (!negotiation || negotiation.workerType !== "driver" || negotiation.status === "accepted" || hasFutureAssignment(saveWorld, negotiation.driverId)) return null;
   if (listOpenExternalOffers(saveWorld, { driverId: negotiation.driverId }).some((row) => row.relatedNegotiationId === negotiationId)) return null;
 
   const person = ensurePersonState(saveWorld, "driver", negotiation.driverId);
@@ -145,11 +162,41 @@ function monthlyPlayerDriverApproaches(saveWorld, event, controlled, options = {
   return output;
 }
 
+function closeOtherOffers(saveWorld, driverId, winningOfferId, date, reason = "agreement_reached") {
+  const closed = [];
+  for (const row of saveWorld.world?.management?.people?.market?.externalOffers ?? []) {
+    if (row.status !== "open" || String(row.workerId) !== String(driverId) || row.id === winningOfferId) continue;
+    row.status = "closed";
+    row.closedAt = date;
+    row.closedReason = reason;
+    closed.push(row.id);
+  }
+  return closed;
+}
+
 function resolveExternalOffers(saveWorld, event) {
   const output = [];
   const rows = saveWorld.world?.management?.people?.market?.externalOffers ?? [];
   for (const row of rows) {
-    if (row.status !== "open" || !row.expiresAt || row.expiresAt > event.date) continue;
+    if (row.status !== "open" || !row.expiresAt || !dueOnOrBefore(row.expiresAt, event.date)) continue;
+
+    const existingFuture = futureAssignments(saveWorld, row.workerId);
+    if (existingFuture.length) {
+      row.status = "closed";
+      row.closedAt = event.date;
+      row.closedReason = "driver_already_committed";
+      output.push({
+        type: MARKET_EVENT.EXTERNAL_OFFER_EXPIRED,
+        payload: {
+          external_offer_id: row.id,
+          driver_id: row.workerId,
+          team_id: row.teamId,
+          reason: "driver_already_committed",
+        },
+      });
+      continue;
+    }
+
     const person = ensurePersonState(saveWorld, "driver", row.workerId);
     const interest = numeric(row.interest?.score, 50);
     const ambition = numeric(person.personality?.traits?.ambition, 50);
@@ -159,6 +206,7 @@ function resolveExternalOffers(saveWorld, event) {
     if (acceptance >= 58) {
       row.status = "accepted";
       row.closedAt = event.date;
+      const closed = closeOtherOffers(saveWorld, row.workerId, row.id, event.date);
       output.push({
         type: MARKET_EVENT.EXTERNAL_OFFER_ACCEPTED,
         payload: {
@@ -169,6 +217,12 @@ function resolveExternalOffers(saveWorld, event) {
           related_negotiation_id: row.relatedNegotiationId ?? null,
         },
       });
+      if (closed.length) {
+        output.push({
+          type: MARKET_EVENT.COMPETING_OFFERS_CLOSED,
+          payload: { driver_id: row.workerId, winning_offer_id: row.id, closed_offer_ids: closed },
+        });
+      }
       if (row.relatedNegotiationId) {
         const negotiation = ensureContractNegotiationState(saveWorld).negotiations.find((item) => item.id === row.relatedNegotiationId);
         if (negotiation && ["open", "countered"].includes(negotiation.status)) {
@@ -212,6 +266,7 @@ function resolveExternalOffers(saveWorld, event) {
           driver_id: row.workerId,
           team_id: row.teamId,
           related_negotiation_id: row.relatedNegotiationId ?? null,
+          reason: "not_accepted",
         },
       });
     }
@@ -219,17 +274,28 @@ function resolveExternalOffers(saveWorld, event) {
   return output;
 }
 
+function closeOffersAfterSigning(saveWorld, event) {
+  if (String(event.payload?.worker_type ?? "driver").toLowerCase() !== "driver") return null;
+  const driverId = event.payload?.worker_id ?? null;
+  if (!driverId) return null;
+  const winningOfferId = event.payload?.external_offer_id ?? null;
+  const closed = closeOtherOffers(saveWorld, driverId, winningOfferId, event.date, "driver_committed_elsewhere");
+  return closed.length
+    ? { type: MARKET_EVENT.COMPETING_OFFERS_CLOSED, payload: { driver_id: driverId, winning_offer_id: winningOfferId, closed_offer_ids: closed } }
+    : null;
+}
+
 export function createMarketDynamicsSystem(options = {}) {
   const configured = [...(options.controlledTeamIds ?? [])];
   return {
     id: "market.dynamics",
-    eventTypes: [SIM_EVENT.MONTH_STARTED, SIM_EVENT.DAY_ADVANCED, CONTRACT_NEGOTIATION_EVENT.OFFER_SUBMITTED],
+    eventTypes: [SIM_EVENT.MONTH_STARTED, SIM_EVENT.DAY_ADVANCED, CONTRACT_NEGOTIATION_EVENT.OFFER_SUBMITTED, EMPLOYMENT_EVENT.CONTRACT_SIGNED],
     handle({ saveWorld, event }) {
-      if (event.type === CONTRACT_NEGOTIATION_EVENT.OFFER_SUBMITTED) {
-        return maybeCreateCompetingOffer(saveWorld, event, options);
-      }
+      if (event.type === CONTRACT_NEGOTIATION_EVENT.OFFER_SUBMITTED) return maybeCreateCompetingOffer(saveWorld, event, options);
+      if (event.type === EMPLOYMENT_EVENT.CONTRACT_SIGNED) return closeOffersAfterSigning(saveWorld, event);
       if (event.type === SIM_EVENT.MONTH_STARTED) {
-        return monthlyPlayerDriverApproaches(saveWorld, event, controlledTeams(saveWorld, configured), options);
+        const created = monthlyPlayerDriverApproaches(saveWorld, event, controlledTeams(saveWorld, configured), options);
+        return [...created, ...resolveExternalOffers(saveWorld, event)];
       }
       return resolveExternalOffers(saveWorld, event);
     },
