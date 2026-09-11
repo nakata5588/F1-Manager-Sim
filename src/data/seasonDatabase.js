@@ -36,6 +36,8 @@ export function mergeSeasonBoundaryReferences(activeSnapshot, globalSnapshot) {
     futureDrivers: mergeById(activeSnapshot.futureDrivers, globalSnapshot.futureDrivers, ["driver_id"]),
     futureStaff: mergeById(activeSnapshot.futureStaff, globalSnapshot.futureStaff, ["staff_id"]),
     futureTeams: mergeById(activeSnapshot.futureTeams, globalSnapshot.futureTeams, ["team_id"]),
+    futureSponsors: mergeById(activeSnapshot.futureSponsors, globalSnapshot.futureSponsors, ["sponsor_id"]),
+    visibilityPolicy: structuredClone(globalSnapshot.visibilityPolicy ?? activeSnapshot.visibilityPolicy ?? null),
     boundarySources: {
       activeSeasonState: activeSnapshot.databaseVersion ?? activeSnapshot.sourcePackage?.databaseVersion ?? "season_snapshot",
       historicalAndFutureReference: globalSnapshot.databaseVersion ?? "global_database",
