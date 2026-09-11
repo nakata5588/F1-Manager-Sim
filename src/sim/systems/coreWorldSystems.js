@@ -5,6 +5,9 @@ import { createCareerDevelopmentSystem } from "./careerDevelopment.js";
 import { createRetirementSystem } from "./retirement.js";
 import { createRetirementEmploymentSystem } from "./retirementEmployment.js";
 import { createAiEmploymentDecisionSystem, createEmploymentMarketSystem } from "./employmentMarket.js";
+import { createScoutingManagementSystem } from "./scoutingManagement.js";
+import { createContractNegotiationSystem } from "./contractNegotiation.js";
+import { createManagementInboxSystem } from "./managementInbox.js";
 import { createRaceEntrySystem } from "./raceEntry.js";
 import { createTeamEconomySystem } from "./teamEconomy.js";
 import { createTeamDevelopmentSystem } from "./teamDevelopment.js";
@@ -29,6 +32,11 @@ export function createCoreWorldSystems(options = {}) {
       controlledTeamIds: options.controlledTeamIds ?? [],
       defaultContractYears: options.defaultContractYears ?? 2,
     }),
+    // Management systems consume the same authoritative employment/lifecycle
+    // state as AI teams. They never read hidden future pools directly for UI.
+    createScoutingManagementSystem(),
+    createContractNegotiationSystem(),
+    createManagementInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     // Race participation is a separate concept from employment. The entry
     // system is initialized after employment so Season Pack race entries can
     // override a contractual role without changing the contract itself.
