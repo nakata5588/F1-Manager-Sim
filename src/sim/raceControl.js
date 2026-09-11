@@ -86,8 +86,13 @@ export function incidentSeverity(saveWorld, race, event) {
   return clamp(25 + incidentRisk * 0.28 + crash * 0.18 + rng.next() * 38, 0, 100);
 }
 
+function incidentSector(event) {
+  return event?.sectorId ?? event?.sector_id ?? event?.sector ?? null;
+}
+
 function localYellow(event, severity) {
   const duration = severity >= 70 ? 2 : 1;
+  const sectorId = incidentSector(event);
   return {
     type: "local_yellow",
     lap: event.lap,
@@ -95,12 +100,25 @@ function localYellow(event, severity) {
     endLap: Number(event.lap ?? 0) + duration - 1,
     durationLaps: duration,
     driverId: event.driverId ?? null,
+    sectorId,
     severity: Number(severity.toFixed(2)),
     clearsAfterLap: Number(event.lap ?? 0) + duration,
     fieldCompression: null,
     overtakingAllowed: false,
-    effectStatus: "live_global_approximation_pending_sector_model",
+    scope: sectorId ? "sector" : "global_fallback",
+    effectStatus: sectorId ? "live_sector_scoped" : "live_global_approximation_pending_sector_model",
     source: "severity_policy",
+  };
+}
+
+function interventionBase(event, severity) {
+  return {
+    driverId: event.driverId ?? null,
+    originSectorId: incidentSector(event),
+    severity: Number(severity.toFixed(2)),
+    overtakingAllowed: false,
+    effectStatus: "live",
+    source: "era_race_control",
   };
 }
 
@@ -109,6 +127,7 @@ export function decideLiveRaceControl(saveWorld, race, event, suppliedPolicy = n
   const policy = suppliedPolicy ?? resolveRaceControlPolicy(saveWorld);
   const severity = incidentSeverity(saveWorld, race, event);
   const lap = Math.max(1, Math.round(Number(event.lap ?? 1)));
+  const base = interventionBase(event, severity);
 
   if (policy.redFlags && severity >= 90) {
     const duration = Math.max(1, Number(policy.redFlagRestartLaps ?? 1));
@@ -119,12 +138,9 @@ export function decideLiveRaceControl(saveWorld, race, event, suppliedPolicy = n
       endLap: lap + duration - 1,
       durationLaps: duration,
       restartLap: lap + duration,
-      driverId: event.driverId ?? null,
-      severity: Number(severity.toFixed(2)),
       fieldCompression: 0.02,
-      overtakingAllowed: false,
-      effectStatus: "live",
-      source: "era_race_control",
+      scope: "global",
+      ...base,
     };
   }
 
@@ -136,12 +152,9 @@ export function decideLiveRaceControl(saveWorld, race, event, suppliedPolicy = n
       startLap: lap,
       endLap: lap + duration - 1,
       durationLaps: duration,
-      driverId: event.driverId ?? null,
-      severity: Number(severity.toFixed(2)),
       fieldCompression: 0.15,
-      overtakingAllowed: false,
-      effectStatus: "live",
-      source: "era_race_control",
+      scope: "global",
+      ...base,
     };
   }
 
@@ -153,12 +166,9 @@ export function decideLiveRaceControl(saveWorld, race, event, suppliedPolicy = n
       startLap: lap,
       endLap: lap + duration - 1,
       durationLaps: duration,
-      driverId: event.driverId ?? null,
-      severity: Number(severity.toFixed(2)),
       fieldCompression: null,
-      overtakingAllowed: false,
-      effectStatus: "live",
-      source: "era_race_control",
+      scope: "global",
+      ...base,
     };
   }
 
@@ -174,16 +184,19 @@ export function reviewRaceTimeline(saveWorld, race) {
   for (const event of timelineEvents) {
     if (event.type !== "retirement" || event.reason !== "incident") continue;
     const severity = incidentSeverity(saveWorld, race, event);
+    const sectorId = incidentSector(event);
 
     if (policy.redFlags && severity >= 90) {
       reviews.push({
         type: "red_flag_review",
         lap: event.lap,
         driverId: event.driverId ?? null,
+        sectorId,
         severity: Number(severity.toFixed(2)),
         decision: "candidate",
         effectStatus: race.timeline?.raceControlLive ? "already_applied_live" : "awaiting_resumable_race_control",
       });
+      continue;
     }
 
     if (policy.modernSafetyCar && severity >= 65) {
@@ -191,6 +204,7 @@ export function reviewRaceTimeline(saveWorld, race) {
         type: "safety_car_review",
         lap: event.lap,
         driverId: event.driverId ?? null,
+        sectorId,
         severity: Number(severity.toFixed(2)),
         decision: "candidate",
         effectStatus: race.timeline?.raceControlLive ? "already_applied_live" : "awaiting_resumable_race_control",
@@ -203,6 +217,7 @@ export function reviewRaceTimeline(saveWorld, race) {
         type: "virtual_safety_car_review",
         lap: event.lap,
         driverId: event.driverId ?? null,
+        sectorId,
         severity: Number(severity.toFixed(2)),
         decision: "candidate",
         effectStatus: race.timeline?.raceControlLive ? "already_applied_live" : "awaiting_resumable_race_control",

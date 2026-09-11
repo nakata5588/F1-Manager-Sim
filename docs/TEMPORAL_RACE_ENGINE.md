@@ -1,98 +1,124 @@
-# Temporal Race Engine v1
+# Temporal Race Engine
 
 ## Purpose
 
-The temporal race layer evolves a completed Race Weekend classification through the race distance before Championship scoring consumes the result.
+The temporal race engine refines the multidimensional Race Weekend baseline through actual race progression before Championship scoring consumes the final classification.
 
-It does not replace the existing driver/car/circuit performance model. The aggregate Race Weekend model establishes the multidimensional baseline; the temporal engine then applies lap-dependent effects.
+It remains the single race engine for AI, headless simulation and future player-facing Race Day control.
 
-## Current lap model
+## Current model
 
-Each lap can change the race through:
+The current runtime is `sector_lap_v1_resumable`.
 
-- tyre wear and grip;
-- explicit fuel load and fuel burn;
+A race progresses by lap and, within each lap, by sectors. It models:
+
+- tyre wear and compound suitability;
+- explicit fuel load/burn when supplied;
 - pit-stop timing and execution;
-- traffic loss and overtaking;
+- sector-level traffic and overtaking;
 - wet/damp driver performance;
 - explicit weather transitions;
-- mechanical failures;
-- driver incidents.
+- sector-distributed mechanical failures and incidents;
+- era-aware live Race Control;
+- JSON-safe pause/resume;
+- live strategy changes through the persistent Race Day controller.
 
-The model uses deterministic seeded randomness. The same Save World seed and state produce the same race.
+The model is deterministic for the same Save World state and seed.
 
-## Historical-data rules
+## Sector model
 
-The engine must not invent historical facts to fill database gaps.
+The engine supports two sector sources.
 
-### Fuel
+### Explicit sector data
 
-Fuel load is active only when the Season Database supplies both starting fuel and per-lap fuel consumption. Otherwise fuel has no temporal performance effect and the race is marked `no_explicit_fuel_data`.
+If a Season Database supplies `sector_model`, `sector_profile`, `sectors` or `sector_traits`, those rows are authoritative for simulation. Sector rows may define:
 
-### Weather
+- lap share/weight;
+- overtaking difficulty;
+- incident risk;
+- power sensitivity;
+- aero sensitivity;
+- brake stress;
+- technicality.
 
-Weather can change during a race when the Season Database supplies an explicit weather timeline or transition lap. A single race weather condition remains constant. Missing weather defaults to a neutral dry simulation state and is marked `unspecified_default`.
+### Derived sector approximation
 
-### Tyres
+When no sector data exists, the engine derives three simulation sectors from existing circuit gameplay traits. This is explicitly tagged:
 
-Tyre wear consumes the locked strategy produced by the existing strategy system. When there is no tyre catalogue/strategy data, the temporal tyre effect is neutral.
+- `source: derived_track_traits`
+- `dataStatus: simulation_approximation`
 
-## Traffic and overtaking
+Derived sectors are gameplay scaffolding, not historical claims. A later Season Database can replace them without changing the race-engine contract.
 
-Cars accumulate abstract `raceIndex` cost rather than fake real-world lap times. Lower accumulated cost is better.
+## Sector traffic and overtaking
 
-When a following car has theoretical pace to move ahead, an adjacent passing check considers:
+Cars accumulate abstract `raceIndex` cost rather than invented real-world lap times.
+
+Passing checks now happen between adjacent cars in each sector and consider:
 
 - theoretical pace advantage;
 - both drivers' racecraft;
-- circuit overtaking difficulty;
+- sector overtaking difficulty;
+- sector braking opportunity;
 - deterministic uncertainty.
 
-A failed move creates traffic loss. Position changes caused by a pit cycle are distinguished from on-track overtakes.
-
-This is intentionally a foundation, not a final wheel-to-wheel physics model.
+A failed move creates sector-specific traffic loss. Pit-cycle position changes remain separately identified.
 
 ## Reliability and incidents
 
-Race-level reliability and crash risk are converted into lap hazards. A retirement records the lap and reason (`mechanical`, `incident`, or `fuel`). Retired cars are classified behind finishers and ordered primarily by completed distance.
+The existing race-level reliability/crash probability is preserved, but its per-lap hazard is distributed across the sector weights. Incident distribution additionally considers each sector's incident risk.
+
+This means moving from lap to sector simulation does not deliberately inflate the expected total retirement rate.
+
+Retirements record both lap and `retirementSectorId` when applicable.
+
+## Race Control
+
+Incident events carry a sector. In eras with yellow flags, a local yellow is scoped to that sector when sector context exists.
+
+Global mechanisms remain global:
+
+- red flag;
+- Safety Car, only when the era exposes it;
+- VSC, only when the era exposes it.
+
+For 1980, the engine does not invent a modern Safety Car or VSC.
+
+## Resume and live strategy
+
+The resume payload is plain JSON. A race can be paused at a lap boundary, the whole Save World serialized, then resumed without replaying previous laps.
+
+Sector simulation preserves this invariant: uninterrupted simulation and pause/serialize/resume must produce the same classification, events and leaders if no strategy decision changes.
+
+The persistent Live Race Controller can revise future strategy while preserving completed stints and race history.
 
 ## Save-size policy
 
-The engine calculates every active car on every lap in memory but does not archive a full driver-by-lap matrix.
+The engine simulates sectors in memory but does not persist a full driver × sector × lap matrix.
 
-Persistent race history stores:
+Persistent history keeps:
 
 - weather changes;
 - pit stops;
-- overtakes/position changes;
-- retirements;
+- overtakes/position changes with sector IDs;
+- retirements with sector IDs;
+- Race Control interventions;
 - leader by lap;
-- periodic and event-triggered position snapshots;
+- periodic/event snapshots;
 - tyre/fuel summaries;
+- compact sector summaries;
 - final classification.
 
-This keeps 10–20 season saves manageable while preserving useful race history.
+This keeps long careers practical while preserving useful race history.
 
-## Event order
+## Next race-engine layers
 
-`GRID_SET`
-→ strategy lock
-→ aggregate `RACE_COMPLETED`
-→ temporal race refinement
-→ final classification
-→ Championship update
+Likely next steps are:
 
-The temporal layer marks strategy as consumed so the aggregate strategy modifier cannot be applied twice.
-
-## Next layers
-
-The next race-engine iterations should add:
-
-1. live strategy decisions after weather/traffic changes;
-2. tyre-temperature and compound suitability models;
-3. era-aware refuelling and fuel strategy;
-4. lap-time calibration where reliable circuit/car data exists;
-5. yellow flags, Safety Car, Virtual Safety Car where era-appropriate, and red flags;
-6. damage and repairability;
-7. race-control rules and penalties;
-8. resumable live race state for the player-facing UI.
+1. richer sector/corner data when the Season Database provides it;
+2. AI live strategy reaction to weather and Race Control;
+3. tyre temperature and operating-window dynamics;
+4. damage, repairability and pace loss;
+5. era-aware refuelling/fuel strategy;
+6. sporting penalties and steward decisions;
+7. calibrated timing/gaps where reliable data supports real-time presentation.

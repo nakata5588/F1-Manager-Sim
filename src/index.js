@@ -10,6 +10,7 @@ export { availableTyreCompounds, createRaceStrategyPlan, evaluateRaceStrategy } 
 export { currentStrategyStint, reviseRaceStrategy, selectLiveTyreCompound } from "./sim/liveStrategy.js";
 export { advanceLiveRaceSession, applyLiveStrategyInstruction, clearCompletedLiveRaceSession, getLiveRaceSession, recommendLiveStrategyInstruction, startLiveRaceSession } from "./sim/liveRaceController.js";
 export { decideLiveRaceControl, incidentSeverity, resolveRaceControlPolicy, reviewRaceTimeline } from "./sim/raceControl.js";
+export { resolveSectorModel, sectorPaceModifier, selectIncidentSector } from "./sim/sectorModel.js";
 export { simulateTemporalRace } from "./sim/raceTimeline.js";
 export { advanceDay } from "./sim/clock.js";
 export { advanceDays, dispatchSimulationEvents, initializeSimulation, SIM_EVENT } from "./sim/timeEngine.js";
