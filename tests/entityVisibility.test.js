@@ -141,12 +141,16 @@ test("retired historical driver remains in pre-career archive but never enters t
   assert.equal(save.world.employment.freeAgents.drivers.includes("DRV_RETIRED"), false);
 });
 
-test("future driver exists internally but is absent from player selectors before world visibility", () => {
+test("future driver exists internally but is absent from UI and employment market before visibility or F1 eligibility", () => {
   const snapshot = createSeasonSnapshot(visibilityDatabase(), 1980);
   const save = createSaveWorld(snapshot, { startDate: "1980-01-01" });
   assert.ok(save.world.futureDrivers.some((row) => row.driver_id === "DRV_YOUNG"));
   assert.equal(listVisibleDrivers(save).some((row) => row.driver_id === "DRV_YOUNG"), false);
   assert.equal(isEntityVisibleInSeason(snapshot.futureDrivers.find((row) => row.driver_id === "DRV_YOUNG"), 1980, { type: "driver" }), false);
+
+  initializeSimulation(save, [createEmploymentMarketSystem()]);
+  assert.equal(save.world.employment.freeAgents.drivers.includes("DRV_YOUNG"), false);
+  assert.equal(save.world.drivers.some((row) => row.driver_id === "DRV_YOUNG"), false);
 });
 
 test("young driver progresses from hidden to world-visible to talent-visible to F1-eligible independently of historical debut", () => {
@@ -178,6 +182,10 @@ test("future teams, staff and sponsors obey the same player visibility boundary"
   assert.equal(listVisibleStaff(save, { season: 1982 }).some((row) => row.staff_id === "STAFF_FUTURE"), true);
   assert.equal(listVisibleSponsors(save, { season: 1982 }).some((row) => row.sponsor_id === "SP_FUTURE"), false);
   assert.equal(listVisibleSponsors(save, { season: 1983 }).some((row) => row.sponsor_id === "SP_FUTURE"), true);
+
+  assert.ok(listVisibleTeams(save, { season: 1980 }).some((row) => row.team_id === "TEAM_ACTIVE"));
+  assert.ok(listVisibleStaff(save, { season: 1980 }).some((row) => row.staff_id === "STAFF_ACTIVE"));
+  assert.ok(listVisibleSponsors(save, { season: 1980 }).some((row) => row.sponsor_id === "SP_ACTIVE"));
 });
 
 test("future historical outcomes remain excluded from Save World while structural reference survives", () => {
