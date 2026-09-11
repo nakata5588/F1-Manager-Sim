@@ -4,6 +4,7 @@ export { getSeasonReadiness, listSupportedSeasons, loadHistoricalSeason } from "
 export { createSeasonDatabasePayload, loadSeasonDatabasePayload, mergeSeasonBoundaryReferences, SEASON_DATABASE_FORMAT, SEASON_DATABASE_SCHEMA_VERSION, validateSeasonDatabasePayload } from "./data/seasonDatabase.js";
 export { createCareerFromSeasonDatabase, validateSeasonDatabaseAgainstGlobal } from "./data/careerBootstrap.js";
 export { DeveloperPlaytestSession, listDeveloperPlaytestTeams } from "./app/developerPlaytest.js";
+export { developerArchiveInboxItem, developerContractNegotiations, developerInbox, developerManagementOverview, developerMarkInboxRead, developerOpenDriverNegotiation, developerRecruitment, developerResolveInboxDecision, developerSetShortlist, developerStartScouting, developerSubmitDriverOffer, developerWithdrawDriverNegotiation } from "./app/managementPlaytest.js";
 export { loadSeasonPackPayload, parseSeasonPackPayload, seasonPackSheetRows, SeasonPackValidationError, validateSeasonPackPayload } from "./data/seasonPackLoader.js";
 export { applySeasonPackOverlay, overlaySourceChecksum, SeasonPackOverlayError } from "./data/seasonPackOverlay.js";
 export { loadSeasonPackRuntimePayload, validateSeasonPackRuntimePayload } from "./data/seasonPackRuntime.js";
@@ -31,7 +32,7 @@ export { runHeadlessSimulation } from "./sim/headless.js";
 export { runLongRunValidation, validateLongRunWorld } from "./sim/validation/longRun.js";
 export { CONTRACT_EVENT, createContractMilestoneSystem } from "./sim/systems/contractMilestones.js";
 export { ENTITY_EVENT, createEntityAvailabilitySystem } from "./sim/systems/entityAvailability.js";
-export { ageOnDate, CAREER_EVENT, createCareerLifecycleSystem } from "./sim/systems/careerLifecycle.js";
+export { ageOnDate, CAREER_EVENT, createCareerLifecycleSystem } from "./sim/sim/systems/careerLifecycle.js";
 export { createCareerDevelopmentSystem } from "./sim/systems/careerDevelopment.js";
 export { createRetirementSystem, retirementProbability } from "./sim/systems/retirement.js";
 export { createRetirementEmploymentSystem } from "./sim/systems/retirementEmployment.js";
