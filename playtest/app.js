@@ -113,7 +113,7 @@ function renderRace() {
       ${topbar(false)}
       ${errorMessage ? `<div class="error">${escapeHtml(errorMessage)}</div>` : ""}
       <div class="race-head">
-        <div><div class="eyebrow">Live Race</div><h1>${escapeHtml(state.nextRace?.name ?? race.gpId ?? "Grand Prix")}</h1></div>
+        <div><div class="eyebrow">Live Race</div><h1>${escapeHtml(race.gpId ?? "Grand Prix")}</h1></div>
         <div class="lap">LAP ${race.currentLap} / ${race.totalLaps}</div>
       </div>
       <div class="race-controls">
