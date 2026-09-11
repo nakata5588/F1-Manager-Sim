@@ -9,7 +9,11 @@ import { createTransferVacancySystem } from "./transferVacancy.js";
 import { createPeopleDynamicsSystem } from "./peopleDynamics.js";
 import { createScoutingManagementSystem } from "./scoutingManagement.js";
 import { createContractNegotiationSystem } from "./contractNegotiation.js";
+import { createStaffNegotiationSystem } from "./staffNegotiation.js";
 import { createMarketDynamicsSystem } from "./marketDynamics.js";
+import { createBoardManagementSystem } from "./boardManagement.js";
+import { createManagerCareerSystem } from "./managerCareer.js";
+import { createStaffAdviceSystem } from "./staffAdvice.js";
 import { createManagementInboxSystem } from "./managementInbox.js";
 import { createRaceEntrySystem } from "./raceEntry.js";
 import { createTeamEconomySystem } from "./teamEconomy.js";
@@ -44,19 +48,25 @@ export function createCoreWorldSystems(options = {}) {
     createPeopleDynamicsSystem(),
     createScoutingManagementSystem(),
     createContractNegotiationSystem(),
+    createStaffNegotiationSystem(),
     createMarketDynamicsSystem({
       controlledTeamIds: options.controlledTeamIds ?? [],
       competingOfferBaseChance: options.competingOfferBaseChance,
       poachingBaseChance: options.poachingBaseChance,
     }),
-    createManagementInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createRaceEntrySystem(),
+    // Financial and development state must update before the monthly board
+    // review so confidence evaluates the current Save World, not stale values.
     createTeamEconomySystem(),
     createTeamDevelopmentSystem({
       controlledTeamIds: options.controlledTeamIds ?? [],
       minimumCashReserve: options.minimumCashReserve,
       projectDurationMonths: options.projectDurationMonths,
     }),
+    createBoardManagementSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
+    createManagerCareerSystem(),
+    createStaffAdviceSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
+    createManagementInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createSeasonRolloverSystem(),
     createRaceStrategySystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createPerformanceCalibrationSystem(),
