@@ -6,9 +6,9 @@ F1 Manager Sim is a long-form Formula One management and world simulation game. 
 
 ## Current development phase
 
-**Phase 33 — People, Mentality & Market Dynamics**
+**Phase 34 — Board, Manager Career & Staff Management**
 
-The first fully supported target season remains **1980**. The simulation foundation combines historical/save boundaries, autonomous career systems, interactive race weekends and a persistent Football Manager-style management loop.
+The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics and a manager career that can survive team changes or dismissal.
 
 Current race path:
 
@@ -16,13 +16,15 @@ Current race path:
 
 Current management loop:
 
-`Continue -> Inbox / People / Recruitment -> Scout -> Assess Interest -> Negotiate / Compete -> Decision -> Save World consequence -> Continue`
+`Continue -> Board / Inbox / People / Staff / Recruitment -> Decision -> Save World consequence -> Continue`
 
-Phase 33 makes drivers and staff persistent people. Historical personality fields are consumed when known; missing traits use explicitly neutral fallbacks rather than invented historical claims. Morale, confidence, team/role/contract satisfaction, pressure, relationships and transfer openness evolve inside the Save World.
+Phase 34 makes the **manager** a persistent career entity rather than a permanent label on one team. Board confidence and objectives evolve from current Save World performance; sustained severe underperformance can lead to dismissal. The manager keeps a separate paddock reputation, career history, applications and job offers, and can become genuinely unemployed or move to another team.
 
-The transfer market now includes behavioral representatives, dynamic interest, competing offers, AI poaching, future contracts, immediate approaches, transfer compensation/buyouts and persistent cash consequences when real currency values are available. Immediate transfers create a real vacancy for the origin team instead of silently deleting a seat.
+Staff recruitment now uses the same employment and contract world as drivers. Staff interest responds to team prestige, personality, satisfaction, relationships and representatives; future agreements remain future assignments until their effective season. Real salary data is used when available and explicit abstract compensation is used when it is not.
 
-The local Developer Playtest Management Hub now exposes Inbox, People, Recruitment, Contracts and Market views.
+Responsibilities are persistent Save World policy. The first areas cover driver recruitment, staff recruitment, scouting, car development, race strategy, finances and commercial work. Delegated car development is already functional and uses the same development rules as AI teams rather than a separate player-only model.
+
+The local Developer Playtest Management Hub now exposes **Inbox, Board, Career, People, Staff, Drivers, Driver Contracts, Market and Responsibilities**.
 
 ## Architecture rule
 
@@ -44,20 +46,21 @@ The race-weekend gameplay boundary is:
 
 The management gameplay boundary is:
 
-`World Event -> People / Market / Management State -> Inbox / Report -> Player Decision -> Simulation Event -> Updated Save World`
+`World Event -> Board / People / Market / Career State -> Inbox / Advice -> Player Decision -> Simulation Event -> Updated Save World`
 
-See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md` and `docs/DATA_WORKFLOW.md`.
+See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md` and `docs/DATA_WORKFLOW.md`.
 
 ## Historical data policy
 
 The current accepted source baseline is **v1.0 candidate (2026-09-11)** and the first career-ready season remains 1980.
 
-Management systems are deliberately tolerant of missing historical fields. Salary, personality, agent and contract-clause data are used when the database supplies them. Missing values do not become fabricated historical truth:
+Management systems are deliberately tolerant of missing historical fields. Salary, personality, agent, staff-rating and contract data are used when the database supplies them. Missing values do not become fabricated historical truth:
 
 - personality falls back to neutral gameplay values with explicit fallback provenance;
 - representatives may receive deterministic behavioral profiles but no invented real-world name;
-- contract negotiation uses an abstract compensation index when real salary is unavailable;
-- transfer compensation uses explicit historical clauses first, known-salary simulation estimates second, and an abstract index otherwise.
+- driver and staff negotiation uses an abstract compensation index when real salary is unavailable;
+- transfer compensation uses explicit historical clauses first, known-salary simulation estimates second, and an abstract index otherwise;
+- board confidence, manager reputation and job-market outcomes are dynamic Save World state rather than claimed historical facts.
 
 The historical master database can therefore improve in parallel without requiring gameplay architecture rewrites or altering existing saves.
 

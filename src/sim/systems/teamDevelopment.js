@@ -1,5 +1,7 @@
 import { createRng } from "../random.js";
 import { SIM_EVENT } from "../timeEngine.js";
+import { responsibilityOwner } from "../../game/management/responsibilities.js";
+import { controlledTeamSet } from "./controlState.js";
 
 export const TEAM_DEVELOPMENT_EVENT = Object.freeze({
   INITIALIZED: "team.development_initialized",
@@ -8,18 +10,7 @@ export const TEAM_DEVELOPMENT_EVENT = Object.freeze({
 });
 
 const COMPONENTS = [
-  "chassis_spec",
-  "aero_spec",
-  "gearbox_spec",
-  "suspension_spec",
-  "brakes_spec",
-  "cooling_spec",
-  "electronics_spec",
-  "turbo_spec",
-  "kers_spec",
-  "ers_mgu_k",
-  "ers_mgu_h",
-  "battery_pack",
+  "chassis_spec", "aero_spec", "gearbox_spec", "suspension_spec", "brakes_spec", "cooling_spec", "electronics_spec", "turbo_spec", "kers_spec", "ers_mgu_k", "ers_mgu_h", "battery_pack",
 ];
 
 function numeric(value, fallback = null) {
@@ -28,13 +19,8 @@ function numeric(value, fallback = null) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function clamp(value, minimum, maximum) {
-  return Math.min(maximum, Math.max(minimum, value));
-}
-
-function round(value, digits = 2) {
-  return Number(value.toFixed(digits));
-}
+function clamp(value, minimum, maximum) { return Math.min(maximum, Math.max(minimum, value)); }
+function round(value, digits = 2) { return Number(value.toFixed(digits)); }
 
 function ensureState(saveWorld) {
   saveWorld.world.carState ??= {};
@@ -56,12 +42,7 @@ function initializeCars(saveWorld, date) {
       const value = numeric(source[field]);
       if (value !== null) components[field] = value;
     }
-    saveWorld.world.carState[teamId] = {
-      teamId,
-      components,
-      initializedAt: date,
-      lastUpdated: date,
-    };
+    saveWorld.world.carState[teamId] = { teamId, components, initializedAt: date, lastUpdated: date };
     created += 1;
   }
   return created;
@@ -69,17 +50,10 @@ function initializeCars(saveWorld, date) {
 
 function facilityEfficiency(saveWorld, teamId) {
   const row = (saveWorld.world?.facilities ?? []).find((item) => item.team_id === teamId) ?? {};
-  const values = [
-    row.wind_tunnel_level,
-    row.simulator_level,
-    row.aero_dept_level,
-    row.chassis_shop_level,
-    row.manufacturing_level,
-    row.manufacturing_leve,
-  ].map((value) => numeric(value)).filter((value) => value !== null);
+  const values = [row.wind_tunnel_level, row.simulator_level, row.aero_dept_level, row.chassis_shop_level, row.manufacturing_level, row.manufacturing_leve]
+    .map((value) => numeric(value)).filter((value) => value !== null);
   if (!values.length) return 0.5;
-  const average = values.reduce((sum, value) => sum + value, 0) / values.length;
-  return clamp(average / 10, 0, 1);
+  return clamp((values.reduce((sum, value) => sum + value, 0) / values.length) / 10, 0, 1);
 }
 
 function weakestComponent(carState) {
@@ -99,7 +73,6 @@ function completeProjects(saveWorld, event) {
     if (project.status !== "active") continue;
     project.monthsRemaining -= 1;
     if (project.monthsRemaining > 0) continue;
-
     const car = saveWorld.world.carState?.[project.teamId];
     const before = numeric(car?.components?.[project.component]);
     if (before !== null) {
@@ -108,73 +81,50 @@ function completeProjects(saveWorld, event) {
     }
     project.status = "completed";
     project.completedAt = event.date;
-    const record = {
-      date: event.date,
-      teamId: project.teamId,
-      projectId: project.projectId,
-      component: project.component,
-      gain: project.targetGain,
-      result: before === null ? null : car.components[project.component],
-    };
+    const record = { date: event.date, teamId: project.teamId, projectId: project.projectId, component: project.component, gain: project.targetGain, result: before === null ? null : car.components[project.component] };
     saveWorld.history.development.push({ ...record, type: "completed" });
     output.push({ type: TEAM_DEVELOPMENT_EVENT.PROJECT_COMPLETED, payload: record });
   }
   return output;
 }
 
+function controlledTeamMayAutoDevelop(saveWorld, teamId, controlled) {
+  if (!controlled.has(String(teamId))) return true;
+  try { return responsibilityOwner(saveWorld, teamId, "carDevelopment") === "delegated"; }
+  catch { return false; }
+}
+
 function startAiProjects(saveWorld, event, options) {
   const development = ensureState(saveWorld);
-  const controlled = new Set(options.controlledTeamIds ?? []);
+  const controlled = controlledTeamSet(saveWorld, options.controlledTeamIds ?? []);
   const output = [];
-
   for (const team of saveWorld.world?.teams ?? []) {
     const teamId = team.team_id;
-    if (!teamId || controlled.has(teamId) || activeProjectFor(development, teamId)) continue;
+    if (!teamId || !controlledTeamMayAutoDevelop(saveWorld, teamId, controlled) || activeProjectFor(development, teamId)) continue;
     const finances = saveWorld.world?.teamState?.[teamId];
     const car = saveWorld.world?.carState?.[teamId];
     const component = weakestComponent(car);
     if (!finances || !component) continue;
-
     const cash = numeric(finances.cash, 0);
     const reserve = Math.max(numeric(options.minimumCashReserve, 100000), numeric(finances.openingCash, 0) * 0.08);
     const spendable = cash - reserve;
     if (spendable <= 50000) continue;
-
     const rng = createRng(`${saveWorld.meta.seed}|${event.date}|team-development|${teamId}`);
     const cost = round(Math.min(spendable * 0.12, Math.max(50000, cash * 0.02)));
     if (cost <= 0 || cash - cost < reserve) continue;
-
     const efficiency = facilityEfficiency(saveWorld, teamId);
     const targetGain = round(0.35 + efficiency * 0.55 + rng.next() * 0.45);
     const fixedDuration = numeric(options.projectDurationMonths);
-    const duration = fixedDuration !== null
-      ? Math.max(1, Math.round(fixedDuration))
-      : efficiency >= 0.75 ? 2 : efficiency >= 0.4 ? 3 : 4;
+    const duration = fixedDuration !== null ? Math.max(1, Math.round(fixedDuration)) : efficiency >= 0.75 ? 2 : efficiency >= 0.4 ? 3 : 4;
     const project = {
       projectId: `${event.date}:${teamId}:${component}:${event.sequence}`,
-      teamId,
-      component,
-      cost,
-      targetGain,
-      durationMonths: duration,
-      monthsRemaining: duration,
-      startedAt: event.date,
-      status: "active",
-      source: "ai",
+      teamId, component, cost, targetGain, durationMonths: duration, monthsRemaining: duration,
+      startedAt: event.date, status: "active", source: controlled.has(String(teamId)) ? "delegated" : "ai",
     };
     finances.cash = round(cash - cost);
     finances.lastDevelopmentSpend = cost;
     development.projects.push(project);
-    saveWorld.history.development.push({
-      date: event.date,
-      type: "started",
-      teamId,
-      projectId: project.projectId,
-      component,
-      cost,
-      targetGain,
-      durationMonths: duration,
-    });
+    saveWorld.history.development.push({ date: event.date, type: "started", teamId, projectId: project.projectId, component, cost, targetGain, durationMonths: duration, source: project.source });
     output.push({ type: TEAM_DEVELOPMENT_EVENT.PROJECT_STARTED, payload: { ...project } });
   }
   return output;
@@ -189,9 +139,7 @@ export function createTeamDevelopmentSystem(options = {}) {
         const teams = initializeCars(saveWorld, event.date);
         return { type: TEAM_DEVELOPMENT_EVENT.INITIALIZED, payload: { teams } };
       }
-      const completed = completeProjects(saveWorld, event);
-      const started = startAiProjects(saveWorld, event, options);
-      return [...completed, ...started];
+      return [...completeProjects(saveWorld, event), ...startAiProjects(saveWorld, event, options)];
     },
   };
 }

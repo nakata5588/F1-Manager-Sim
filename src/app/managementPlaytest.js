@@ -29,22 +29,65 @@ import {
   listOpenExternalOffers,
   marketSummary,
 } from "../game/management/market.js";
+import {
+  boardProjection,
+  submitBoardRequest,
+} from "../game/management/board.js";
+import {
+  acceptManagerJobOfferEvent,
+  ensureManagerCareer,
+  listManagerJobVacancies,
+  managerCareerProjection,
+  submitManagerApplicationEvent,
+} from "../game/management/managerCareer.js";
+import {
+  responsibilityProjection,
+  setResponsibility,
+} from "../game/management/responsibilities.js";
+import {
+  acceptStaffCounterEvent,
+  listStaffContractNegotiations,
+  listStaffRecruitmentCandidates,
+  openStaffContractNegotiation,
+  staffRecruitmentSummary,
+  submitStaffContractOfferEvent,
+  withdrawStaffNegotiationEvent,
+} from "../game/management/staffRecruitment.js";
+import { BOARD_EVENT } from "../sim/systems/boardManagement.js";
+import { createCoreWorldSystems } from "../sim/systems/coreWorldSystems.js";
 import { dispatchSimulationEvents } from "../sim/timeEngine.js";
 
-function requireSession(session) {
+function syncSessionControl(session) {
   if (!session || typeof session.requireCareer !== "function") throw new TypeError("A DeveloperPlaytestSession is required.");
   const saveWorld = session.requireCareer();
-  if (!session.controlledTeamId) throw new Error("The playtest has no controlled team.");
+  const dynamicTeamId = saveWorld.player?.controlledTeamIds?.[0] ?? null;
+  if (session.controlledTeamId !== dynamicTeamId) {
+    session.controlledTeamId = dynamicTeamId;
+    session.systems = createCoreWorldSystems({ controlledTeamIds: dynamicTeamId ? [dynamicTeamId] : [] })
+      .filter((system) => !["race.weekend", "race.timeline"].includes(system.id));
+  }
   return saveWorld;
+}
+
+function requireSession(session) {
+  return syncSessionControl(session);
+}
+
+function requireControlledTeam(session) {
+  const saveWorld = syncSessionControl(session);
+  if (!session.controlledTeamId) throw new Error("The manager is currently unemployed and does not control a team.");
+  return { saveWorld, teamId: session.controlledTeamId };
 }
 
 function dispatchManagementEvent(session, raw) {
   const saveWorld = requireSession(session);
-  return dispatchSimulationEvents(saveWorld, [{
+  const processed = dispatchSimulationEvents(saveWorld, [{
     ...raw,
     date: raw.date ?? saveWorld.clock.date,
     payload: raw.payload ?? {},
   }], session.systems ?? []);
+  syncSessionControl(session);
+  return processed;
 }
 
 function personName(saveWorld, type, id) {
@@ -54,12 +97,16 @@ function personName(saveWorld, type, id) {
 
 export function developerManagementOverview(session) {
   const saveWorld = requireSession(session);
+  const teamId = session.controlledTeamId;
   return {
     inbox: managementInboxSummary(saveWorld),
     scouting: scoutingSummary(saveWorld),
-    contracts: contractNegotiationSummary(saveWorld, session.controlledTeamId),
+    contracts: teamId ? contractNegotiationSummary(saveWorld, teamId) : { active: 0, agreed: 0, total: 0 },
+    staffContracts: teamId ? staffRecruitmentSummary(saveWorld, teamId) : { active: 0, agreed: 0, total: 0 },
     people: peopleSummary(saveWorld),
     market: marketSummary(saveWorld),
+    board: teamId ? boardProjection(saveWorld, teamId) : null,
+    career: managerCareerProjection(saveWorld),
   };
 }
 
@@ -97,13 +144,30 @@ export function developerResolveInboxDecision(session, itemId, optionId) {
       ? acceptDriverContractCounterEvent(saveWorld, item.decision.refId)
       : withdrawDriverContractNegotiationEvent(saveWorld, item.decision.refId);
     dispatchManagementEvent(session, raw);
+  } else if (item.decision.kind === "staff_contract_counter") {
+    const raw = optionId === "accept_staff_counter"
+      ? acceptStaffCounterEvent(saveWorld, item.decision.refId)
+      : withdrawStaffNegotiationEvent(saveWorld, item.decision.refId);
+    dispatchManagementEvent(session, raw);
+  } else if (item.decision.kind === "manager_job_offer") {
+    const career = ensureManagerCareer(saveWorld);
+    const offer = career.jobOffers.find((row) => row.id === item.decision.refId && row.status === "open");
+    if (!offer) throw new Error(`Manager job offer '${item.decision.refId}' is no longer open.`);
+    if (optionId === "accept_job") {
+      dispatchManagementEvent(session, acceptManagerJobOfferEvent(saveWorld, offer.id));
+    } else {
+      offer.status = "declined";
+      offer.closedAt = saveWorld.clock.date;
+    }
   }
   resolveManagementInboxDecision(saveWorld, itemId, optionId);
+  syncSessionControl(session);
   return developerInbox(session);
 }
 
 export function developerRecruitment(session, options = {}) {
   const saveWorld = requireSession(session);
+  if (!session.controlledTeamId) return { summary: scoutingSummary(saveWorld), candidates: [] };
   const candidates = listRecruitmentCandidates(saveWorld, options).map((row) => ({
     ...row,
     transferInterest: row.visibilityState === "f1_eligible" && row.knowledge >= 55
@@ -117,13 +181,13 @@ export function developerRecruitment(session, options = {}) {
 }
 
 export function developerSetShortlist(session, driverId, shortlisted = true) {
-  const saveWorld = requireSession(session);
+  const { saveWorld } = requireControlledTeam(session);
   setDriverShortlist(saveWorld, driverId, shortlisted);
   return developerRecruitment(session);
 }
 
 export function developerStartScouting(session, driverId, options = {}) {
-  const saveWorld = requireSession(session);
+  const { saveWorld } = requireControlledTeam(session);
   const assignment = startDriverScoutingAssignment(saveWorld, driverId, options);
   return {
     assignment,
@@ -133,6 +197,7 @@ export function developerStartScouting(session, driverId, options = {}) {
 
 export function developerContractNegotiations(session, options = {}) {
   const saveWorld = requireSession(session);
+  if (!session.controlledTeamId) return { summary: { active: 0, agreed: 0, total: 0 }, negotiations: [] };
   return {
     summary: contractNegotiationSummary(saveWorld, session.controlledTeamId),
     negotiations: listContractNegotiations(saveWorld, { ...options, teamId: session.controlledTeamId }),
@@ -140,11 +205,11 @@ export function developerContractNegotiations(session, options = {}) {
 }
 
 export function developerOpenDriverNegotiation(session, driverId, options = {}) {
-  const saveWorld = requireSession(session);
+  const { saveWorld, teamId } = requireControlledTeam(session);
   const negotiation = openDriverContractNegotiation(saveWorld, {
     ...options,
     driverId,
-    teamId: session.controlledTeamId,
+    teamId,
   });
   return {
     negotiation,
@@ -153,9 +218,9 @@ export function developerOpenDriverNegotiation(session, driverId, options = {}) 
 }
 
 export function developerSubmitDriverOffer(session, negotiationId, terms = {}) {
-  const saveWorld = requireSession(session);
+  const { saveWorld, teamId } = requireControlledTeam(session);
   const negotiation = listContractNegotiations(saveWorld).find((row) => row.id === negotiationId);
-  if (!negotiation || negotiation.teamId !== session.controlledTeamId) throw new Error("This negotiation does not belong to the controlled team.");
+  if (!negotiation || negotiation.teamId !== teamId) throw new Error("This negotiation does not belong to the controlled team.");
   dispatchManagementEvent(session, submitDriverContractOfferEvent(saveWorld, negotiationId, terms));
   return {
     contracts: developerContractNegotiations(session),
@@ -164,15 +229,16 @@ export function developerSubmitDriverOffer(session, negotiationId, terms = {}) {
 }
 
 export function developerWithdrawDriverNegotiation(session, negotiationId) {
-  const saveWorld = requireSession(session);
+  const { saveWorld, teamId } = requireControlledTeam(session);
   const negotiation = listContractNegotiations(saveWorld).find((row) => row.id === negotiationId);
-  if (!negotiation || negotiation.teamId !== session.controlledTeamId) throw new Error("This negotiation does not belong to the controlled team.");
+  if (!negotiation || negotiation.teamId !== teamId) throw new Error("This negotiation does not belong to the controlled team.");
   dispatchManagementEvent(session, withdrawDriverContractNegotiationEvent(saveWorld, negotiationId));
   return developerContractNegotiations(session);
 }
 
 export function developerPeople(session) {
   const saveWorld = requireSession(session);
+  if (!session.controlledTeamId) return { summary: peopleSummary(saveWorld), drivers: [], staff: [] };
   const drivers = Object.entries(saveWorld.world?.employment?.drivers ?? {})
     .filter(([, row]) => row?.teamId === session.controlledTeamId && row?.status === "employed")
     .map(([id, assignment]) => ({
@@ -200,6 +266,7 @@ export function developerPeople(session) {
 
 export function developerMarket(session) {
   const saveWorld = requireSession(session);
+  if (!session.controlledTeamId) return { summary: marketSummary(saveWorld), offers: [] };
   const negotiations = listContractNegotiations(saveWorld, { teamId: session.controlledTeamId });
   const relevantDriverIds = new Set([
     ...Object.entries(saveWorld.world?.employment?.drivers ?? {})
@@ -214,4 +281,101 @@ export function developerMarket(session) {
     summary: marketSummary(saveWorld),
     offers,
   };
+}
+
+export function developerBoard(session) {
+  const saveWorld = requireSession(session);
+  return {
+    board: session.controlledTeamId ? boardProjection(saveWorld, session.controlledTeamId) : null,
+    career: managerCareerProjection(saveWorld),
+  };
+}
+
+export function developerSubmitBoardRequest(session, kind) {
+  const { saveWorld, teamId } = requireControlledTeam(session);
+  const request = submitBoardRequest(saveWorld, teamId, kind);
+  dispatchManagementEvent(session, {
+    type: BOARD_EVENT.REQUEST_SUBMITTED,
+    payload: { request_id: request.id, team_id: teamId, kind },
+  });
+  return developerBoard(session);
+}
+
+export function developerManagerCareer(session) {
+  const saveWorld = requireSession(session);
+  return {
+    career: managerCareerProjection(saveWorld),
+    vacancies: listManagerJobVacancies(saveWorld),
+  };
+}
+
+export function developerApplyManagerJob(session, teamId) {
+  const saveWorld = requireSession(session);
+  dispatchManagementEvent(session, submitManagerApplicationEvent(saveWorld, teamId));
+  return {
+    career: developerManagerCareer(session),
+    inbox: developerInbox(session),
+  };
+}
+
+export function developerResponsibilities(session) {
+  const saveWorld = requireSession(session);
+  return {
+    teamId: session.controlledTeamId,
+    areas: session.controlledTeamId ? responsibilityProjection(saveWorld, session.controlledTeamId) : [],
+  };
+}
+
+export function developerSetResponsibility(session, area, owner) {
+  const { saveWorld, teamId } = requireControlledTeam(session);
+  setResponsibility(saveWorld, teamId, area, owner);
+  return developerResponsibilities(session);
+}
+
+export function developerStaffRecruitment(session, options = {}) {
+  const saveWorld = requireSession(session);
+  if (!session.controlledTeamId) return { summary: { active: 0, agreed: 0, total: 0 }, candidates: [] };
+  return {
+    summary: staffRecruitmentSummary(saveWorld, session.controlledTeamId),
+    candidates: listStaffRecruitmentCandidates(saveWorld, { ...options, teamId: session.controlledTeamId }),
+  };
+}
+
+export function developerStaffContractNegotiations(session) {
+  const saveWorld = requireSession(session);
+  if (!session.controlledTeamId) return { summary: { active: 0, agreed: 0, total: 0 }, negotiations: [] };
+  return {
+    summary: staffRecruitmentSummary(saveWorld, session.controlledTeamId),
+    negotiations: listStaffContractNegotiations(saveWorld, { teamId: session.controlledTeamId }),
+  };
+}
+
+export function developerOpenStaffNegotiation(session, staffId, options = {}) {
+  const { saveWorld, teamId } = requireControlledTeam(session);
+  const negotiation = openStaffContractNegotiation(saveWorld, {
+    staffId,
+    teamId,
+    role: options.role,
+    startSeason: options.startSeason,
+  });
+  return { negotiation, contracts: developerStaffContractNegotiations(session) };
+}
+
+export function developerSubmitStaffOffer(session, negotiationId, terms = {}) {
+  const { saveWorld, teamId } = requireControlledTeam(session);
+  const negotiation = listStaffContractNegotiations(saveWorld).find((row) => row.id === negotiationId);
+  if (!negotiation || negotiation.teamId !== teamId) throw new Error("This staff negotiation does not belong to the controlled team.");
+  dispatchManagementEvent(session, submitStaffContractOfferEvent(saveWorld, negotiationId, terms));
+  return {
+    contracts: developerStaffContractNegotiations(session),
+    inbox: developerInbox(session),
+  };
+}
+
+export function developerWithdrawStaffNegotiation(session, negotiationId) {
+  const { saveWorld, teamId } = requireControlledTeam(session);
+  const negotiation = listStaffContractNegotiations(saveWorld).find((row) => row.id === negotiationId);
+  if (!negotiation || negotiation.teamId !== teamId) throw new Error("This staff negotiation does not belong to the controlled team.");
+  dispatchManagementEvent(session, withdrawStaffNegotiationEvent(saveWorld, negotiationId));
+  return developerStaffContractNegotiations(session);
 }
