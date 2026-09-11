@@ -141,7 +141,7 @@ test("AI strategy revisions persist through a fresh-weekend JSON resume without 
   const paused = simulateTemporalRace(save("ai-resume"), firstWeekend, { stopAfterLap: 4 });
   assert.equal(paused.timeline.completed, false);
   assert.ok(paused.timeline.aiStrategyRevisions.some((row) => row.driverId === "A" && row.lap === 4));
-  assert.equal(paused.resumeState.version, 3);
+  assert.equal(paused.resumeState.version, 4);
   assert.equal(paused.resumeState.aiStrategies.A.source, "ai_live");
 
   const serialized = JSON.parse(JSON.stringify(paused.resumeState));
