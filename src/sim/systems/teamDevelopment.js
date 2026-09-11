@@ -1,5 +1,6 @@
 import { createRng } from "../random.js";
 import { SIM_EVENT } from "../timeEngine.js";
+import { responsibilityOwner } from "../../game/management/responsibilities.js";
 
 export const TEAM_DEVELOPMENT_EVENT = Object.freeze({
   INITIALIZED: "team.development_initialized",
@@ -122,14 +123,25 @@ function completeProjects(saveWorld, event) {
   return output;
 }
 
+function controlledTeamMayAutoDevelop(saveWorld, teamId, controlled) {
+  if (!controlled.has(teamId)) return true;
+  try {
+    return responsibilityOwner(saveWorld, teamId, "carDevelopment") === "delegated";
+  } catch {
+    return false;
+  }
+}
+
 function startAiProjects(saveWorld, event, options) {
   const development = ensureState(saveWorld);
-  const controlled = new Set(options.controlledTeamIds ?? []);
+  const configured = new Set(options.controlledTeamIds ?? []);
+  const dynamic = new Set((saveWorld.player?.controlledTeamIds ?? []).map(String));
+  const controlled = dynamic.size ? dynamic : configured;
   const output = [];
 
   for (const team of saveWorld.world?.teams ?? []) {
     const teamId = team.team_id;
-    if (!teamId || controlled.has(teamId) || activeProjectFor(development, teamId)) continue;
+    if (!teamId || !controlledTeamMayAutoDevelop(saveWorld, teamId, controlled) || activeProjectFor(development, teamId)) continue;
     const finances = saveWorld.world?.teamState?.[teamId];
     const car = saveWorld.world?.carState?.[teamId];
     const component = weakestComponent(car);
@@ -160,7 +172,7 @@ function startAiProjects(saveWorld, event, options) {
       monthsRemaining: duration,
       startedAt: event.date,
       status: "active",
-      source: "ai",
+      source: controlled.has(teamId) ? "delegated" : "ai",
     };
     finances.cash = round(cash - cost);
     finances.lastDevelopmentSpend = cost;
@@ -174,6 +186,7 @@ function startAiProjects(saveWorld, event, options) {
       cost,
       targetGain,
       durationMonths: duration,
+      source: project.source,
     });
     output.push({ type: TEAM_DEVELOPMENT_EVENT.PROJECT_STARTED, payload: { ...project } });
   }
