@@ -6,18 +6,15 @@ F1 Manager Sim is a long-form Formula One management and world simulation game. 
 
 ## Current development phase
 
-**Phase 29 — Canonical Career Bootstrap & Database Baseline**
+**Phase 30 — Developer Playtest UI**
 
-The first fully supported target season remains **1980**. The simulation foundation now includes historical/save boundaries, autonomous career systems, race weekends, temporal/live race simulation, championship rules and long-run validation. Phase 29 closes the path from a versioned database release into a new career before the first Developer Playtest UI is built.
+The first fully supported target season remains **1980**. The simulation foundation includes historical/save boundaries, autonomous career systems, race weekends, temporal/live race simulation, championship rules, database provenance and long-run validation. Phase 30 exposes the first playable vertical slice without moving simulation authority into the browser.
 
-Current goals:
+Current playable path:
 
-1. pin an accepted Global Database + 1980 Season Database baseline;
-2. create careers through one canonical `Season Database -> Save World` bootstrap;
-3. validate Season Database provenance against its Global Database release;
-4. preserve pre-career history and hidden future structure without future outcome leakage;
-5. validate variable historical calendar structure instead of assuming a fixed race count;
-6. keep headless and long-run simulation green before exposing the flow through the UI.
+`New Career -> Choose Team -> Create Manager -> Career Home -> Continue -> Race Weekend -> Live Race -> Results -> Standings`
+
+The UI is deliberately functional rather than polished. It consumes a real Season Database and advances the same Save World/simulation systems used by automated tests.
 
 ## Architecture rule
 
@@ -33,7 +30,7 @@ The database packaging boundary is:
 
 `Global Database -> Season Database -> Save World -> Simulation Engine`
 
-See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md` and `docs/DATA_WORKFLOW.md`.
+See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md` and `docs/DATA_WORKFLOW.md`.
 
 ## Database baseline
 
@@ -72,6 +69,17 @@ npm run save:from-season-db -- /path/to/season-1980.json \
   --out build/saves/1980.save.json \
   --seed 1980-playtest
 ```
+
+Run the local Developer Playtest UI against a materialized Season Database:
+
+```bash
+npm run playtest -- /path/to/season-1980.json \
+  --global-world /path/to/global-database.json
+```
+
+Then open `http://127.0.0.1:3000`.
+
+Both database inputs may be plain `.json` or `.json.gz`. The browser receives only player-facing projections; hidden future identity pools and reference data remain server-side in the Save World.
 
 Generated build files are intentionally not committed. Editor workbooks, SQLite mirrors and CSV exports remain database-authoring/audit artifacts rather than authoritative runtime state.
 
