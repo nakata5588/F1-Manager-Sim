@@ -5,6 +5,7 @@ import { createCareerDevelopmentSystem } from "./careerDevelopment.js";
 import { createRetirementSystem } from "./retirement.js";
 import { createRetirementEmploymentSystem } from "./retirementEmployment.js";
 import { createAiEmploymentDecisionSystem, createEmploymentMarketSystem } from "./employmentMarket.js";
+import { createTransferVacancySystem } from "./transferVacancy.js";
 import { createPeopleDynamicsSystem } from "./peopleDynamics.js";
 import { createScoutingManagementSystem } from "./scoutingManagement.js";
 import { createContractNegotiationSystem } from "./contractNegotiation.js";
@@ -28,6 +29,9 @@ export function createCoreWorldSystems(options = {}) {
     createCareerDevelopmentSystem(),
     createRetirementSystem(),
     createContractMilestoneSystem(),
+    // Transfer vacancy observes the old assignment before employment applies an
+    // immediate move. This keeps the origin seat visible to both AI and player.
+    createTransferVacancySystem(),
     createEmploymentMarketSystem(),
     createRetirementEmploymentSystem(),
     createAiEmploymentDecisionSystem({
@@ -46,9 +50,6 @@ export function createCoreWorldSystems(options = {}) {
       poachingBaseChance: options.poachingBaseChance,
     }),
     createManagementInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
-    // Race participation is a separate concept from employment. The entry
-    // system is initialized after employment so Season Pack race entries can
-    // override a contractual role without changing the contract itself.
     createRaceEntrySystem(),
     createTeamEconomySystem(),
     createTeamDevelopmentSystem({
