@@ -67,10 +67,10 @@ function queueMetadata(type, row, profile = {}) {
   };
 }
 
-function profileVisibilityMetadata(type, profile, queueRow = null) {
+function profileVisibilityMetadata(type, profile, queueRow = null, options = {}) {
   const combined = queueRow ? { ...profile, ...queueRow } : profile;
   const visibility = normalizeEntityVisibility(combined, { type });
-  return {
+  const output = {
     ...profile,
     birth_date: profile.birth_date ?? profile.date_of_birth ?? profile.dob ?? null,
     world_visible_from: visibility.worldVisibleFrom,
@@ -80,6 +80,16 @@ function profileVisibilityMetadata(type, profile, queueRow = null) {
     career_end_reference: visibility.careerEndReference,
     visibility_source: visibility.visibilitySource,
   };
+
+  // A future person's historical employer/team is a future outcome/reference,
+  // not part of their identity. Never expose it through the future profile.
+  if (options.future && ["driver", "staff"].includes(type)) {
+    delete output.team_id;
+    delete output.current_team_id;
+    delete output.current_team;
+    delete output.team_name;
+  }
+  return output;
 }
 
 function queueKey(row) {
@@ -127,7 +137,7 @@ function inferredQueue(database, season) {
   for (const team of database.teams ?? []) {
     if (!team.team_id) continue;
     const first = firstYear(database.teamBrands, "team_id", team.team_id);
-    if (first === null || first < season) continue;
+    if (first === null || first <= season) continue;
     rows.push(queueMetadata("team", {
       entity_type: "team",
       entity_id: team.team_id,
@@ -142,14 +152,12 @@ function inferredQueue(database, season) {
   for (const staff of database.staff ?? []) {
     if (!staff.staff_id) continue;
     const first = firstYear([...(database.staffContracts ?? []), ...(database.staffRatings ?? [])], "staff_id", staff.staff_id);
+    if (first === null || first <= season) continue;
     const source = { ...staff };
-    if (first !== null) {
-      source.world_visible_from ??= first;
-      source.talent_visible_from ??= first;
-      source.f1_eligible_from ??= first;
-    }
+    source.world_visible_from ??= first;
+    source.talent_visible_from ??= first;
+    source.f1_eligible_from ??= first;
     const visibility = normalizeEntityVisibility(source, { type: "staff" });
-    if (![visibility.worldVisibleFrom, visibility.f1EligibleFrom].some((value) => value !== null && value >= season)) continue;
     rows.push(queueMetadata("staff", {
       entity_type: "staff",
       entity_id: staff.staff_id,
@@ -166,7 +174,7 @@ function inferredQueue(database, season) {
     if (!sponsor.sponsor_id) continue;
     const first = year(sponsor.world_visible_from ?? sponsor.known_from ?? sponsor.start_year)
       ?? firstYear(database.sponsorContracts, "sponsor_id", sponsor.sponsor_id);
-    if (first === null || first < season) continue;
+    if (first === null || first <= season) continue;
     rows.push(queueMetadata("sponsor", {
       entity_type: "sponsor",
       entity_id: sponsor.sponsor_id,
@@ -278,6 +286,13 @@ export function createSeasonSnapshot(database, seasonInput) {
               : [];
       const profile = (sourceCollection ?? []).find((candidate) => entityId(type, candidate) === id) ?? {};
       return queueMetadata(type, row, profile);
+    })
+    .filter((row) => {
+      const type = canonicalType(typeOf(row));
+      if (type === "driver") return !activeDriverIds.has(row.entity_id);
+      if (type === "staff") return !activeStaffIds.has(row.entity_id);
+      if (type === "team") return !activeTeamIds.has(row.entity_id);
+      return true;
     });
 
   const queueByTypeId = new Map(queue.map((row) => [`${canonicalType(typeOf(row))}:${row.entity_id}`, row]));
@@ -288,13 +303,13 @@ export function createSeasonSnapshot(database, seasonInput) {
   base.futureEntities = queue;
   base.futureDrivers = mergeProfiles("driver", base.futureDrivers, database.drivers)
     .filter((row) => futureDriverIds.has(row.driver_id) && !activeDriverIds.has(row.driver_id))
-    .map((row) => profileVisibilityMetadata("driver", row, queueByTypeId.get(`driver:${row.driver_id}`)));
+    .map((row) => profileVisibilityMetadata("driver", row, queueByTypeId.get(`driver:${row.driver_id}`), { future: true }));
   base.futureStaff = mergeProfiles("staff", base.futureStaff, database.staff)
     .filter((row) => futureStaffIds.has(row.staff_id) && !activeStaffIds.has(row.staff_id))
-    .map((row) => profileVisibilityMetadata("staff", row, queueByTypeId.get(`staff:${row.staff_id}`)));
+    .map((row) => profileVisibilityMetadata("staff", row, queueByTypeId.get(`staff:${row.staff_id}`), { future: true }));
   base.futureTeams = mergeProfiles("team", base.futureTeams, database.teams)
     .filter((row) => futureTeamIds.has(row.team_id) && !activeTeamIds.has(row.team_id))
-    .map((row) => profileVisibilityMetadata("team", row, queueByTypeId.get(`team:${row.team_id}`)));
+    .map((row) => profileVisibilityMetadata("team", row, queueByTypeId.get(`team:${row.team_id}`), { future: true }));
 
   const sponsors = sponsorProfiles(database, season);
   if (sponsors.current.length || sponsors.future.length) {
