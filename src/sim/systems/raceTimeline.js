@@ -45,6 +45,8 @@ export function createRaceTimelineSystem() {
           damage_events: result.timeline.events.filter((row) => row.type === "damage").length,
           repairs: result.timeline.events.filter((row) => row.type === "repair").length,
           weather_changes: result.timeline.events.filter((row) => row.type === "weather_change").length,
+          tyre_temperature_transitions: result.timeline.events.filter((row) => row.type === "tyre_temperature_transition").length,
+          track_evolution_data_status: result.timeline.trackEvolution?.model?.dataStatus ?? null,
           ai_strategy_revisions: aiRevisions.length,
           race_control_periods: controls.length,
           local_yellows: controls.filter((row) => row.type === "local_yellow").length,
