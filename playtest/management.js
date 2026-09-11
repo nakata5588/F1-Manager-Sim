@@ -5,6 +5,7 @@ let overview = null;
 let inbox = { summary: {}, items: [] };
 let recruitment = { summary: {}, candidates: [] };
 let contracts = { summary: {}, negotiations: [] };
+let recruitmentRequest = "/api/recruitment";
 let activeTab = "inbox";
 let selectedNegotiation = null;
 let errorMessage = "";
@@ -42,6 +43,11 @@ function humanDate(value) {
   }).format(date);
 }
 
+function currentRecruitmentQuery() {
+  try { return new URL(recruitmentRequest, window.location.origin).searchParams.get("query") ?? ""; }
+  catch { return ""; }
+}
+
 async function refreshAll() {
   careerState = await api("/api/state");
   if (careerState.screen === "new_career") {
@@ -51,7 +57,7 @@ async function refreshAll() {
   [overview, inbox, recruitment, contracts] = await Promise.all([
     api("/api/management"),
     api("/api/inbox"),
-    api("/api/recruitment"),
+    api(recruitmentRequest),
     api("/api/contracts"),
   ]);
   const stillSelected = contracts.negotiations.find((row) => row.id === selectedNegotiation?.id);
@@ -97,7 +103,7 @@ function candidateReport(row) {
 
 function renderRecruitment() {
   return `<div class="management-toolbar">
-    <input id="recruitment-query" placeholder="Search drivers" value="">
+    <input id="recruitment-query" placeholder="Search drivers" value="${escapeHtml(currentRecruitmentQuery())}">
     <button data-action="search-recruitment">Search</button>
     <button data-action="show-shortlist">Shortlist</button>
     <button data-action="show-all-recruitment">All</button>
@@ -236,10 +242,10 @@ root.addEventListener("click", (event) => {
   const actionName = event.target.closest("[data-action]")?.dataset.action;
   if (actionName === "search-recruitment") return action(async () => {
     const query = document.querySelector("#recruitment-query")?.value ?? "";
-    recruitment = await api(`/api/recruitment?query=${encodeURIComponent(query)}`);
+    recruitmentRequest = `/api/recruitment?query=${encodeURIComponent(query)}`;
   });
-  if (actionName === "show-shortlist") return action(async () => { recruitment = await api("/api/recruitment?shortlisted=true"); });
-  if (actionName === "show-all-recruitment") return action(async () => { recruitment = await api("/api/recruitment"); });
+  if (actionName === "show-shortlist") return action(async () => { recruitmentRequest = "/api/recruitment?shortlisted=true"; });
+  if (actionName === "show-all-recruitment") return action(async () => { recruitmentRequest = "/api/recruitment"; });
 });
 
 refreshAll().catch((error) => {
