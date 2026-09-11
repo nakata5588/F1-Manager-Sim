@@ -1,5 +1,6 @@
 import { decideLiveRaceControl, resolveRaceControlPolicy } from "./raceControl.js";
 import { createRng } from "./random.js";
+import { resolveSectorModel, sectorPaceModifier } from "./sectorModel.js";
 
 function numeric(value, fallback = null) {
   const parsed = Number(value);
@@ -69,7 +70,7 @@ function parseTimeline(value) {
   }
 }
 
-function weatherPlan(saveWorld, weekend, race, track, laps) {
+function weatherPlan(weekend, race, track, laps) {
   const explicit = parseTimeline(race.weather_timeline ?? race.weatherTimeline ?? race.condition_timeline ?? race.conditions_timeline)
     .map((row) => ({
       lap: Math.max(1, Math.round(numeric(row?.lap ?? row?.from_lap ?? row?.start_lap, 1))),
@@ -127,15 +128,6 @@ function fuelModel(race, laps) {
   };
 }
 
-function overtakingDifficulty(track) {
-  for (const name of ["overtaking_difficulty", "passing_difficulty"]) {
-    const value = numeric(track?.[name]);
-    if (value === null) continue;
-    return clamp(value <= 1 ? value : value / 100, 0, 1);
-  }
-  return 0.5;
-}
-
 function strategyFor(weekend, driverId) {
   return weekend.strategies?.[driverId] ?? null;
 }
@@ -184,11 +176,11 @@ function tyreEffect(strategy, stint, condition) {
   return { pace, wear, mismatch };
 }
 
-function fuelEffect(fuel, lap, model) {
-  if (!model.enabled) return { pace: 0, fuelKg: null, retired: false };
-  const fuelKg = model.startingFuelKg - model.burnPerLapKg * (lap - 1);
+function fuelEffect(fuel, lap) {
+  if (!fuel.enabled) return { pace: 0, fuelKg: null, retired: false };
+  const fuelKg = fuel.startingFuelKg - fuel.burnPerLapKg * (lap - 1);
   if (fuelKg <= 0) return { pace: 0, fuelKg: 0, retired: true };
-  const fraction = clamp(fuelKg / model.startingFuelKg, 0, 1);
+  const fraction = clamp(fuelKg / fuel.startingFuelKg, 0, 1);
   return { pace: fraction * 0.72, fuelKg: round(fuelKg, 3), retired: false };
 }
 
@@ -223,6 +215,8 @@ function initialDriverState(saveWorld, weekend, row, laps, strategyWasAlreadyApp
     reason: null,
     failure,
     lastLapCost: null,
+    lastSectorCosts: {},
+    retirementSectorId: null,
     fuelKg: null,
     tyreWear: null,
     maxTyreWear: 0,
@@ -237,7 +231,7 @@ function lapCost(saveWorld, weekend, state, lap, condition, fuel, strategy) {
   const base = 100 - state.baseline;
   const stint = stintAt(strategy, lap);
   const tyre = tyreEffect(strategy, stint, condition);
-  const fuelState = fuelEffect(fuel, lap, fuel);
+  const fuelState = fuelEffect(fuel, lap);
   const wetAdjustment = condition === "wet" ? -(state.wetSkill - 50) * 0.025 : condition === "damp" ? -(state.wetSkill - 50) * 0.012 : 0;
   return {
     cost: Math.max(0.05, base + tyre.pace + fuelState.pace + wetAdjustment + consistencyNoise),
@@ -267,8 +261,21 @@ function recordSnapshot(snapshots, lap, order, states, reason = "interval") {
   });
 }
 
-function attemptPasses(saveWorld, weekend, lap, order, states, track, pitters, events) {
-  const difficulty = overtakingDifficulty(track);
+function compactOrder(order, states) {
+  const running = order.filter((id) => states.get(id)?.status === "RUNNING");
+  const retired = order.filter((id) => states.get(id)?.status !== "RUNNING");
+  order.splice(0, order.length, ...running, ...retired);
+}
+
+function controlAppliesToSector(control, lap, sectorId) {
+  if (!control || lap < control.startLap || lap > control.endLap) return false;
+  if (control.type !== "local_yellow") return true;
+  return control.scope !== "sector" || !control.sectorId || control.sectorId === sectorId;
+}
+
+function attemptSectorPasses(saveWorld, weekend, lap, sector, order, states, events, activeControl) {
+  if (controlAppliesToSector(activeControl, lap, sector.id) && activeControl?.overtakingAllowed === false) return;
+  const difficulty = clamp(numeric(sector.overtakingDifficulty, 0.5), 0, 1);
   let changed = true;
   let guard = 0;
   while (changed && guard < order.length) {
@@ -282,26 +289,50 @@ function attemptPasses(saveWorld, weekend, lap, order, states, track, pitters, e
       if (!leader || !follower || leader.status !== "RUNNING" || follower.status !== "RUNNING") continue;
       if (follower.elapsedIndex >= leader.elapsedIndex) continue;
 
-      if (pitters.has(leaderId) || pitters.has(followerId)) {
-        [order[index - 1], order[index]] = [followerId, leaderId];
-        changed = true;
-        events.push({ lap, type: "position_change", driverId: followerId, passedDriverId: leaderId, reason: "pit_cycle" });
-        continue;
-      }
-
-      const theoreticalAdvantage = clamp(leader.elapsedIndex - follower.elapsedIndex, 0, 4);
+      const theoreticalAdvantage = clamp((leader.elapsedIndex - follower.elapsedIndex) / Math.max(0.2, sector.weight), 0, 4);
       const skill = (follower.racecraft - leader.racecraft) / 100;
-      const probability = clamp(0.16 + theoreticalAdvantage * 0.16 + skill * 0.24 + (1 - difficulty) * 0.34, 0.03, 0.92);
-      const rng = createRng(`${saveWorld.meta.seed}|${weekend.key}|timeline|pass|${lap}|${followerId}|${leaderId}`);
+      const brakingOpportunity = clamp(numeric(sector.brakeStress, 0.5), 0, 1);
+      const probability = clamp(0.08 + theoreticalAdvantage * 0.13 + skill * 0.24 + (1 - difficulty) * 0.38 + brakingOpportunity * 0.06, 0.02, 0.9);
+      const rng = createRng(`${saveWorld.meta.seed}|${weekend.key}|timeline|sector-pass|${lap}|${sector.id}|${followerId}|${leaderId}`);
       if (rng.next() < probability) {
         [order[index - 1], order[index]] = [followerId, leaderId];
         changed = true;
-        events.push({ lap, type: "overtake", driverId: followerId, passedDriverId: leaderId, probability: round(probability, 4) });
+        events.push({
+          lap,
+          sectorId: sector.id,
+          sectorName: sector.name,
+          type: "overtake",
+          driverId: followerId,
+          passedDriverId: leaderId,
+          probability: round(probability, 4),
+        });
       } else {
-        const traffic = 0.08 + difficulty * 0.12;
+        const traffic = (0.025 + difficulty * 0.055) * Math.max(0.2, sector.weight * 3);
         follower.elapsedIndex = Math.max(follower.elapsedIndex + traffic, leader.elapsedIndex + 0.001);
         follower.trafficLoss += traffic;
       }
+    }
+  }
+}
+
+function applyPitCycle(order, states, pitters, lap, events) {
+  if (!pitters.size) return;
+  let changed = true;
+  let guard = 0;
+  while (changed && guard < order.length) {
+    changed = false;
+    guard += 1;
+    for (let index = 1; index < order.length; index += 1) {
+      const leaderId = order[index - 1];
+      const followerId = order[index];
+      const leader = states.get(leaderId);
+      const follower = states.get(followerId);
+      if (!leader || !follower || leader.status !== "RUNNING" || follower.status !== "RUNNING") continue;
+      if (!pitters.has(leaderId) && !pitters.has(followerId)) continue;
+      if (follower.elapsedIndex >= leader.elapsedIndex) continue;
+      [order[index - 1], order[index]] = [followerId, leaderId];
+      changed = true;
+      events.push({ lap, sectorId: "PIT", type: "position_change", driverId: followerId, passedDriverId: leaderId, reason: "pit_cycle" });
     }
   }
 }
@@ -334,6 +365,19 @@ function strongerControl(current, candidate) {
   return (weight[candidate.type] ?? 0) > (weight[current.type] ?? 0) ? candidate : current;
 }
 
+function hazardShares(sectors, field = null) {
+  const values = sectors.map((sector) => {
+    const factor = field ? 0.35 + clamp(numeric(sector[field], 0.5), 0, 1) * 0.65 : 1;
+    return Math.max(0.001, sector.weight * factor);
+  });
+  const total = values.reduce((sum, value) => sum + value, 0);
+  return values.map((value) => value / total);
+}
+
+function distributedHazardProbability(lapProbability, share) {
+  return 1 - Math.pow(1 - clamp(lapProbability, 0, 0.999999), clamp(share, 0, 1));
+}
+
 function classify(order, states, baselineRows, laps) {
   const baselineById = new Map(baselineRows.map((row) => [row.driverId, row]));
   const runningOrder = order.filter((id) => states.get(id)?.status === "RUNNING");
@@ -354,6 +398,7 @@ function classify(order, states, baselineRows, laps) {
       status: finished ? "FINISHED" : "DNF",
       reason: finished ? null : state.reason,
       completedLaps: finished ? null : state.completedLaps,
+      retirementSectorId: finished ? null : state.retirementSectorId,
       performanceIndex: round(state.baseline - state.trafficLoss * 0.08, 4),
       reliability: round(state.reliability, 2),
       raceIndex: round(state.elapsedIndex, 4),
@@ -372,8 +417,8 @@ function restoreStates(raw) {
 
 function buildResumeState(weekend, lap, order, states, events, snapshots, leaderByLap, controlPeriods, lastCondition, activeControl) {
   return {
-    version: 1,
-    model: "lap_index_v2_resumable",
+    version: 2,
+    model: "sector_lap_v1_resumable",
     weekendKey: weekend.key,
     lap,
     order: [...order],
@@ -389,12 +434,23 @@ function buildResumeState(weekend, lap, order, states, events, snapshots, leader
 
 function validateResumeState(weekend, resumeState) {
   if (!resumeState) return;
-  if (Number(resumeState.version) !== 1 || resumeState.weekendKey !== weekend.key) {
+  if (![1, 2].includes(Number(resumeState.version)) || resumeState.weekendKey !== weekend.key) {
     throw new Error("Resume state does not belong to this race weekend.");
   }
   if (!Number.isInteger(Number(resumeState.lap)) || !Array.isArray(resumeState.order) || !resumeState.states) {
     throw new Error("Resume state is incomplete.");
   }
+}
+
+function summarizeSectors(sectorModel, events) {
+  return sectorModel.sectors.map((sector) => ({
+    sectorId: sector.id,
+    sectorName: sector.name,
+    overtakes: events.filter((row) => row.type === "overtake" && row.sectorId === sector.id).length,
+    incidents: events.filter((row) => row.type === "retirement" && row.reason === "incident" && row.sectorId === sector.id).length,
+    mechanicalRetirements: events.filter((row) => row.type === "retirement" && row.reason === "mechanical" && row.sectorId === sector.id).length,
+    localYellows: events.filter((row) => row.type === "race_control" && row.control === "local_yellow" && row.sectorId === sector.id).length,
+  }));
 }
 
 export function simulateTemporalRace(saveWorld, weekend, options = {}) {
@@ -405,8 +461,12 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
   const race = currentRace(saveWorld, weekend);
   const track = currentTrack(saveWorld, weekend, race);
   const laps = raceLaps(weekend, race);
-  const weather = weatherPlan(saveWorld, weekend, race, track, laps);
+  const weather = weatherPlan(weekend, race, track, laps);
   const fuel = fuelModel(race, laps);
+  const sectorModel = resolveSectorModel(track);
+  const sectors = sectorModel.sectors;
+  const mechanicalShares = hazardShares(sectors);
+  const incidentShares = hazardShares(sectors, "incidentRisk");
   const baselineRows = weekend.classification.filter((row) => (weekend.grid ?? []).some((grid) => grid.driverId === row.driverId));
   const resumeState = options.resumeState ?? null;
   validateResumeState(weekend, resumeState);
@@ -437,6 +497,7 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
         lap,
         type: activeControl.type === "red_flag" ? "race_restart" : "race_control_clear",
         control: activeControl.type,
+        sectorId: activeControl.sectorId ?? null,
       });
       activeControl = null;
     }
@@ -445,102 +506,145 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
     if (lap > 1 && condition !== lastCondition) events.push({ lap, type: "weather_change", from: lastCondition, to: condition });
     lastCondition = condition;
     const pitters = new Set();
-    let newControl = null;
+    const lapStates = new Map();
+    let controlChanged = false;
+    let latestControl = null;
 
-    for (const id of [...order]) {
+    for (const id of order) {
       const state = states.get(id);
       if (!state || state.status !== "RUNNING") continue;
       const strategy = strategyFor(weekend, id);
-      const lapState = lapCost(saveWorld, weekend, state, lap, condition, fuel, strategy);
-      const controlCost = controlPenalty(activeControl);
-      state.lastLapCost = lapState.cost + controlCost;
-      state.tyreWear = lapState.tyre.wear;
-      if (lapState.tyre.wear !== null) state.maxTyreWear = Math.max(state.maxTyreWear, lapState.tyre.wear);
-      state.fuelKg = lapState.fuel.fuelKg;
+      const currentLapState = lapCost(saveWorld, weekend, state, lap, condition, fuel, strategy);
+      state.lastLapCost = 0;
+      state.lastSectorCosts = {};
+      state.tyreWear = currentLapState.tyre.wear;
+      if (currentLapState.tyre.wear !== null) state.maxTyreWear = Math.max(state.maxTyreWear, currentLapState.tyre.wear);
+      state.fuelKg = currentLapState.fuel.fuelKg;
+      lapStates.set(id, currentLapState);
 
-      if (lapState.fuel.retired) {
+      if (currentLapState.fuel.retired) {
         state.status = "DNF";
         state.reason = "fuel";
-        events.push({ lap, type: "retirement", driverId: id, reason: "fuel" });
-        continue;
-      }
-
-      const mechanicalRng = createRng(`${saveWorld.meta.seed}|${weekend.key}|timeline|mechanical|${lap}|${id}`);
-      const incidentRng = createRng(`${saveWorld.meta.seed}|${weekend.key}|timeline|incident|${lap}|${id}`);
-      if (mechanicalRng.next() < state.failure.mechanical) {
-        state.status = "DNF";
-        state.reason = "mechanical";
-        events.push({ lap, type: "retirement", driverId: id, reason: "mechanical" });
-        continue;
-      }
-      if (incidentRng.next() < state.failure.incident) {
-        state.status = "DNF";
-        state.reason = "incident";
-        const incident = { lap, type: "retirement", driverId: id, reason: "incident" };
-        events.push(incident);
-        const decision = decideLiveRaceControl(saveWorld, weekend, incident, policy);
-        newControl = strongerControl(newControl, decision);
-        continue;
-      }
-
-      state.elapsedIndex += state.lastLapCost;
-      state.completedLaps = lap;
-
-      const stop = pitStopAt(strategy, lap);
-      if (stop) {
-        const loss = pitPenalty(stop);
-        state.elapsedIndex += loss;
-        state.pitStopsCompleted += 1;
-        pitters.add(id);
-        events.push({
-          lap,
-          type: "pit_stop",
-          driverId: id,
-          stop: state.pitStopsCompleted,
-          lossIndex: round(loss, 4),
-          timeLossSeconds: numeric(stop.timeLossSeconds),
-        });
+        state.retirementSectorId = null;
+        events.push({ lap, sectorId: null, type: "retirement", driverId: id, reason: "fuel" });
       }
     }
+    compactOrder(order, states);
 
-    if (newControl) {
-      activeControl = strongerControl(activeControl, newControl);
-      controlPeriods.push(structuredClone(newControl));
+    for (let sectorIndex = 0; sectorIndex < sectors.length; sectorIndex += 1) {
+      const sector = sectors[sectorIndex];
+      let newControl = null;
+
+      for (const id of [...order]) {
+        const state = states.get(id);
+        const currentLapState = lapStates.get(id);
+        if (!state || state.status !== "RUNNING" || !currentLapState) continue;
+
+        const mechanicalProbability = distributedHazardProbability(state.failure.mechanical, mechanicalShares[sectorIndex]);
+        const incidentProbability = distributedHazardProbability(state.failure.incident, incidentShares[sectorIndex]);
+        const mechanicalRng = createRng(`${saveWorld.meta.seed}|${weekend.key}|timeline|mechanical|${lap}|${sector.id}|${id}`);
+        const incidentRng = createRng(`${saveWorld.meta.seed}|${weekend.key}|timeline|incident|${lap}|${sector.id}|${id}`);
+
+        if (mechanicalRng.next() < mechanicalProbability) {
+          state.status = "DNF";
+          state.reason = "mechanical";
+          state.retirementSectorId = sector.id;
+          events.push({ lap, sectorId: sector.id, sectorName: sector.name, type: "retirement", driverId: id, reason: "mechanical" });
+          continue;
+        }
+        if (incidentRng.next() < incidentProbability) {
+          state.status = "DNF";
+          state.reason = "incident";
+          state.retirementSectorId = sector.id;
+          const incident = { lap, sectorId: sector.id, sectorName: sector.name, type: "retirement", driverId: id, reason: "incident" };
+          events.push(incident);
+          const decision = decideLiveRaceControl(saveWorld, weekend, incident, policy);
+          newControl = strongerControl(newControl, decision);
+          continue;
+        }
+      }
+
+      if (newControl) {
+        activeControl = strongerControl(activeControl, newControl);
+        controlPeriods.push(structuredClone(newControl));
+        controlChanged = true;
+        latestControl = newControl;
+        events.push({
+          lap,
+          sectorId: newControl.sectorId ?? newControl.originSectorId ?? sector.id,
+          type: "race_control",
+          control: newControl.type,
+          driverId: newControl.driverId,
+          severity: newControl.severity,
+          startLap: newControl.startLap,
+          endLap: newControl.endLap,
+          restartLap: newControl.restartLap ?? null,
+        });
+      }
+
+      compactOrder(order, states);
+      for (const id of order) {
+        const state = states.get(id);
+        const currentLapState = lapStates.get(id);
+        if (!state || state.status !== "RUNNING" || !currentLapState) continue;
+        const sectorControlPenalty = controlAppliesToSector(activeControl, lap, sector.id)
+          ? controlPenalty(activeControl) * sector.weight
+          : 0;
+        const sectorCost = Math.max(
+          0.01,
+          currentLapState.cost * sector.weight + sectorPaceModifier(state, sector, condition) + sectorControlPenalty,
+        );
+        state.elapsedIndex += sectorCost;
+        state.lastLapCost += sectorCost;
+        state.lastSectorCosts[sector.id] = round(sectorCost, 4);
+      }
+
+      attemptSectorPasses(saveWorld, weekend, lap, sector, order, states, events, activeControl);
+    }
+
+    const globalControlApplies = activeControl
+      && activeControl.type !== "local_yellow"
+      && lap >= activeControl.startLap
+      && lap <= activeControl.endLap;
+    if (globalControlApplies && numeric(activeControl.fieldCompression) !== null) {
+      compressRunningField(order, states, clamp(Number(activeControl.fieldCompression), 0, 1));
+    }
+
+    for (const id of order) {
+      const state = states.get(id);
+      if (!state || state.status !== "RUNNING") continue;
+      state.completedLaps = lap;
+      const strategy = strategyFor(weekend, id);
+      const stop = pitStopAt(strategy, lap);
+      if (!stop) continue;
+      const loss = pitPenalty(stop);
+      state.elapsedIndex += loss;
+      state.pitStopsCompleted += 1;
+      pitters.add(id);
       events.push({
         lap,
-        type: "race_control",
-        control: newControl.type,
-        driverId: newControl.driverId,
-        severity: newControl.severity,
-        startLap: newControl.startLap,
-        endLap: newControl.endLap,
-        restartLap: newControl.restartLap ?? null,
+        sectorId: "PIT",
+        type: "pit_stop",
+        driverId: id,
+        stop: state.pitStopsCompleted,
+        lossIndex: round(loss, 4),
+        timeLossSeconds: numeric(stop.timeLossSeconds),
       });
     }
 
-    const running = order.filter((id) => states.get(id)?.status === "RUNNING");
-    const retired = order.filter((id) => states.get(id)?.status !== "RUNNING");
-    order.splice(0, order.length, ...running, ...retired);
-
-    const controlApplies = activeControl && lap >= activeControl.startLap && lap <= activeControl.endLap;
-    if (controlApplies && numeric(activeControl.fieldCompression) !== null) {
-      compressRunningField(order, states, clamp(Number(activeControl.fieldCompression), 0, 1));
-    }
-    if (!controlApplies || activeControl.overtakingAllowed !== false) {
-      attemptPasses(saveWorld, weekend, lap, order, states, track, pitters, events);
-    }
-
+    compactOrder(order, states);
+    applyPitCycle(order, states, pitters, lap, events);
     leaderByLap.push(order.find((id) => states.get(id)?.status === "RUNNING") ?? null);
+
     const interval = Math.max(1, Math.round(laps / 6));
     const changedWeather = weatherChanges.some((row) => row.lap === lap && lap !== 1);
-    const controlChanged = Boolean(newControl);
     if (lap === 1 || lap === laps || lap % interval === 0 || changedWeather || pitters.size > 0 || controlChanged) {
       recordSnapshot(
         snapshots,
         lap,
         order,
         states,
-        controlChanged ? newControl.type : changedWeather ? "weather_change" : pitters.size ? "pit_cycle" : lap === laps ? "finish" : "interval",
+        controlChanged ? latestControl.type : changedWeather ? "weather_change" : pitters.size ? "pit_cycle" : lap === laps ? "finish" : "interval",
       );
     }
   }
@@ -573,8 +677,8 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
     classification,
     resumeState: nextResumeState,
     timeline: {
-      version: 2,
-      model: "lap_index_v2_resumable",
+      version: 3,
+      model: "sector_lap_v1_resumable",
       completed,
       lapsSimulated: endLap,
       totalLaps: laps,
@@ -584,6 +688,8 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
       leaderByLap,
       snapshots,
       tyreSummary,
+      sectorModel,
+      sectorSummary: summarizeSectors(sectorModel, events),
       raceControlLive: true,
       raceControlPolicy: policy,
       controlPeriods,
