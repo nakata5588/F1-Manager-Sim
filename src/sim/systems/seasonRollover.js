@@ -31,7 +31,7 @@ function generateCalendar(previousCalendar, season) {
       year: season,
       race_date: shiftDateToYear(race.race_date ?? race.date, season),
       generated: true,
-      generation_source: "previous_season_calendar_fallback",
+      generation_source: "previous_season_calendar",
     }));
 }
 
