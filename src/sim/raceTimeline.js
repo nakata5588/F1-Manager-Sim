@@ -3,6 +3,7 @@ import { createRng } from "./random.js";
 import { resolveSectorModel, sectorPaceModifier } from "./sectorModel.js";
 import { evaluateAiLiveStrategyDecision, isAiManagedStrategy } from "./aiLiveStrategy.js";
 import { reviseRaceStrategy } from "./liveStrategy.js";
+import { activeDamagePaceLoss, repairDamageAtPit, resolveIncidentDamage } from "./damageModel.js";
 
 function numeric(value, fallback = null) {
   const parsed = Number(value);
@@ -224,6 +225,10 @@ function initialDriverState(saveWorld, weekend, row, laps, strategyWasAlreadyApp
     maxTyreWear: 0,
     pitStopsCompleted: 0,
     trafficLoss: 0,
+    damage: [],
+    damagePaceLoss: 0,
+    damageIncidents: 0,
+    repairsCompleted: 0,
   };
 }
 
@@ -402,6 +407,7 @@ function classify(order, states, baselineRows, laps) {
     const state = states.get(id);
     const baseline = baselineById.get(id) ?? {};
     const finished = state.status === "RUNNING" && state.completedLaps >= laps;
+    const activeDamage = (state.damage ?? []).filter((item) => item.status !== "repaired" && !item.terminal);
     return {
       ...baseline,
       position: index + 1,
@@ -412,10 +418,13 @@ function classify(order, states, baselineRows, laps) {
       reason: finished ? null : state.reason,
       completedLaps: finished ? null : state.completedLaps,
       retirementSectorId: finished ? null : state.retirementSectorId,
-      performanceIndex: round(state.baseline - state.trafficLoss * 0.08, 4),
+      performanceIndex: round(state.baseline - state.trafficLoss * 0.08 - activeDamagePaceLoss(activeDamage), 4),
       reliability: round(state.reliability, 2),
       raceIndex: round(state.elapsedIndex, 4),
       pitStopsCompleted: state.pitStopsCompleted,
+      repairsCompleted: state.repairsCompleted ?? 0,
+      damagePaceLoss: activeDamagePaceLoss(activeDamage),
+      damageAtFinish: structuredClone(activeDamage),
     };
   });
 }
@@ -425,7 +434,14 @@ function serializeStates(states) {
 }
 
 function restoreStates(raw) {
-  return new Map(Object.entries(raw ?? {}).map(([id, state]) => [id, structuredClone(state)]));
+  const states = new Map(Object.entries(raw ?? {}).map(([id, state]) => [id, structuredClone(state)]));
+  for (const state of states.values()) {
+    state.damage ??= [];
+    state.damagePaceLoss = activeDamagePaceLoss(state.damage);
+    state.damageIncidents ??= state.damage.length;
+    state.repairsCompleted ??= state.damage.filter((item) => item.status === "repaired").length;
+  }
+  return states;
 }
 
 function aiManagedStrategies(weekend) {
@@ -445,8 +461,8 @@ function restoreAiStrategies(weekend, resumeState) {
 
 function buildResumeState(weekend, lap, order, states, events, snapshots, leaderByLap, controlPeriods, lastCondition, activeControl) {
   return {
-    version: 3,
-    model: "sector_lap_v2_ai_strategy_resumable",
+    version: 4,
+    model: "sector_lap_v3_damage_resumable",
     weekendKey: weekend.key,
     lap,
     order: [...order],
@@ -463,7 +479,7 @@ function buildResumeState(weekend, lap, order, states, events, snapshots, leader
 
 function validateResumeState(weekend, resumeState) {
   if (!resumeState) return;
-  if (![1, 2, 3].includes(Number(resumeState.version)) || resumeState.weekendKey !== weekend.key) {
+  if (![1, 2, 3, 4].includes(Number(resumeState.version)) || resumeState.weekendKey !== weekend.key) {
     throw new Error("Resume state does not belong to this race weekend.");
   }
   if (!Number.isInteger(Number(resumeState.lap)) || !Array.isArray(resumeState.order) || !resumeState.states) {
@@ -476,10 +492,21 @@ function summarizeSectors(sectorModel, events) {
     sectorId: sector.id,
     sectorName: sector.name,
     overtakes: events.filter((row) => row.type === "overtake" && row.sectorId === sector.id).length,
-    incidents: events.filter((row) => row.type === "retirement" && row.reason === "incident" && row.sectorId === sector.id).length,
+    incidents: events.filter((row) => row.type === "incident" && row.sectorId === sector.id).length,
     mechanicalRetirements: events.filter((row) => row.type === "retirement" && row.reason === "mechanical" && row.sectorId === sector.id).length,
     localYellows: events.filter((row) => row.type === "race_control" && row.control === "local_yellow" && row.sectorId === sector.id).length,
   }));
+}
+
+function summarizeDamage(states, events) {
+  return Object.fromEntries([...states.entries()].map(([driverId, state]) => [driverId, {
+    incidents: state.damageIncidents ?? 0,
+    repairsCompleted: state.repairsCompleted ?? 0,
+    remainingPaceLossIndex: activeDamagePaceLoss(state.damage ?? []),
+    remainingDamage: structuredClone((state.damage ?? []).filter((item) => item.status !== "repaired" && !item.terminal)),
+    peakSeverity: Math.max(0, ...(state.damage ?? []).map((item) => Number(item.severity ?? 0))),
+    repairEvents: events.filter((row) => row.type === "repair" && row.driverId === driverId).length,
+  }]));
 }
 
 function applyAiStrategyDecisions(saveWorld, weekend, states, lap, laps, condition, activeControl, events) {
@@ -489,12 +516,15 @@ function applyAiStrategyDecisions(saveWorld, weekend, states, lap, laps, conditi
     if (!state || state.status !== "RUNNING") continue;
     const currentPlan = weekend.strategies?.[driverId];
     if (!currentPlan || !isAiManagedStrategy(currentPlan)) continue;
+    const repairableDamage = (state.damage ?? []).some((item) => item.repairable && item.status !== "repaired");
     const decision = evaluateAiLiveStrategyDecision(saveWorld, weekend, driverId, {
       currentLap: lap - 1,
       totalLaps: laps,
       condition,
       tyreWear: state.tyreWear,
       activeControl,
+      damagePaceLoss: state.damagePaceLoss,
+      repairableDamage,
     });
     if (!decision) continue;
 
@@ -516,9 +546,18 @@ function applyAiStrategyDecisions(saveWorld, weekend, states, lap, laps, conditi
       compoundId: decision.compoundId,
       pitAfterLap: revised.liveRevision?.pitAfterLap ?? decision.pitAfterLap,
       observedWear: decision.observedWear ?? null,
+      observedDamageLoss: decision.observedDamageLoss ?? null,
       activeControl: activeControl?.type ?? null,
     });
   }
+}
+
+function updateDamageAfterRepair(state, repair) {
+  if (!repair.repaired.length) return;
+  const byId = new Map(repair.repaired.map((item) => [item.id, item]));
+  state.damage = (state.damage ?? []).map((item) => byId.get(item.id) ?? item);
+  state.damagePaceLoss = activeDamagePaceLoss(state.damage);
+  state.repairsCompleted = Number(state.repairsCompleted ?? 0) + repair.repaired.length;
 }
 
 export function simulateTemporalRace(saveWorld, weekend, options = {}) {
@@ -624,14 +663,52 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
           continue;
         }
         if (incidentRng.next() < incidentProbability) {
-          state.status = "DNF";
-          state.reason = "incident";
-          state.retirementSectorId = sector.id;
-          const incident = { lap, sectorId: sector.id, sectorName: sector.name, type: "retirement", driverId: id, reason: "incident" };
+          const incidentBase = { lap, sectorId: sector.id, sectorName: sector.name, type: "incident", driverId: id, reason: "incident" };
+          const damage = resolveIncidentDamage(saveWorld, weekend, incidentBase, sector);
+          const incident = {
+            ...incidentBase,
+            severity: damage.severity,
+            damageType: damage.type,
+            terminal: damage.terminal,
+            repairable: damage.repairable,
+          };
           events.push(incident);
+          state.damage ??= [];
+          state.damage.push(damage);
+          state.damageIncidents = Number(state.damageIncidents ?? 0) + 1;
           const decision = decideLiveRaceControl(saveWorld, weekend, incident, policy);
           newControl = strongerControl(newControl, decision);
-          continue;
+
+          if (damage.terminal) {
+            state.status = "DNF";
+            state.reason = "incident";
+            state.retirementSectorId = sector.id;
+            events.push({
+              lap,
+              sectorId: sector.id,
+              sectorName: sector.name,
+              type: "retirement",
+              driverId: id,
+              reason: "incident",
+              severity: damage.severity,
+              damageType: damage.type,
+            });
+            continue;
+          }
+
+          state.damagePaceLoss = activeDamagePaceLoss(state.damage);
+          events.push({
+            lap,
+            sectorId: sector.id,
+            sectorName: sector.name,
+            type: "damage",
+            driverId: id,
+            damageId: damage.id,
+            damageType: damage.type,
+            severity: damage.severity,
+            repairable: damage.repairable,
+            paceLossIndex: damage.paceLossIndex,
+          });
         }
       }
 
@@ -661,9 +738,10 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
         const sectorControlPenalty = controlAppliesToSector(activeControl, lap, sector.id)
           ? controlPenalty(activeControl) * sector.weight
           : 0;
+        const damagePenalty = activeDamagePaceLoss(state.damage ?? []) * sector.weight;
         const sectorCost = Math.max(
           0.01,
-          currentLapState.cost * sector.weight + sectorPaceModifier(state, sector, condition) + sectorControlPenalty,
+          currentLapState.cost * sector.weight + sectorPaceModifier(state, sector, condition) + sectorControlPenalty + damagePenalty,
         );
         state.elapsedIndex += sectorCost;
         state.lastLapCost += sectorCost;
@@ -688,17 +766,38 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
       const strategy = strategyFor(weekend, id);
       const stop = pitStopAt(strategy, lap);
       if (!stop) continue;
+
       const pit = pitPenalty(stop, activeControl, lap);
-      state.elapsedIndex += pit.loss;
+      const repair = repairDamageAtPit(saveWorld, state.teamId, state.damage ?? [], `${weekend.key}|repair|${lap}|${id}`);
+      updateDamageAfterRepair(state, repair);
+      const totalLoss = pit.loss + repair.lossIndex;
+      state.elapsedIndex += totalLoss;
       state.pitStopsCompleted += 1;
       pitters.add(id);
+
+      if (repair.repaired.length) {
+        events.push({
+          lap,
+          sectorId: "PIT",
+          type: "repair",
+          driverId: id,
+          repairedDamageIds: repair.repaired.map((item) => item.id),
+          repairedTypes: repair.repaired.map((item) => item.type),
+          repairLossIndex: repair.lossIndex,
+          capability: repair.capability,
+          paceLossRecovered: repair.paceLossRecovered,
+        });
+      }
+
       events.push({
         lap,
         sectorId: "PIT",
         type: "pit_stop",
         driverId: id,
         stop: state.pitStopsCompleted,
-        lossIndex: round(pit.loss, 4),
+        lossIndex: round(totalLoss, 4),
+        basePitLossIndex: round(pit.loss, 4),
+        repairLossIndex: repair.lossIndex,
         timeLossSeconds: numeric(stop.timeLossSeconds),
         neutralisationFactor: pit.neutralisationFactor,
         lossModel: pit.neutralisationFactor < 1 ? "neutralisation_simulation_tuning" : "normal_running",
@@ -750,8 +849,8 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
     classification,
     resumeState: nextResumeState,
     timeline: {
-      version: 4,
-      model: "sector_lap_v2_ai_strategy_resumable",
+      version: 5,
+      model: "sector_lap_v3_damage_resumable",
       completed,
       lapsSimulated: endLap,
       totalLaps: laps,
@@ -761,6 +860,7 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
       leaderByLap,
       snapshots,
       tyreSummary,
+      damageSummary: summarizeDamage(states, events),
       sectorModel,
       sectorSummary: summarizeSectors(sectorModel, events),
       raceControlLive: true,

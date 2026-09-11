@@ -90,6 +90,10 @@ function incidentSector(event) {
   return event?.sectorId ?? event?.sector_id ?? event?.sector ?? null;
 }
 
+function isIncidentEvent(event) {
+  return event?.type === "incident" || (event?.type === "retirement" && event?.reason === "incident");
+}
+
 function localYellow(event, severity) {
   const duration = severity >= 70 ? 2 : 1;
   const sectorId = incidentSector(event);
@@ -123,7 +127,7 @@ function interventionBase(event, severity) {
 }
 
 export function decideLiveRaceControl(saveWorld, race, event, suppliedPolicy = null) {
-  if (event?.type !== "retirement" || event?.reason !== "incident") return null;
+  if (!isIncidentEvent(event)) return null;
   const policy = suppliedPolicy ?? resolveRaceControlPolicy(saveWorld);
   const severity = incidentSeverity(saveWorld, race, event);
   const lap = Math.max(1, Math.round(Number(event.lap ?? 1)));
@@ -180,9 +184,14 @@ export function reviewRaceTimeline(saveWorld, race) {
   const timelineEvents = race.timeline?.events ?? [];
   const interventions = [];
   const reviews = [];
+  const seenIncidents = new Set();
 
   for (const event of timelineEvents) {
-    if (event.type !== "retirement" || event.reason !== "incident") continue;
+    if (!isIncidentEvent(event)) continue;
+    const key = `${event.lap}:${event.driverId ?? "unknown"}:${incidentSector(event) ?? "unknown"}`;
+    if (event.type === "retirement" && seenIncidents.has(key)) continue;
+    seenIncidents.add(key);
+
     const severity = incidentSeverity(saveWorld, race, event);
     const sectorId = incidentSector(event);
 
