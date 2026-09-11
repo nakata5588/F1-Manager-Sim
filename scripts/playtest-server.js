@@ -6,6 +6,20 @@ import { dirname, extname, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
 import { DeveloperPlaytestSession } from "../src/app/developerPlaytest.js";
+import {
+  developerArchiveInboxItem,
+  developerContractNegotiations,
+  developerInbox,
+  developerManagementOverview,
+  developerMarkInboxRead,
+  developerOpenDriverNegotiation,
+  developerRecruitment,
+  developerResolveInboxDecision,
+  developerSetShortlist,
+  developerStartScouting,
+  developerSubmitDriverOffer,
+  developerWithdrawDriverNegotiation,
+} from "../src/app/managementPlaytest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const STATIC_ROOT = resolve(__dirname, "../playtest");
@@ -91,6 +105,23 @@ function apiError(response, error) {
   json(response, 400, { error: error instanceof Error ? error.message : String(error) });
 }
 
+function recruitmentFilters(url) {
+  const number = (name) => {
+    const value = url.searchParams.get(name);
+    if (value === null || value === "") return undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
+  return {
+    query: url.searchParams.get("query") ?? undefined,
+    nationality: url.searchParams.get("nationality") ?? undefined,
+    availability: url.searchParams.get("availability") ?? undefined,
+    minAge: number("minAge"),
+    maxAge: number("maxAge"),
+    shortlisted: url.searchParams.get("shortlisted") === "true" ? true : undefined,
+  };
+}
+
 const args = parseArgs(process.argv.slice(2));
 const seasonDatabase = readPayload(args.seasonDb);
 const globalDatabase = args.globalWorld ? readPayload(args.globalWorld) : null;
@@ -133,6 +164,62 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/race/strategy" && request.method === "POST") {
       const input = await body(request);
       return json(response, 200, session.changeStrategy(input.driverId, input.instruction));
+    }
+
+    if (url.pathname === "/api/management" && request.method === "GET") {
+      return json(response, 200, developerManagementOverview(session));
+    }
+    if (url.pathname === "/api/inbox" && request.method === "GET") {
+      return json(response, 200, developerInbox(session, {
+        unreadOnly: url.searchParams.get("unreadOnly") === "true",
+        includeArchived: url.searchParams.get("includeArchived") === "true",
+      }));
+    }
+    if (url.pathname === "/api/inbox/read" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerMarkInboxRead(session, input.itemId, input.read !== false));
+    }
+    if (url.pathname === "/api/inbox/archive" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerArchiveInboxItem(session, input.itemId));
+    }
+    if (url.pathname === "/api/inbox/decision" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerResolveInboxDecision(session, input.itemId, input.optionId));
+    }
+
+    if (url.pathname === "/api/recruitment" && request.method === "GET") {
+      return json(response, 200, developerRecruitment(session, recruitmentFilters(url)));
+    }
+    if (url.pathname === "/api/recruitment/shortlist" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerSetShortlist(session, input.driverId, input.shortlisted !== false));
+    }
+    if (url.pathname === "/api/recruitment/scout" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerStartScouting(session, input.driverId, {
+        focus: input.focus,
+        durationDays: input.durationDays,
+      }));
+    }
+
+    if (url.pathname === "/api/contracts" && request.method === "GET") {
+      return json(response, 200, developerContractNegotiations(session));
+    }
+    if (url.pathname === "/api/contracts/open" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerOpenDriverNegotiation(session, input.driverId, {
+        role: input.role,
+        startSeason: input.startSeason,
+      }));
+    }
+    if (url.pathname === "/api/contracts/offer" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerSubmitDriverOffer(session, input.negotiationId, input.terms));
+    }
+    if (url.pathname === "/api/contracts/withdraw" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerWithdrawDriverNegotiation(session, input.negotiationId));
     }
 
     if (request.method === "GET" && serveStatic(request, response)) return;
