@@ -210,9 +210,18 @@ function queueMetadata(type, profile, queue) {
 function visibleProfiles(saveWorld, type, live, future, options = {}) {
   const season = Number(options.season ?? saveWorld.clock?.season ?? saveWorld.world?.season);
   const queue = futureQueueByType(saveWorld, type);
+  const liveIds = new Set((live ?? []).map((row) => String(idFor(type, row) ?? "")).filter(Boolean));
   return mergeCollections(type, live, future)
     .map((row) => queueMetadata(type, row, queue))
-    .map((row) => ({ row, state: entityVisibilityState(row, season, { type }) }))
+    .map((row) => {
+      const id = String(idFor(type, row) ?? "");
+      const calculated = entityVisibilityState(row, season, { type });
+      // Anything already promoted into the authoritative live world is visible
+      // regardless of missing legacy metadata. Future pools never receive this
+      // override and remain subject to their visibility dates.
+      const state = liveIds.has(id) && calculated === "hidden" ? "f1_eligible" : calculated;
+      return { row, state };
+    })
     .filter(({ state }) => state !== "hidden")
     .filter(({ state }) => options.requireF1Eligible !== true || state === "f1_eligible")
     .filter(({ state }) => options.requireTalentVisible !== true || ["talent_visible", "f1_eligible"].includes(state))
