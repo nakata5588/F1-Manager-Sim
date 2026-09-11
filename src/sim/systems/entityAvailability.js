@@ -1,21 +1,13 @@
+import { isEntityF1EligibleInSeason, normalizeEntityVisibility } from "../../domain/entityVisibility.js";
 import { SIM_EVENT } from "../timeEngine.js";
 
 export const ENTITY_EVENT = Object.freeze({
   ELIGIBLE: "world.entity_eligible",
 });
 
-function activationYear(row) {
-  const raw = row.activation_year
-    ?? row.world_or_talent_activation_year
-    ?? row.world_activation_year
-    ?? row.talent_activation_year
-    ?? row.event_year;
-  const value = Number(raw);
-  return Number.isInteger(value) ? value : null;
-}
-
 function entityType(row) {
-  return String(row.entity_type ?? row.type ?? "").trim().toLowerCase();
+  const raw = String(row.entity_type ?? row.type ?? "").trim().toLowerCase();
+  return ["constructor", "organisation", "organization"].includes(raw) ? "team" : raw;
 }
 
 function entityId(row) {
@@ -26,12 +18,6 @@ function isEligibleWhenReached(value) {
   if (value === false || value === 0) return false;
   if (typeof value === "string" && ["false", "no", "0"].includes(value.trim().toLowerCase())) return false;
   return true;
-}
-
-function referenceEntryYear(row) {
-  const raw = row.next_reference_f1_entry_year ?? row.reference_entry_year ?? row.historical_entry_year;
-  const value = Number(raw);
-  return Number.isInteger(value) ? value : null;
 }
 
 export function createEntityAvailabilitySystem() {
@@ -48,22 +34,25 @@ export function createEntityAvailabilitySystem() {
       saveWorld.world.entityAvailability ??= {};
 
       for (const row of saveWorld.world?.futureEntities ?? []) {
-        const year = activationYear(row);
         const type = entityType(row);
         const id = entityId(row);
-        if (year === null || year > currentSeason || !type || !id) continue;
-        if (!isEligibleWhenReached(row.eligible_when_reached)) continue;
+        if (!type || !id || !isEligibleWhenReached(row.eligible_when_reached)) continue;
+        if (!isEntityF1EligibleInSeason(row, currentSeason, { type })) continue;
 
         const key = `${type}:${id}`;
         if (emitted.has(key)) continue;
         emitted.add(key);
 
+        const visibility = normalizeEntityVisibility(row, { type });
         const byType = saveWorld.world.entityAvailability[type] ??= {};
         byType[id] = {
           status: "eligible",
           eligibleSince: event.date,
-          activationYear: year,
-          referenceEntryYear: referenceEntryYear(row),
+          f1EligibleFrom: visibility.f1EligibleFrom,
+          worldVisibleFrom: visibility.worldVisibleFrom,
+          talentVisibleFrom: visibility.talentVisibleFrom,
+          f1DebutReference: visibility.f1DebutReference,
+          visibilitySource: visibility.visibilitySource,
         };
 
         output.push({
@@ -72,8 +61,9 @@ export function createEntityAvailabilitySystem() {
             entity_type: type,
             entity_id: id,
             name: row.name ?? null,
-            activation_year: year,
-            reference_entry_year: referenceEntryYear(row),
+            activation_year: visibility.f1EligibleFrom,
+            f1_eligible_from: visibility.f1EligibleFrom,
+            reference_entry_year: visibility.f1DebutReference,
             state_at_start: row.state_at_1980 ?? row.state_at_start ?? null,
             simulation_rule: row.simulation_rule ?? row.note ?? null,
           },
