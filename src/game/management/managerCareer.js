@@ -1,6 +1,6 @@
 import { listVisibleTeams } from "../../domain/entityVisibility.js";
 import { createRng } from "../../sim/random.js";
-import { initializeBoardTeam } from "./board.js";
+import { ensureBoardState, initializeBoardTeam } from "./board.js";
 
 export const MANAGER_EVENT = Object.freeze({
   INITIALIZED: "manager.career_initialized",
@@ -179,6 +179,20 @@ export function acceptManagerJobOfferEvent(saveWorld, offerId) {
   };
 }
 
+function refreshBoardRelationshipAfterAppointment(saveWorld, teamIdValue, date) {
+  const board = initializeBoardTeam(saveWorld, teamIdValue, date);
+  if (!board.dismissedAt) return board;
+  board.confidence = Math.max(50, Math.min(60, Number(board.confidence ?? 55) + 45));
+  board.status = "stable";
+  board.reviewCount = 0;
+  board.lastReviewAt = null;
+  board.lastWarningAt = null;
+  board.dismissalRecommended = false;
+  board.dismissedAt = null;
+  board.reappointedAt = date;
+  return board;
+}
+
 export function appointManager(saveWorld, teamIdValue, date = saveWorld.clock?.date, source = "job_market") {
   const career = ensureManagerCareer(saveWorld);
   const nextTeamId = String(teamIdValue ?? "").trim();
@@ -197,7 +211,7 @@ export function appointManager(saveWorld, teamIdValue, date = saveWorld.clock?.d
       offer.closedAt = date;
     }
   }
-  initializeBoardTeam(saveWorld, nextTeamId, date);
+  refreshBoardRelationshipAfterAppointment(saveWorld, nextTeamId, date);
   return { previousTeamId, teamId: nextTeamId };
 }
 
