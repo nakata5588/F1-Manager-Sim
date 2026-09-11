@@ -20,14 +20,17 @@ async function loadV08Snapshot() {
   });
 }
 
-test("real SeasonPack 1980 v0.8 survives ten autonomous seasons with coherent race/championship continuity", async () => {
+test("real SeasonPack 1980 v0.8 survives ten autonomous seasons with coherent fallback continuity", async () => {
   const snapshot = await loadV08Snapshot();
   const result = runLongRunValidation(snapshot, {
     seasons: 10,
     seed: "seasonpack-1980-ten-season-soak",
-    expectedRacesPerSeason: 14,
   });
 
+  // SeasonPack-only mode has no Global future calendar reference, so the normal
+  // rollover fallback intentionally carries the 1980 14-race template forward.
+  // Database baseline tests separately assert that a Season Database with Global
+  // reference consumes the real variable race counts instead.
   assert.equal(result.report.ok, true, result.report.errors.join("\n"));
   assert.equal(result.report.metrics.finalSeason, 1990);
   assert.equal(result.report.metrics.races, 140);
