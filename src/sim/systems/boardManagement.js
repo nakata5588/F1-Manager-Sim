@@ -1,5 +1,6 @@
 import { SIM_EVENT } from "../timeEngine.js";
 import { boardProjection, ensureBoardState, evaluateBoard, initializeBoardTeam, resolveBoardRequest } from "../../game/management/board.js";
+import { controlledTeamSet } from "./controlState.js";
 
 export const BOARD_EVENT = Object.freeze({
   INITIALIZED: "board.initialized",
@@ -10,11 +11,6 @@ export const BOARD_EVENT = Object.freeze({
   REQUEST_RESOLVED: "board.request_resolved",
 });
 
-function controlledTeams(saveWorld, configured = []) {
-  const dynamic = saveWorld.player?.controlledTeamIds ?? [];
-  return [...new Set((dynamic.length ? dynamic : configured).map(String))];
-}
-
 export function createBoardManagementSystem(options = {}) {
   const configured = [...(options.controlledTeamIds ?? [])];
   return {
@@ -23,31 +19,16 @@ export function createBoardManagementSystem(options = {}) {
     handle({ saveWorld, event }) {
       ensureBoardState(saveWorld);
       if (event.type === SIM_EVENT.CAREER_STARTED) {
-        const teams = controlledTeams(saveWorld, configured);
+        const teams = [...controlledTeamSet(saveWorld, configured)];
         for (const teamId of teams) initializeBoardTeam(saveWorld, teamId, event.date);
-        return {
-          type: BOARD_EVENT.INITIALIZED,
-          payload: { team_ids: teams },
-        };
+        return { type: BOARD_EVENT.INITIALIZED, payload: { team_ids: teams } };
       }
-
       if (event.type === BOARD_EVENT.REQUEST_SUBMITTED) {
         const request = resolveBoardRequest(saveWorld, event.payload?.request_id);
-        return {
-          type: BOARD_EVENT.REQUEST_RESOLVED,
-          payload: {
-            request_id: request.id,
-            team_id: request.teamId,
-            kind: request.kind,
-            status: request.status,
-            value: request.value ?? null,
-            reason: request.reason ?? null,
-          },
-        };
+        return { type: BOARD_EVENT.REQUEST_RESOLVED, payload: { request_id: request.id, team_id: request.teamId, kind: request.kind, status: request.status, value: request.value ?? null, reason: request.reason ?? null } };
       }
-
       const output = [];
-      for (const teamId of controlledTeams(saveWorld, configured)) {
+      for (const teamId of controlledTeamSet(saveWorld, configured)) {
         const review = evaluateBoard(saveWorld, teamId, event.date);
         output.push({ type: BOARD_EVENT.REVIEWED, payload: review });
         const board = boardProjection(saveWorld, teamId);
@@ -55,29 +36,14 @@ export function createBoardManagementSystem(options = {}) {
           const state = ensureBoardState(saveWorld).teams[teamId];
           if (state.lastWarningAt !== event.date) {
             state.lastWarningAt = event.date;
-            output.push({
-              type: BOARD_EVENT.WARNING,
-              payload: {
-                team_id: teamId,
-                confidence: board.confidence,
-                status: board.status,
-                reasons: review.reasons,
-              },
-            });
+            output.push({ type: BOARD_EVENT.WARNING, payload: { team_id: teamId, confidence: board.confidence, status: board.status, reasons: review.reasons } });
           }
         }
         if (review.dismissalRecommended) {
           const state = ensureBoardState(saveWorld).teams[teamId];
           if (!state.dismissedAt) {
             state.dismissedAt = event.date;
-            output.push({
-              type: BOARD_EVENT.DISMISSED,
-              payload: {
-                team_id: teamId,
-                confidence: board.confidence,
-                reasons: review.reasons,
-              },
-            });
+            output.push({ type: BOARD_EVENT.DISMISSED, payload: { team_id: teamId, confidence: board.confidence, reasons: review.reasons } });
           }
         }
       }
