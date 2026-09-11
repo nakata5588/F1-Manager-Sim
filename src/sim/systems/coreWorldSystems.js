@@ -14,6 +14,7 @@ import { createMarketDynamicsSystem } from "./marketDynamics.js";
 import { createBoardManagementSystem } from "./boardManagement.js";
 import { createManagerCareerSystem } from "./managerCareer.js";
 import { createStaffAdviceSystem } from "./staffAdvice.js";
+import { createCommercialManagementSystem } from "./commercialManagement.js";
 import { createManagementInboxSystem } from "./managementInbox.js";
 import { createRaceEntrySystem } from "./raceEntry.js";
 import { createTeamEconomySystem } from "./teamEconomy.js";
@@ -55,14 +56,16 @@ export function createCoreWorldSystems(options = {}) {
       poachingBaseChance: options.poachingBaseChance,
     }),
     createRaceEntrySystem(),
-    // Financial and development state must update before the monthly board
-    // review so confidence evaluates the current Save World, not stale values.
+    // Economy initializes cash first. Commercial then materializes sponsorship
+    // starting conditions and future market activity into mutable Save World state.
     createTeamEconomySystem(),
     createTeamDevelopmentSystem({
       controlledTeamIds: options.controlledTeamIds ?? [],
       minimumCashReserve: options.minimumCashReserve,
       projectDurationMonths: options.projectDurationMonths,
     }),
+    createCommercialManagementSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
+    // Board review sees the current monthly finance/development/commercial state.
     createBoardManagementSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createManagerCareerSystem(),
     createStaffAdviceSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
