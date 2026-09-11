@@ -5,8 +5,10 @@ import { createCareerDevelopmentSystem } from "./careerDevelopment.js";
 import { createRetirementSystem } from "./retirement.js";
 import { createRetirementEmploymentSystem } from "./retirementEmployment.js";
 import { createAiEmploymentDecisionSystem, createEmploymentMarketSystem } from "./employmentMarket.js";
+import { createPeopleDynamicsSystem } from "./peopleDynamics.js";
 import { createScoutingManagementSystem } from "./scoutingManagement.js";
 import { createContractNegotiationSystem } from "./contractNegotiation.js";
+import { createMarketDynamicsSystem } from "./marketDynamics.js";
 import { createManagementInboxSystem } from "./managementInbox.js";
 import { createRaceEntrySystem } from "./raceEntry.js";
 import { createTeamEconomySystem } from "./teamEconomy.js";
@@ -32,10 +34,17 @@ export function createCoreWorldSystems(options = {}) {
       controlledTeamIds: options.controlledTeamIds ?? [],
       defaultContractYears: options.defaultContractYears ?? 2,
     }),
-    // Management systems consume the same authoritative employment/lifecycle
-    // state as AI teams. They never read hidden future pools directly for UI.
+    // People state is dynamic Save World state. Historical personality fields are
+    // optional inputs; morale, satisfaction, relationships and representatives
+    // never become authoritative historical outcomes.
+    createPeopleDynamicsSystem(),
     createScoutingManagementSystem(),
     createContractNegotiationSystem(),
+    createMarketDynamicsSystem({
+      controlledTeamIds: options.controlledTeamIds ?? [],
+      competingOfferBaseChance: options.competingOfferBaseChance,
+      poachingBaseChance: options.poachingBaseChance,
+    }),
     createManagementInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     // Race participation is a separate concept from employment. The entry
     // system is initialized after employment so Season Pack race entries can
@@ -48,19 +57,10 @@ export function createCoreWorldSystems(options = {}) {
       projectDurationMonths: options.projectDurationMonths,
     }),
     createSeasonRolloverSystem(),
-    // Strategy locks before calibration so supplier/track tyre traits can refine
-    // the generated stints before raceWeekend archives the GRID_SET event.
     createRaceStrategySystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
-    // v0.8 calibration reshapes only the active session baseline. Dynamic R&D
-    // deltas are preserved and the mutable development car is restored after the race.
     createPerformanceCalibrationSystem(),
     createRaceWeekendSystem(),
-    // The temporal layer replaces the aggregate race classification before the
-    // championship system consumes RACE_COMPLETED.
     createRaceTimelineSystem(),
-    // Race Control reviews only mechanisms made available by the era rules.
-    // It deliberately does not rewrite an already-resolved timeline; live
-    // neutralisation/restarts belong to the resumable race engine.
     createRaceControlSystem(),
     createChampionshipSystem(),
   ];
