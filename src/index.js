@@ -11,6 +11,8 @@ export { currentStrategyStint, reviseRaceStrategy, selectLiveTyreCompound } from
 export { evaluateAiLiveStrategyDecision, isAiManagedStrategy, listAiLiveStrategyDecisions } from "./sim/aiLiveStrategy.js";
 export { advanceLiveRaceSession, applyLiveStrategyInstruction, clearCompletedLiveRaceSession, getLiveRaceSession, recommendLiveStrategyInstruction, startLiveRaceSession } from "./sim/liveRaceController.js";
 export { activeDamagePaceLoss, repairDamageAtPit, resolveDamagePolicy, resolveIncidentDamage } from "./sim/damageModel.js";
+export { advanceTyreThermalState, completeTyreThermalLap, resolveTyreDynamicTraits } from "./sim/tyreDynamics.js";
+export { resolveTrackEvolutionModel, trackEvolutionAt } from "./sim/trackDynamics.js";
 export { decideLiveRaceControl, incidentSeverity, resolveRaceControlPolicy, reviewRaceTimeline } from "./sim/raceControl.js";
 export { resolveSectorModel, sectorPaceModifier, selectIncidentSector } from "./sim/sectorModel.js";
 export { simulateTemporalRace } from "./sim/raceTimeline.js";
