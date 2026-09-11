@@ -24,12 +24,13 @@ export function createRaceTimelineSystem() {
       payload.classification = result.classification;
       payload.timeline = result.timeline;
       payload.timelineApplied = true;
-      // The lap model already consumes locked tyre strategy and pit-stop execution.
+      // The temporal model already consumes locked/live tyre strategy and pit-stop execution.
       // Prevent the aggregate strategy layer from applying the same modifier twice.
       payload.strategyApplied = true;
       updateStoredHistory(saveWorld, payload);
 
       const controls = result.timeline.controlPeriods ?? [];
+      const aiRevisions = result.timeline.aiStrategyRevisions ?? [];
       return {
         type: RACE_TIMELINE_EVENT.APPLIED,
         payload: {
@@ -41,6 +42,7 @@ export function createRaceTimelineSystem() {
           overtakes: result.timeline.events.filter((row) => row.type === "overtake").length,
           pit_stops: result.timeline.events.filter((row) => row.type === "pit_stop").length,
           weather_changes: result.timeline.events.filter((row) => row.type === "weather_change").length,
+          ai_strategy_revisions: aiRevisions.length,
           race_control_periods: controls.length,
           local_yellows: controls.filter((row) => row.type === "local_yellow").length,
           safety_cars: controls.filter((row) => row.type === "safety_car").length,

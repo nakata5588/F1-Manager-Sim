@@ -8,6 +8,7 @@ export { deserializeSaveWorld, SAVE_FORMAT, SAVE_SCHEMA_VERSION, serializeSaveWo
 export { createRng } from "./sim/random.js";
 export { availableTyreCompounds, createRaceStrategyPlan, evaluateRaceStrategy } from "./sim/raceStrategy.js";
 export { currentStrategyStint, reviseRaceStrategy, selectLiveTyreCompound } from "./sim/liveStrategy.js";
+export { evaluateAiLiveStrategyDecision, isAiManagedStrategy, listAiLiveStrategyDecisions } from "./sim/aiLiveStrategy.js";
 export { advanceLiveRaceSession, applyLiveStrategyInstruction, clearCompletedLiveRaceSession, getLiveRaceSession, recommendLiveStrategyInstruction, startLiveRaceSession } from "./sim/liveRaceController.js";
 export { decideLiveRaceControl, incidentSeverity, resolveRaceControlPolicy, reviewRaceTimeline } from "./sim/raceControl.js";
 export { resolveSectorModel, sectorPaceModifier, selectIncidentSector } from "./sim/sectorModel.js";
