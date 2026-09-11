@@ -1,5 +1,6 @@
 import { SIM_EVENT } from "../timeEngine.js";
 import { boardProjection } from "../../game/management/board.js";
+import { controlledTeamSet } from "./controlState.js";
 
 export const STAFF_ADVICE_EVENT = Object.freeze({
   CREATED: "staff.advice_created",
@@ -8,11 +9,6 @@ export const STAFF_ADVICE_EVENT = Object.freeze({
 function numeric(value, fallback = null) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function controlledTeams(saveWorld, configured = []) {
-  const dynamic = saveWorld.player?.controlledTeamIds ?? [];
-  return [...new Set((dynamic.length ? dynamic : configured).map(String))];
 }
 
 function staffName(saveWorld, id) {
@@ -48,61 +44,16 @@ function openVacancy(saveWorld, teamId) {
   return (saveWorld.world?.employment?.vacancies ?? []).find((row) => row.teamId === teamId && row.status === "open") ?? null;
 }
 
-function adviceForTeam(saveWorld, teamId, event) {
+function adviceForTeam(saveWorld, teamId) {
   const advisor = leadAdvisor(saveWorld, teamId);
   if (!advisor) return null;
   const vacancy = openVacancy(saveWorld, teamId);
-  if (vacancy) {
-    return {
-      team_id: teamId,
-      advisor_id: advisor.id,
-      advisor_name: staffName(saveWorld, advisor.id),
-      advisor_role: advisor.role,
-      category: "staff",
-      priority: "high",
-      title: "Staff recommendation: fill the open vacancy",
-      body: `The team still has an open ${vacancy.type ?? "staff"} role (${vacancy.role ?? "unknown"}). Leaving it unresolved risks weakening the department.`,
-    };
-  }
-
+  if (vacancy) return { team_id: teamId, advisor_id: advisor.id, advisor_name: staffName(saveWorld, advisor.id), advisor_role: advisor.role, category: "staff", priority: "high", title: "Staff recommendation: fill the open vacancy", body: `The team still has an open ${vacancy.type ?? "staff"} role (${vacancy.role ?? "unknown"}). Leaving it unresolved risks weakening the department.` };
   const board = boardProjection(saveWorld, teamId);
-  if (board.confidence < 40) {
-    return {
-      team_id: teamId,
-      advisor_id: advisor.id,
-      advisor_name: staffName(saveWorld, advisor.id),
-      advisor_role: advisor.role,
-      category: "board",
-      priority: "high",
-      title: "Staff recommendation: stabilise board confidence",
-      body: "The board is under pressure. Prioritise the weakest board objective before the next monthly review.",
-    };
-  }
-
+  if (board.confidence < 40) return { team_id: teamId, advisor_id: advisor.id, advisor_name: staffName(saveWorld, advisor.id), advisor_role: advisor.role, category: "board", priority: "high", title: "Staff recommendation: stabilise board confidence", body: "The board is under pressure. Prioritise the weakest board objective before the next monthly review." };
   const weakest = weakestComponent(saveWorld, teamId);
-  if (weakest) {
-    return {
-      team_id: teamId,
-      advisor_id: advisor.id,
-      advisor_name: staffName(saveWorld, advisor.id),
-      advisor_role: advisor.role,
-      category: "development",
-      priority: "normal",
-      title: `Technical recommendation: ${weakest[0]}`,
-      body: `${staffName(saveWorld, advisor.id)} identifies ${weakest[0]} as the weakest measured car area (${Number(weakest[1]).toFixed(1)}). This is advice only; the simulation will not start a project unless development is delegated or you choose to act.`,
-    };
-  }
-
-  return {
-    team_id: teamId,
-    advisor_id: advisor.id,
-    advisor_name: staffName(saveWorld, advisor.id),
-    advisor_role: advisor.role,
-    category: "team",
-    priority: "normal",
-    title: "Staff review: no critical issue",
-    body: "The senior staff review found no urgent vacancy, board or measured car-development issue this month.",
-  };
+  if (weakest) return { team_id: teamId, advisor_id: advisor.id, advisor_name: staffName(saveWorld, advisor.id), advisor_role: advisor.role, category: "development", priority: "normal", title: `Technical recommendation: ${weakest[0]}`, body: `${staffName(saveWorld, advisor.id)} identifies ${weakest[0]} as the weakest measured car area (${Number(weakest[1]).toFixed(1)}). This is advice only; the simulation will not start a project unless development is delegated or you choose to act.` };
+  return { team_id: teamId, advisor_id: advisor.id, advisor_name: staffName(saveWorld, advisor.id), advisor_role: advisor.role, category: "team", priority: "normal", title: "Staff review: no critical issue", body: "The senior staff review found no urgent vacancy, board or measured car-development issue this month." };
 }
 
 export function createStaffAdviceSystem(options = {}) {
@@ -110,9 +61,9 @@ export function createStaffAdviceSystem(options = {}) {
   return {
     id: "management.staff-advice",
     eventTypes: [SIM_EVENT.MONTH_STARTED],
-    handle({ saveWorld, event }) {
-      return controlledTeams(saveWorld, configured)
-        .map((teamId) => adviceForTeam(saveWorld, teamId, event))
+    handle({ saveWorld }) {
+      return [...controlledTeamSet(saveWorld, configured)]
+        .map((teamId) => adviceForTeam(saveWorld, teamId))
         .filter(Boolean)
         .map((payload) => ({ type: STAFF_ADVICE_EVENT.CREATED, payload }));
     },
