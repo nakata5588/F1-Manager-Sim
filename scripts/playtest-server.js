@@ -10,6 +10,7 @@ import {
   developerApplyManagerJob,
   developerArchiveInboxItem,
   developerBoard,
+  developerCommercial,
   developerContractNegotiations,
   developerInbox,
   developerManagementOverview,
@@ -17,10 +18,12 @@ import {
   developerMarkInboxRead,
   developerMarket,
   developerOpenDriverNegotiation,
+  developerOpenSponsorNegotiation,
   developerOpenStaffNegotiation,
   developerPeople,
   developerRecruitment,
   developerResolveInboxDecision,
+  developerResolveSponsorActivity,
   developerResponsibilities,
   developerSetResponsibility,
   developerSetShortlist,
@@ -29,8 +32,10 @@ import {
   developerStartScouting,
   developerSubmitBoardRequest,
   developerSubmitDriverOffer,
+  developerSubmitSponsorOffer,
   developerSubmitStaffOffer,
   developerWithdrawDriverNegotiation,
+  developerWithdrawSponsorNegotiation,
   developerWithdrawStaffNegotiation,
 } from "../src/app/managementPlaytest.js";
 
@@ -106,10 +111,7 @@ function serveStatic(request, response) {
   const url = new URL(request.url, "http://localhost");
   const path = staticPath(url.pathname);
   if (!path || !existsSync(path) || !statSync(path).isFile()) return false;
-  response.writeHead(200, {
-    "content-type": contentType(path),
-    "cache-control": "no-store",
-  });
+  response.writeHead(200, { "content-type": contentType(path), "cache-control": "no-store" });
   createReadStream(path).pipe(response);
   return true;
 }
@@ -142,9 +144,6 @@ const session = new DeveloperPlaytestSession(seasonDatabase, { globalDatabase })
 
 function syncManagerControl() {
   if (!session.saveWorld) return;
-  // The management projection owns the session-control synchronisation contract.
-  // Calling it here after calendar progression prevents a dismissed manager from
-  // retaining stale pit-wall control until the Management Hub is opened.
   developerManagementOverview(session);
 }
 
@@ -166,9 +165,7 @@ const server = createServer(async (request, response) => {
       syncManagerControl();
       return json(response, 200, session.state());
     }
-    if (url.pathname === "/api/weekend/advance" && request.method === "POST") {
-      return json(response, 200, session.advanceWeekend());
-    }
+    if (url.pathname === "/api/weekend/advance" && request.method === "POST") return json(response, 200, session.advanceWeekend());
     if (url.pathname === "/api/weekend/setup" && request.method === "POST") {
       const input = await body(request);
       return json(response, 200, session.changeSetup(input.driverId, input.setup));
@@ -177,16 +174,12 @@ const server = createServer(async (request, response) => {
       const input = await body(request);
       return json(response, 200, session.changeStartingTyre(input.driverId, input.compoundId));
     }
-    if (url.pathname === "/api/weekend/start-race" && request.method === "POST") {
-      return json(response, 200, session.startRace());
-    }
+    if (url.pathname === "/api/weekend/start-race" && request.method === "POST") return json(response, 200, session.startRace());
     if (url.pathname === "/api/race/advance" && request.method === "POST") {
       const input = await body(request);
       return json(response, 200, session.advanceRace(input.laps ?? 1));
     }
-    if (url.pathname === "/api/race/finish" && request.method === "POST") {
-      return json(response, 200, session.finishRace());
-    }
+    if (url.pathname === "/api/race/finish" && request.method === "POST") return json(response, 200, session.finishRace());
     if (url.pathname === "/api/race/strategy" && request.method === "POST") {
       const input = await body(request);
       return json(response, 200, session.changeStrategy(input.driverId, input.instruction));
@@ -237,19 +230,13 @@ const server = createServer(async (request, response) => {
     }
     if (url.pathname === "/api/recruitment/scout" && request.method === "POST") {
       const input = await body(request);
-      return json(response, 200, developerStartScouting(session, input.driverId, {
-        focus: input.focus,
-        durationDays: input.durationDays,
-      }));
+      return json(response, 200, developerStartScouting(session, input.driverId, { focus: input.focus, durationDays: input.durationDays }));
     }
 
     if (url.pathname === "/api/contracts" && request.method === "GET") return json(response, 200, developerContractNegotiations(session));
     if (url.pathname === "/api/contracts/open" && request.method === "POST") {
       const input = await body(request);
-      return json(response, 200, developerOpenDriverNegotiation(session, input.driverId, {
-        role: input.role,
-        startSeason: input.startSeason,
-      }));
+      return json(response, 200, developerOpenDriverNegotiation(session, input.driverId, { role: input.role, startSeason: input.startSeason }));
     }
     if (url.pathname === "/api/contracts/offer" && request.method === "POST") {
       const input = await body(request);
@@ -264,10 +251,7 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/staff-contracts" && request.method === "GET") return json(response, 200, developerStaffContractNegotiations(session));
     if (url.pathname === "/api/staff-contracts/open" && request.method === "POST") {
       const input = await body(request);
-      return json(response, 200, developerOpenStaffNegotiation(session, input.staffId, {
-        role: input.role,
-        startSeason: input.startSeason,
-      }));
+      return json(response, 200, developerOpenStaffNegotiation(session, input.staffId, { role: input.role, startSeason: input.startSeason }));
     }
     if (url.pathname === "/api/staff-contracts/offer" && request.method === "POST") {
       const input = await body(request);
@@ -276,6 +260,33 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/staff-contracts/withdraw" && request.method === "POST") {
       const input = await body(request);
       return json(response, 200, developerWithdrawStaffNegotiation(session, input.negotiationId));
+    }
+
+    if (url.pathname === "/api/commercial" && request.method === "GET") {
+      return json(response, 200, developerCommercial(session, {
+        query: url.searchParams.get("query") ?? undefined,
+        tier: url.searchParams.get("tier") ?? "partner",
+        includeActive: url.searchParams.get("includeActive") === "true",
+      }));
+    }
+    if (url.pathname === "/api/commercial/open" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerOpenSponsorNegotiation(session, input.sponsorId, {
+        tier: input.tier,
+        renewDealId: input.renewDealId,
+      }));
+    }
+    if (url.pathname === "/api/commercial/offer" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerSubmitSponsorOffer(session, input.negotiationId, input.terms));
+    }
+    if (url.pathname === "/api/commercial/withdraw" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerWithdrawSponsorNegotiation(session, input.negotiationId));
+    }
+    if (url.pathname === "/api/commercial/activity" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerResolveSponsorActivity(session, input.activityId, input.fulfilled !== false));
     }
 
     if (request.method === "GET" && serveStatic(request, response)) return;
