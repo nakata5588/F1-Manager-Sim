@@ -15,6 +15,7 @@ import { createBoardManagementSystem } from "./boardManagement.js";
 import { createManagerCareerSystem } from "./managerCareer.js";
 import { createStaffAdviceSystem } from "./staffAdvice.js";
 import { createCommercialManagementSystem } from "./commercialManagement.js";
+import { createCommercialInboxSystem } from "./commercialInbox.js";
 import { createManagementInboxSystem } from "./managementInbox.js";
 import { createRaceEntrySystem } from "./raceEntry.js";
 import { createTeamEconomySystem } from "./teamEconomy.js";
@@ -65,6 +66,9 @@ export function createCoreWorldSystems(options = {}) {
       projectDurationMonths: options.projectDurationMonths,
     }),
     createCommercialManagementSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
+    // Commercial messages use the same generic Inbox state but remain isolated
+    // from the older recruitment/board inbox handler.
+    createCommercialInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     // Board review sees the current monthly finance/development/commercial state.
     createBoardManagementSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createManagerCareerSystem(),
