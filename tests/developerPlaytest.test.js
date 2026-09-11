@@ -51,7 +51,7 @@ function seasonDatabase() {
         { team_id: "T1", chassis_spec: 82, aero_spec: 82, gearbox_spec: 88, suspension_spec: 82, brakes_spec: 88, cooling_spec: 90, electronics_spec: 90 },
         { team_id: "T2", chassis_spec: 79, aero_spec: 79, gearbox_spec: 86, suspension_spec: 80, brakes_spec: 86, cooling_spec: 90, electronics_spec: 90 },
       ],
-      tracks: [{ track_id: "TR1", track_name: "Test Circuit", power_dependency: 45, aero_dependency: 65, technicality: 65, overtaking_difficulty: 45 }],
+      tracks: [{ track_id: "TR1", track_name: "Test Circuit", power_dependency: 45, aero_dependency: 65, technicality: 65, overtaking_difficulty: 45, incident_risk: 15 }],
       calendar: [{ year: 1980, round: 1, gp_id: "GP1", gp_name: "Opening Grand Prix", track_id: "TR1", race_date: "1980-03-02", laps: 8 }],
       qualifyingRules: { year: 1980, practice_session_count: 2, session_count: 1, max_starters: 4 },
       rules: { year: 1980, points_system: "9-6-4-3-2-1" },
@@ -60,7 +60,11 @@ function seasonDatabase() {
       teamFinancials: [],
       facilities: [],
       rdProjects: [],
-      tyres: [],
+      tyres: [
+        { compound_id: "DRY-A", compound_name: "Dry A", condition: "dry", dry_grip: 80, wet_grip: 25, durability_laps: 5 },
+        { compound_id: "DRY-B", compound_name: "Dry B", condition: "dry", dry_grip: 74, wet_grip: 25, durability_laps: 10 },
+        { compound_id: "WET", compound_name: "Wet", condition: "wet", dry_grip: 30, wet_grip: 82, durability_laps: 10 },
+      ],
       futureDrivers: [],
       futureStaff: [],
       futureTeams: [],
@@ -76,28 +80,62 @@ test("developer playtest lists Season Database teams without exposing hidden poo
   assert.deepEqual(listDeveloperPlaytestTeams(payload).map((row) => row.id), ["T1", "T2"]);
 });
 
-test("developer playtest runs New Career -> Continue -> live Race -> Results", () => {
+test("interactive weekend runs Practice -> setup -> Qualifying -> Pre-Race -> live Race -> Results", () => {
   const session = new DeveloperPlaytestSession(seasonDatabase());
   assert.equal(session.state().screen, "new_career");
 
-  let state = session.startCareer({ managerName: "Test Manager", teamId: "T1", seed: "vertical-slice" });
+  let state = session.startCareer({ managerName: "Test Manager", teamId: "T1", seed: "interactive-weekend" });
   assert.equal(state.screen, "home");
   assert.equal(state.career.teamName, "Alpha Racing");
   assert.equal(state.teamDrivers.length, 2);
   assert.equal(state.nextRace.name, "Opening Grand Prix");
 
   state = session.continue();
-  assert.equal(state.screen, "race");
+  assert.equal(state.screen, "practice");
   assert.equal(state.career.date, "1980-03-02");
+  assert.equal(state.raceWeekend.stage, "started");
+  assert.equal(session.saveWorld.history.races.length, 0);
+
+  state = session.advanceWeekend();
+  assert.equal(state.screen, "practice_results");
+  assert.equal(state.raceWeekend.practice.team.length, 2);
+  const before = state.raceWeekend.practice.team.find((row) => row.driverId === "D1");
+  assert.ok(before.setup);
+
+  state = session.changeSetup("D1", { aeroBalance: 70, mechanicalGrip: 72, gearing: 65, cooling: 60 });
+  const after = state.raceWeekend.practice.team.find((row) => row.driverId === "D1");
+  assert.equal(after.setup.aeroBalance, 70);
+  assert.equal(after.playerAdjusted, true);
+
+  state = session.advanceWeekend();
+  assert.equal(state.screen, "qualifying_results");
+  assert.equal(state.raceWeekend.qualifying.classification.length, 4);
+
+  state = session.advanceWeekend();
+  assert.equal(state.screen, "pre_race");
+  assert.equal(state.raceWeekend.grid.length, 4);
   assert.equal(state.liveRace.currentLap, 0);
   assert.equal(state.liveRace.totalLaps, 8);
-  assert.equal(state.liveRace.order.length, 4);
   assert.equal(state.liveRace.order.filter((row) => row.controlled).length, 2);
-  assert.equal(session.saveWorld.history.races.length, 0, "aggregate baseline must not leak into history");
+  assert.equal(session.saveWorld.history.races.length, 0);
 
+  const weekend = session.saveWorld.world.raceWeekendState.active[state.raceWeekend.key];
+  assert.equal(weekend.classification, undefined, "no fake race classification should exist before lights out");
+  assert.equal(weekend.raceStartBaseline.length, 4);
+  assert.ok(weekend.raceStartBaseline.every((row) => row.status === "STARTING"));
+
+  const originalCompound = state.liveRace.strategies.find((row) => row.driverId === "D1").startingCompoundId;
+  const alternative = state.liveRace.tyreOptions.find((row) => String(row.id) !== String(originalCompound) && row.condition === "dry");
+  assert.ok(alternative);
+  state = session.changeStartingTyre("D1", alternative.id);
+  assert.equal(state.liveRace.strategies.find((row) => row.driverId === "D1").startingCompoundId, alternative.id);
+
+  state = session.startRace();
+  assert.equal(state.screen, "race");
   state = session.advanceRace(2);
   assert.equal(state.screen, "race");
   assert.equal(state.liveRace.currentLap, 2);
+  assert.equal(state.liveRace.order.length, 4);
 
   state = session.finishRace();
   assert.equal(state.screen, "race_results");
@@ -105,7 +143,17 @@ test("developer playtest runs New Career -> Continue -> live Race -> Results", (
   assert.equal(session.saveWorld.history.races.length, 1);
   assert.equal(session.saveWorld.history.races[0].liveRace, true);
   assert.equal(session.saveWorld.history.races[0].classification.length, 4);
+  assert.equal(session.saveWorld.history.races[0].raceStartBaseline, undefined);
   assert.ok(state.standings.drivers.length > 0);
+});
+
+test("weekend stage guards prevent skipping straight from calendar into live race", () => {
+  const session = new DeveloperPlaytestSession(seasonDatabase());
+  session.startCareer({ managerName: "Guard Test", teamId: "T1", seed: "stage-guards" });
+  session.continue();
+  assert.throws(() => session.startRace(), /not ready/i);
+  assert.throws(() => session.advanceRace(1), /not started/i);
+  assert.throws(() => session.changeSetup("D3", { aeroBalance: 50 }), /controlled team/i);
 });
 
 test("developer playtest refuses control of a team outside the active Season Database", () => {
