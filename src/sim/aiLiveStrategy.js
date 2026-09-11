@@ -115,9 +115,28 @@ export function evaluateAiLiveStrategyDecision(saveWorld, weekend, driverId, con
     return null;
   }
 
-  const wear = numeric(context.tyreWear);
   const control = context.activeControl ?? null;
   const neutralised = control && ["safety_car", "virtual_safety_car"].includes(control.type);
+  const damageLoss = Math.max(0, numeric(context.damagePaceLoss, 0));
+  const repairableDamage = Boolean(context.repairableDamage);
+  const damageThreshold = neutralised ? 0.35 : 0.85;
+  if (repairableDamage && damageLoss >= damageThreshold && remaining >= 3 && targetCompound) {
+    if (!alreadyScheduledSoon(plan, currentLap, neutralised ? 3 : 2)
+      && !repeatedLiveRequest(plan, targetCompound.compoundId, currentLap)) {
+      return {
+        action: "box",
+        compoundId: targetCompound.compoundId,
+        pitAfterLap: currentLap + 1,
+        reason: neutralised ? `ai_${control.type}_damage_repair` : "ai_damage_repair",
+        source: "ai_live",
+        priority: neutralised ? 90 : 70,
+        trigger: "damage_repair",
+        observedDamageLoss: damageLoss,
+      };
+    }
+  }
+
+  const wear = numeric(context.tyreWear);
   const wearThreshold = neutralised ? 0.72 : 0.94;
   if (wear !== null && wear >= wearThreshold && remaining >= 3 && targetCompound) {
     if (!alreadyScheduledSoon(plan, currentLap, neutralised ? 3 : 2)
@@ -146,6 +165,8 @@ export function listAiLiveStrategyDecisions(saveWorld, weekend, context = {}) {
     const decision = evaluateAiLiveStrategyDecision(saveWorld, weekend, driverId, {
       ...context,
       tyreWear: state.tyreWear ?? context.tyreWear,
+      damagePaceLoss: state.damagePaceLoss ?? context.damagePaceLoss,
+      repairableDamage: state.repairableDamage ?? context.repairableDamage,
     });
     if (decision) decisions.push({ driverId, teamId: gridRow.teamId, ...decision });
   }
