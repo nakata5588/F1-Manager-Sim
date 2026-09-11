@@ -91,6 +91,7 @@ export function createExternalDriverOffer(saveWorld, input = {}) {
     20,
     120,
   ));
+  const windowDays = Math.max(1, Math.round(numeric(input.windowDays, 10)));
   const row = {
     id: `external-offer:${String(serial).padStart(6, "0")}`,
     workerType: "driver",
@@ -100,7 +101,7 @@ export function createExternalDriverOffer(saveWorld, input = {}) {
     relatedNegotiationId: input.negotiationId ?? input.negotiation_id ?? null,
     status: "open",
     createdAt: saveWorld.clock?.date ?? null,
-    expiresAt: addDays(saveWorld.clock?.date, Math.max(3, Math.round(numeric(input.windowDays, 10)))),
+    expiresAt: addDays(saveWorld.clock?.date, windowDays),
     startSeason,
     terms: {
       compensationMode: "abstract_index",
