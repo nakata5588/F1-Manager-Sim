@@ -1,6 +1,8 @@
 import { decideLiveRaceControl, resolveRaceControlPolicy } from "./raceControl.js";
 import { createRng } from "./random.js";
 import { resolveSectorModel, sectorPaceModifier } from "./sectorModel.js";
+import { evaluateAiLiveStrategyDecision, isAiManagedStrategy } from "./aiLiveStrategy.js";
+import { reviseRaceStrategy } from "./liveStrategy.js";
 
 function numeric(value, fallback = null) {
   const parsed = Number(value);
@@ -168,7 +170,7 @@ function tyreEffect(strategy, stint, condition) {
     pace += Math.max(0, wear - 0.62) * 1.15;
     pace += Math.max(0, wear - 1) * 3.2;
   }
-  const strategyCondition = String(strategy.condition ?? "dry").toLowerCase();
+  const strategyCondition = String(stint.condition ?? strategy.condition ?? "dry").toLowerCase();
   const wetTrack = condition === "wet" || condition === "damp";
   const wetTyre = strategyCondition === "wet";
   const mismatch = wetTrack !== wetTyre;
@@ -241,11 +243,22 @@ function lapCost(saveWorld, weekend, state, lap, condition, fuel, strategy) {
   };
 }
 
-function pitPenalty(stop) {
+function neutralisationPitFactor(control, lap) {
+  if (!control || lap < control.startLap || lap > control.endLap) return 1;
+  if (control.type === "safety_car") return 0.62;
+  if (control.type === "virtual_safety_car") return 0.78;
+  return 1;
+}
+
+function pitPenalty(stop, control = null, lap = 0) {
   const seconds = numeric(stop?.timeLossSeconds);
-  if (seconds !== null) return seconds / 3.2;
-  const execution = normalizedRating(stop?.executionScore, 50);
-  return 4.5 + (100 - execution) * 0.035;
+  const raw = seconds !== null
+    ? seconds / 3.2
+    : 4.5 + (100 - normalizedRating(stop?.executionScore, 50)) * 0.035;
+  return {
+    loss: raw * neutralisationPitFactor(control, lap),
+    neutralisationFactor: neutralisationPitFactor(control, lap),
+  };
 }
 
 function recordSnapshot(snapshots, lap, order, states, reason = "interval") {
@@ -415,10 +428,25 @@ function restoreStates(raw) {
   return new Map(Object.entries(raw ?? {}).map(([id, state]) => [id, structuredClone(state)]));
 }
 
+function aiManagedStrategies(weekend) {
+  return Object.fromEntries(Object.entries(weekend.strategies ?? {})
+    .filter(([, plan]) => isAiManagedStrategy(plan))
+    .map(([driverId, plan]) => [driverId, structuredClone(plan)]));
+}
+
+function restoreAiStrategies(weekend, resumeState) {
+  if (!resumeState?.aiStrategies) return;
+  weekend.strategies ??= {};
+  for (const [driverId, stored] of Object.entries(resumeState.aiStrategies)) {
+    const current = weekend.strategies[driverId];
+    if (!current || isAiManagedStrategy(current)) weekend.strategies[driverId] = structuredClone(stored);
+  }
+}
+
 function buildResumeState(weekend, lap, order, states, events, snapshots, leaderByLap, controlPeriods, lastCondition, activeControl) {
   return {
-    version: 2,
-    model: "sector_lap_v1_resumable",
+    version: 3,
+    model: "sector_lap_v2_ai_strategy_resumable",
     weekendKey: weekend.key,
     lap,
     order: [...order],
@@ -429,12 +457,13 @@ function buildResumeState(weekend, lap, order, states, events, snapshots, leader
     controlPeriods: structuredClone(controlPeriods),
     lastCondition,
     activeControl: activeControl ? structuredClone(activeControl) : null,
+    aiStrategies: aiManagedStrategies(weekend),
   };
 }
 
 function validateResumeState(weekend, resumeState) {
   if (!resumeState) return;
-  if (![1, 2].includes(Number(resumeState.version)) || resumeState.weekendKey !== weekend.key) {
+  if (![1, 2, 3].includes(Number(resumeState.version)) || resumeState.weekendKey !== weekend.key) {
     throw new Error("Resume state does not belong to this race weekend.");
   }
   if (!Number.isInteger(Number(resumeState.lap)) || !Array.isArray(resumeState.order) || !resumeState.states) {
@@ -451,6 +480,45 @@ function summarizeSectors(sectorModel, events) {
     mechanicalRetirements: events.filter((row) => row.type === "retirement" && row.reason === "mechanical" && row.sectorId === sector.id).length,
     localYellows: events.filter((row) => row.type === "race_control" && row.control === "local_yellow" && row.sectorId === sector.id).length,
   }));
+}
+
+function applyAiStrategyDecisions(saveWorld, weekend, states, lap, laps, condition, activeControl, events) {
+  for (const gridRow of weekend.grid ?? []) {
+    const driverId = gridRow.driverId;
+    const state = states.get(driverId);
+    if (!state || state.status !== "RUNNING") continue;
+    const currentPlan = weekend.strategies?.[driverId];
+    if (!currentPlan || !isAiManagedStrategy(currentPlan)) continue;
+    const decision = evaluateAiLiveStrategyDecision(saveWorld, weekend, driverId, {
+      currentLap: lap - 1,
+      totalLaps: laps,
+      condition,
+      tyreWear: state.tyreWear,
+      activeControl,
+    });
+    if (!decision) continue;
+
+    const revised = reviseRaceStrategy(saveWorld, weekend, driverId, currentPlan, decision, {
+      currentLap: lap - 1,
+      source: "ai_live",
+      entropyKey: `${weekend.key}|ai-live|${driverId}|${lap}|${decision.trigger}`,
+    });
+    weekend.strategies[driverId] = revised;
+    events.push({
+      lap,
+      sectorId: "PIT_WALL",
+      type: "strategy_revision",
+      driverId,
+      teamId: gridRow.teamId,
+      source: "ai_live",
+      trigger: decision.trigger,
+      reason: decision.reason,
+      compoundId: decision.compoundId,
+      pitAfterLap: revised.liveRevision?.pitAfterLap ?? decision.pitAfterLap,
+      observedWear: decision.observedWear ?? null,
+      activeControl: activeControl?.type ?? null,
+    });
+  }
 }
 
 export function simulateTemporalRace(saveWorld, weekend, options = {}) {
@@ -470,6 +538,7 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
   const baselineRows = weekend.classification.filter((row) => (weekend.grid ?? []).some((grid) => grid.driverId === row.driverId));
   const resumeState = options.resumeState ?? null;
   validateResumeState(weekend, resumeState);
+  restoreAiStrategies(weekend, resumeState);
 
   const strategyWasAlreadyApplied = Boolean(weekend.strategyApplied);
   const states = resumeState
@@ -505,6 +574,8 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
     const condition = conditionAt(weather, lap);
     if (lap > 1 && condition !== lastCondition) events.push({ lap, type: "weather_change", from: lastCondition, to: condition });
     lastCondition = condition;
+    applyAiStrategyDecisions(saveWorld, weekend, states, lap, laps, condition, activeControl, events);
+
     const pitters = new Set();
     const lapStates = new Map();
     let controlChanged = false;
@@ -617,8 +688,8 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
       const strategy = strategyFor(weekend, id);
       const stop = pitStopAt(strategy, lap);
       if (!stop) continue;
-      const loss = pitPenalty(stop);
-      state.elapsedIndex += loss;
+      const pit = pitPenalty(stop, activeControl, lap);
+      state.elapsedIndex += pit.loss;
       state.pitStopsCompleted += 1;
       pitters.add(id);
       events.push({
@@ -627,8 +698,10 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
         type: "pit_stop",
         driverId: id,
         stop: state.pitStopsCompleted,
-        lossIndex: round(loss, 4),
+        lossIndex: round(pit.loss, 4),
         timeLossSeconds: numeric(stop.timeLossSeconds),
+        neutralisationFactor: pit.neutralisationFactor,
+        lossModel: pit.neutralisationFactor < 1 ? "neutralisation_simulation_tuning" : "normal_running",
       });
     }
 
@@ -677,8 +750,8 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
     classification,
     resumeState: nextResumeState,
     timeline: {
-      version: 3,
-      model: "sector_lap_v1_resumable",
+      version: 4,
+      model: "sector_lap_v2_ai_strategy_resumable",
       completed,
       lapsSimulated: endLap,
       totalLaps: laps,
@@ -693,6 +766,7 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
       raceControlLive: true,
       raceControlPolicy: policy,
       controlPeriods,
+      aiStrategyRevisions: events.filter((row) => row.type === "strategy_revision" && row.source === "ai_live"),
     },
   };
 }
