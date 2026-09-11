@@ -47,14 +47,10 @@ if (globalWorldPath) {
   sourcePath = `${basePath} + ${overlayPath}`;
 }
 
-const expectedRacesPerSeason = explicitExpectedRaces === null
-  ? (sourceMode === "global_database" ? Number.NaN : undefined)
-  : Number(explicitExpectedRaces);
-
 const result = runLongRunValidation(snapshot, {
   seasons,
   seed,
-  expectedRacesPerSeason,
+  expectedRacesPerSeason: explicitExpectedRaces === null ? undefined : Number(explicitExpectedRaces),
 });
 
 const calendarSources = (result.saveWorld.history?.seasons ?? [])
