@@ -32,7 +32,10 @@ const tyreActiveInSeason = (row, season) => {
 };
 
 const inCareerWindow = (driver, year) => {
-  const startRaw = driver.career_start_year ?? driver.f1_rookie_season;
+  // F1 rookie season is the authoritative activation boundary when available.
+  // A driver's wider motorsport career may begin years before Formula One and
+  // must not cause them to appear early in an F1 start database.
+  const startRaw = driver.f1_rookie_season ?? driver.career_start_year;
   if (startRaw === null || startRaw === undefined || startRaw === "") return false;
   const start = Number(startRaw);
   if (!Number.isFinite(start)) return false;
@@ -356,7 +359,8 @@ export function createSeasonSnapshot(database, year) {
     futureEntities,
     futureDrivers: (database.drivers ?? []).filter((row) => futureDriverIds.has(row.driver_id) && !currentDriverIds.has(row.driver_id)).map((row) => sanitizeEntityProfile(row, season, true)),
     futureStaff: (database.staff ?? []).filter((row) => futureStaffIds.has(row.staff_id) && !currentStaffIds.has(row.staff_id)).map((row) => sanitizeEntityProfile(row, season, true)),
-    futureTeams: (database.teams ?? []).filter((row) => futureTeamIds.has(row.team_id) && !currentTeamIds.has(row.team_id)).map((row) => sanitizeEntityProfile(row, season, true)),
+    // A future team profile's team_id is its identity, not a scripted employer assignment.
+    futureTeams: (database.teams ?? []).filter((row) => futureTeamIds.has(row.team_id) && !currentTeamIds.has(row.team_id)).map((row) => sanitizeEntityProfile(row, season, false)),
   };
 
   return deepFreeze(snapshot);
