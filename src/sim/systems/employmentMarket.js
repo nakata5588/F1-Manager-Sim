@@ -8,17 +8,23 @@ export const EMPLOYMENT_EVENT = Object.freeze({
   FREE_AGENT: "employment.free_agent",
   VACANCY_OPENED: "employment.vacancy_opened",
   CONTRACT_SIGNED: "employment.contract_signed",
+  FUTURE_CONTRACT_SIGNED: "employment.future_contract_signed",
+  FUTURE_CONTRACT_ACTIVATED: "employment.future_contract_activated",
 });
 
 function ensureEmployment(saveWorld) {
   saveWorld.world.employment ??= {
     drivers: {},
     staff: {},
+    futureAssignments: { drivers: {}, staff: {} },
     freeAgents: { drivers: [], staff: [] },
     vacancies: [],
   };
   saveWorld.world.employment.drivers ??= {};
   saveWorld.world.employment.staff ??= {};
+  saveWorld.world.employment.futureAssignments ??= { drivers: {}, staff: {} };
+  saveWorld.world.employment.futureAssignments.drivers ??= {};
+  saveWorld.world.employment.futureAssignments.staff ??= {};
   saveWorld.world.employment.freeAgents ??= { drivers: [], staff: [] };
   saveWorld.world.employment.freeAgents.drivers ??= [];
   saveWorld.world.employment.freeAgents.staff ??= [];
@@ -29,6 +35,11 @@ function ensureEmployment(saveWorld) {
 function asYear(value) {
   const parsed = Number(value);
   return Number.isInteger(parsed) ? parsed : null;
+}
+
+function numeric(value, fallback = null) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 function contractEnd(contract) {
@@ -55,6 +66,10 @@ function assignmentBucket(employment, type) {
   return type === "driver" ? employment.drivers : employment.staff;
 }
 
+function futureAssignmentBucket(employment, type) {
+  return type === "driver" ? employment.futureAssignments.drivers : employment.futureAssignments.staff;
+}
+
 function addFreeAgent(employment, type, id) {
   const bucket = freeAgentBucket(employment, type);
   if (!bucket.includes(id)) bucket.push(id);
@@ -67,6 +82,29 @@ function removeFreeAgent(employment, type, id) {
   if (index >= 0) bucket.splice(index, 1);
 }
 
+function assignmentFromContract(contract, type, fallbackSeason, source = null) {
+  return {
+    teamId: contract.team_id,
+    role: contract.role ?? (type === "driver" ? "driver" : "staff"),
+    contractStart: contractStart(contract, fallbackSeason),
+    contractUntil: contractEnd(contract),
+    status: "employed",
+    source: source ?? contract.source ?? "historical",
+    annualSalary: numeric(contract.annual_salary ?? contract.salary ?? contract.base_salary ?? contract.wage),
+    salaryIndex: numeric(contract.salary_index),
+    signingBonus: numeric(contract.signing_bonus),
+    negotiationId: contract.negotiation_id ?? null,
+  };
+}
+
+function scheduleFutureAssignment(employment, type, id, assignment) {
+  const bucket = futureAssignmentBucket(employment, type);
+  bucket[id] ??= [];
+  const duplicate = bucket[id].find((row) => Number(row.contractStart) === Number(assignment.contractStart) && row.teamId === assignment.teamId);
+  if (!duplicate) bucket[id].push({ ...assignment, status: "future" });
+  bucket[id].sort((a, b) => Number(a.contractStart) - Number(b.contractStart) || String(a.teamId).localeCompare(String(b.teamId)));
+}
+
 function initializeAssignments(saveWorld, type, contracts) {
   const employment = ensureEmployment(saveWorld);
   const assignments = assignmentBucket(employment, type);
@@ -74,14 +112,14 @@ function initializeAssignments(saveWorld, type, contracts) {
   for (const contract of contracts ?? []) {
     const id = type === "driver" ? contract.driver_id : contract.staff_id;
     if (!id || !contract.team_id) continue;
-    assignments[id] = {
-      teamId: contract.team_id,
-      role: contract.role ?? (type === "driver" ? "driver" : "staff"),
-      contractStart: contractStart(contract, currentSeason),
-      contractUntil: contractEnd(contract),
-      status: "employed",
-      source: contract.source ?? "historical",
-    };
+    const assignment = assignmentFromContract(contract, type, currentSeason);
+    if (assignment.contractUntil !== null && assignment.contractUntil < currentSeason) continue;
+    if (assignment.contractStart > currentSeason) {
+      scheduleFutureAssignment(employment, type, id, assignment);
+      continue;
+    }
+    const current = assignments[id];
+    if (!current || Number(current.contractStart ?? 0) <= Number(assignment.contractStart ?? 0)) assignments[id] = assignment;
   }
 }
 
@@ -109,24 +147,86 @@ function openVacancy(saveWorld, type, event) {
   return vacancy;
 }
 
+function contractRecord(type, id, teamId, payload, start, until, future) {
+  const record = {
+    year: start,
+    team_id: teamId,
+    role: payload?.role ?? (type === "driver" ? "driver" : "staff"),
+    contract_start: start,
+    contract_until: until,
+    annual_salary: numeric(payload?.annual_salary),
+    salary_index: numeric(payload?.salary_index),
+    signing_bonus: numeric(payload?.signing_bonus),
+    negotiation_id: payload?.negotiation_id ?? null,
+    announced_at: payload?.announced_at ?? null,
+    source: "simulation",
+    generated: true,
+    future,
+  };
+  if (type === "driver") record.driver_id = id;
+  else record.staff_id = id;
+  return record;
+}
+
+function pushContractRecord(saveWorld, type, record) {
+  const collectionName = type === "driver" ? "contracts" : "staffContracts";
+  saveWorld.world[collectionName] ??= [];
+  const duplicate = saveWorld.world[collectionName].some((row) =>
+    String(row[type === "driver" ? "driver_id" : "staff_id"] ?? "") === String(record[type === "driver" ? "driver_id" : "staff_id"])
+    && row.team_id === record.team_id
+    && Number(row.contract_start ?? row.year) === Number(record.contract_start)
+    && row.source === "simulation");
+  if (!duplicate) saveWorld.world[collectionName].push(record);
+}
+
 function applyContractSigning(saveWorld, event) {
   const type = String(event.payload?.worker_type ?? "driver").toLowerCase() === "staff" ? "staff" : "driver";
   const id = event.payload?.worker_id ?? null;
   const teamId = event.payload?.team_id ?? null;
-  if (!id || !teamId) return;
+  if (!id || !teamId) return null;
 
   const employment = ensureEmployment(saveWorld);
   const assignments = assignmentBucket(employment, type);
-  const start = asYear(event.payload?.contract_start) ?? saveWorld.clock.season;
+  const currentSeason = Number(saveWorld.clock.season);
+  const start = asYear(event.payload?.contract_start) ?? currentSeason;
   const until = asYear(event.payload?.contract_until) ?? start;
-  assignments[id] = {
+  const assignment = {
     teamId,
     role: event.payload?.role ?? (type === "driver" ? "driver" : "staff"),
     contractStart: start,
     contractUntil: until,
-    status: "employed",
+    status: start > currentSeason ? "future" : "employed",
     source: "simulation",
+    annualSalary: numeric(event.payload?.annual_salary),
+    salaryIndex: numeric(event.payload?.salary_index),
+    signingBonus: numeric(event.payload?.signing_bonus),
+    negotiationId: event.payload?.negotiation_id ?? null,
   };
+
+  const record = contractRecord(type, id, teamId, { ...event.payload, announced_at: event.date }, start, until, start > currentSeason);
+  pushContractRecord(saveWorld, type, record);
+  saveWorld.history.transfers ??= [];
+
+  if (start > currentSeason) {
+    scheduleFutureAssignment(employment, type, id, assignment);
+    saveWorld.history.transfers.push({
+      date: event.date,
+      effectiveSeason: start,
+      type,
+      workerId: id,
+      teamId,
+      role: record.role,
+      contractUntil: until,
+      status: "future_agreement",
+      negotiationId: record.negotiation_id,
+    });
+    return {
+      type: EMPLOYMENT_EVENT.FUTURE_CONTRACT_SIGNED,
+      payload: { worker_type: type, worker_id: id, team_id: teamId, role: record.role, contract_start: start, contract_until: until },
+    };
+  }
+
+  assignments[id] = { ...assignment, status: "employed" };
   removeFreeAgent(employment, type, id);
 
   const vacancy = employment.vacancies.find((row) => row.vacancyId === event.payload?.vacancy_id);
@@ -136,32 +236,16 @@ function applyContractSigning(saveWorld, event) {
     vacancy.workerId = id;
   }
 
-  const record = {
-    year: saveWorld.clock.season,
-    team_id: teamId,
-    role: event.payload?.role ?? (type === "driver" ? "driver" : "staff"),
-    contract_start: start,
-    contract_until: until,
-    source: "simulation",
-    generated: true,
-  };
-  if (type === "driver") {
-    record.driver_id = id;
-    saveWorld.world.contracts ??= [];
-    saveWorld.world.contracts.push(record);
-  } else {
-    record.staff_id = id;
-    saveWorld.world.staffContracts ??= [];
-    saveWorld.world.staffContracts.push(record);
-  }
-
   saveWorld.history.transfers.push({
     date: event.date,
+    effectiveSeason: start,
     type,
     workerId: id,
     teamId,
     role: record.role,
     contractUntil: until,
+    status: "effective",
+    negotiationId: record.negotiation_id,
   });
 
   const careerState = type === "driver" ? saveWorld.world?.careerState?.drivers?.[id] : saveWorld.world?.careerState?.staff?.[id];
@@ -169,12 +253,62 @@ function applyContractSigning(saveWorld, event) {
     careerState.status = "employed";
     careerState.lastUpdated = event.date;
   }
+  return null;
+}
+
+function activateFutureAssignments(saveWorld, type, event) {
+  const employment = ensureEmployment(saveWorld);
+  const currentSeason = Number(event.payload?.season ?? saveWorld.clock.season);
+  const bucket = futureAssignmentBucket(employment, type);
+  const assignments = assignmentBucket(employment, type);
+  const output = [];
+
+  for (const [id, futureRows] of Object.entries(bucket)) {
+    const due = [...futureRows]
+      .filter((row) => Number(row.contractStart) <= currentSeason)
+      .sort((a, b) => Number(b.contractStart) - Number(a.contractStart))[0];
+    if (!due) continue;
+    assignments[id] = { ...due, status: "employed" };
+    removeFreeAgent(employment, type, id);
+    bucket[id] = futureRows.filter((row) => row !== due && Number(row.contractStart) > currentSeason);
+    if (!bucket[id].length) delete bucket[id];
+
+    saveWorld.history.transfers ??= [];
+    saveWorld.history.transfers.push({
+      date: event.date,
+      effectiveSeason: currentSeason,
+      type,
+      workerId: id,
+      teamId: due.teamId,
+      role: due.role,
+      contractUntil: due.contractUntil,
+      status: "future_contract_activated",
+      negotiationId: due.negotiationId ?? null,
+    });
+    const careerState = type === "driver" ? saveWorld.world?.careerState?.drivers?.[id] : saveWorld.world?.careerState?.staff?.[id];
+    if (careerState) {
+      careerState.status = "employed";
+      careerState.lastUpdated = event.date;
+    }
+    output.push({
+      type: EMPLOYMENT_EVENT.FUTURE_CONTRACT_ACTIVATED,
+      payload: {
+        worker_type: type,
+        worker_id: id,
+        team_id: due.teamId,
+        role: due.role,
+        contract_start: due.contractStart,
+        contract_until: due.contractUntil,
+      },
+    });
+  }
+  return output;
 }
 
 export function createEmploymentMarketSystem() {
   return {
     id: "employment.market",
-    eventTypes: [SIM_EVENT.CAREER_STARTED, CONTRACT_EVENT.EXPIRED, ENTITY_EVENT.ELIGIBLE, EMPLOYMENT_EVENT.CONTRACT_SIGNED],
+    eventTypes: [SIM_EVENT.CAREER_STARTED, SIM_EVENT.SEASON_STARTED, CONTRACT_EVENT.EXPIRED, ENTITY_EVENT.ELIGIBLE, EMPLOYMENT_EVENT.CONTRACT_SIGNED],
     handle({ saveWorld, event }) {
       const employment = ensureEmployment(saveWorld);
 
@@ -190,8 +324,17 @@ export function createEmploymentMarketSystem() {
             employedStaff: Object.keys(employment.staff).length,
             freeDrivers: employment.freeAgents.drivers.length,
             freeStaff: employment.freeAgents.staff.length,
+            futureDriverContracts: Object.values(employment.futureAssignments.drivers).reduce((sum, rows) => sum + rows.length, 0),
+            futureStaffContracts: Object.values(employment.futureAssignments.staff).reduce((sum, rows) => sum + rows.length, 0),
           },
         };
+      }
+
+      if (event.type === SIM_EVENT.SEASON_STARTED) {
+        return [
+          ...activateFutureAssignments(saveWorld, "driver", event),
+          ...activateFutureAssignments(saveWorld, "staff", event),
+        ];
       }
 
       if (event.type === ENTITY_EVENT.ELIGIBLE) {
@@ -243,13 +386,12 @@ export function createEmploymentMarketSystem() {
         ];
       }
 
-      applyContractSigning(saveWorld, event);
-      return null;
+      return applyContractSigning(saveWorld, event);
     },
   };
 }
 
-function numeric(value, fallback = 0) {
+function scoreNumber(value, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
@@ -257,10 +399,10 @@ function numeric(value, fallback = 0) {
 function driverScore(saveWorld, id, event) {
   const state = saveWorld.world?.careerState?.drivers?.[id] ?? {};
   const profile = (saveWorld.world?.drivers ?? []).find((row) => row.driver_id === id) ?? {};
-  const ability = numeric(state.currentAbility ?? profile.current_ability, 40);
-  const potential = numeric(state.potentialAbility ?? profile.potential_ability, ability);
-  const reputation = numeric(state.reputation ?? profile.reputation, 40);
-  const age = numeric(state.age, 27);
+  const ability = scoreNumber(state.currentAbility ?? profile.current_ability, 40);
+  const potential = scoreNumber(state.potentialAbility ?? profile.potential_ability, ability);
+  const reputation = scoreNumber(state.reputation ?? profile.reputation, 40);
+  const age = scoreNumber(state.age, 27);
   const ageFit = age <= 32 ? 100 - Math.abs(27 - age) * 3 : Math.max(20, 85 - (age - 32) * 6);
   const rng = createRng(`${saveWorld.meta.seed}|${event.id}|driver|${id}`);
   return ability * 0.58 + potential * 0.18 + reputation * 0.16 + ageFit * 0.08 + rng.next() * 4;
@@ -270,12 +412,12 @@ function staffScore(saveWorld, id, event) {
   const state = saveWorld.world?.careerState?.staff?.[id] ?? {};
   const profile = (saveWorld.world?.staff ?? []).find((row) => row.staff_id === id) ?? {};
   const rating = (saveWorld.world?.staffRatings ?? []).find((row) => row.staff_id === id) ?? {};
-  const ability = numeric(state.currentAbility, (
-    numeric(rating.technical ?? profile.technical, 50)
-    + numeric(rating.leadership ?? profile.leadership, 50)
-    + numeric(rating.strategy ?? profile.strategy, 50)
+  const ability = scoreNumber(state.currentAbility, (
+    scoreNumber(rating.technical ?? profile.technical, 50)
+    + scoreNumber(rating.leadership ?? profile.leadership, 50)
+    + scoreNumber(rating.strategy ?? profile.strategy, 50)
   ) / 3);
-  const reputation = numeric(state.reputation ?? rating.reputation ?? profile.reputation, 40);
+  const reputation = scoreNumber(state.reputation ?? rating.reputation ?? profile.reputation, 40);
   const rng = createRng(`${saveWorld.meta.seed}|${event.id}|staff|${id}`);
   return ability * 0.78 + reputation * 0.18 + rng.next() * 4;
 }
