@@ -106,7 +106,7 @@ function localYellow(event, severity) {
     fieldCompression: null,
     overtakingAllowed: false,
     scope: sectorId ? "sector" : "global_fallback",
-    effectStatus: sectorId ? "live_sector_scoped" : "live_global_fallback_no_sector",
+    effectStatus: sectorId ? "live_sector_scoped" : "live_global_approximation_pending_sector_model",
     source: "severity_policy",
   };
 }
