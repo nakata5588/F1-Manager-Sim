@@ -31,6 +31,7 @@ export function normalizeEntityVisibility(entity = {}, options = {}) {
     "talent_visible_from",
     "scouting_visible_from",
     "talent_activation_year",
+    "talent_pool_entry_year",
   ]);
   const legacyActivation = firstYear(entity, [
     "activation_year",
@@ -46,6 +47,7 @@ export function normalizeEntityVisibility(entity = {}, options = {}) {
   ]);
   const careerEndReference = firstYear(entity, [
     "career_end_reference",
+    "historical_exit_reference",
     "career_end_year",
     "retirement_year",
     "last_f1_season",
@@ -70,20 +72,24 @@ export function normalizeEntityVisibility(entity = {}, options = {}) {
 
   if (f1EligibleFrom === null) {
     if (legacyActivation !== null) {
+      // v0.7/v0.8 compatibility: their combined activation field historically
+      // powered both lifecycle and market entry. Newer data should set the
+      // dedicated fields instead.
       f1EligibleFrom = legacyActivation;
       visibilitySource = explicitWorldVisible !== null || explicitTalentVisible !== null
         ? "explicit_visibility_legacy_eligibility"
         : "legacy_combined_activation";
-    } else if (worldVisibleFrom !== null) {
-      f1EligibleFrom = worldVisibleFrom;
-      visibilitySource = visibilitySource === "explicit" ? "world_visibility_eligibility_fallback" : visibilitySource;
+    } else if (explicitWorldVisible !== null && type !== "driver") {
+      // Non-driver legacy entities often only have a single availability date.
+      f1EligibleFrom = explicitWorldVisible;
+      visibilitySource = "world_visibility_eligibility_fallback";
     } else if (debutReference !== null) {
       // Last-resort compatibility only. Historical F1 debut is not the semantic
-      // visibility boundary; it is used here solely to prevent pre-debut leakage
-      // from legacy rows that carry no dedicated visibility metadata.
+      // visibility boundary; it prevents early market leakage when an old driver
+      // row has no dedicated eligibility metadata at all.
       f1EligibleFrom = debutReference;
-      worldVisibleFrom = debutReference;
-      talentVisibleFrom = debutReference;
+      if (worldVisibleFrom === null) worldVisibleFrom = debutReference;
+      if (talentVisibleFrom === null) talentVisibleFrom = debutReference;
       visibilitySource = "legacy_f1_debut_fallback";
     }
   }
@@ -132,6 +138,7 @@ const HIDDEN_REFERENCE_FIELDS = new Set([
   "world_or_talent_activation_year",
   "world_activation_year",
   "talent_activation_year",
+  "talent_pool_entry_year",
   "event_year",
   "world_visible_from",
   "known_from",
@@ -146,6 +153,7 @@ const HIDDEN_REFERENCE_FIELDS = new Set([
   "historical_entry_year",
   "f1_rookie_season",
   "career_end_reference",
+  "historical_exit_reference",
   "career_end_year",
   "retirement_year",
   "last_f1_season",
