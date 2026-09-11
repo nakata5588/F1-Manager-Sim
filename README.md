@@ -6,16 +6,18 @@ F1 Manager Sim is a long-form Formula One management and world simulation game. 
 
 ## Current development phase
 
-**Phase 0 — Audit & Foundations**
+**Phase 29 — Canonical Career Bootstrap & Database Baseline**
 
-The first fully supported target season is **1980**. The immediate goal is to build the simulation foundation before UI depth:
+The first fully supported target season remains **1980**. The simulation foundation now includes historical/save boundaries, autonomous career systems, race weekends, temporal/live race simulation, championship rules and long-run validation. Phase 29 closes the path from a versioned database release into a new career before the first Developer Playtest UI is built.
 
-1. audit and normalize the recovered historical master database;
-2. create an immutable Historical World snapshot;
-3. create independent mutable Save Worlds;
-4. implement deterministic simulation primitives and time progression;
-5. validate the world through automated and long-run tests;
-6. only then layer management systems and the Football Manager-style UI on top.
+Current goals:
+
+1. pin an accepted Global Database + 1980 Season Database baseline;
+2. create careers through one canonical `Season Database -> Save World` bootstrap;
+3. validate Season Database provenance against its Global Database release;
+4. preserve pre-career history and hidden future structure without future outcome leakage;
+5. validate variable historical calendar structure instead of assuming a fixed race count;
+6. keep headless and long-run simulation green before exposing the flow through the UI.
 
 ## Architecture rule
 
@@ -27,7 +29,19 @@ The project keeps five concerns separate:
 - **Game Systems** — contracts, development, finances, staff, sponsors and management mechanics.
 - **UI** — presentation and player interaction; never the authoritative simulation state.
 
-See `docs/ARCHITECTURE.md`, `docs/DATABASE_AUDIT_2026-09-10.md`, `docs/DATABASE_READINESS_1980.md` and `docs/DATA_WORKFLOW.md`.
+The database packaging boundary is:
+
+`Global Database -> Season Database -> Save World -> Simulation Engine`
+
+See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md` and `docs/DATA_WORKFLOW.md`.
+
+## Database baseline
+
+The current accepted source baseline is **v1.0 candidate (2026-09-11)**. Its source identity, checksums, readiness counts and historical calendar race-count reference are pinned in:
+
+`data/database-baselines/v1.0-candidate/baseline.json`
+
+1980 is `READY`; later seasons are enabled only when their active starting-state data passes readiness validation. A database update is audited against the current baseline before promotion rather than silently replacing it.
 
 ## Parallel database development
 
@@ -50,9 +64,16 @@ Audit a master workbook without modifying it:
 npm run db:audit -- /path/to/f1_db.xlsx --season 1980 --full-world
 ```
 
-Generated files are written to `build/historical/` and are intentionally not committed. A newer workbook can be dropped through the same command to produce a new manifest, validation report and readiness result.
+Materialize a career from an accepted Season Database:
 
-The repository is intentionally starting with a small simulation core. UI/framework dependencies will be added when the domain and save boundaries are stable.
+```bash
+npm run save:from-season-db -- /path/to/season-1980.json \
+  --global-world /path/to/global-database.json \
+  --out build/saves/1980.save.json \
+  --seed 1980-playtest
+```
+
+Generated build files are intentionally not committed. Editor workbooks, SQLite mirrors and CSV exports remain database-authoring/audit artifacts rather than authoritative runtime state.
 
 ## Legacy project
 
