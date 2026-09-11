@@ -1,4 +1,4 @@
-import { createSeasonSnapshot } from "./seasonSnapshot.js";
+import { createSeasonSnapshot } from "./seasonMaterializer.js";
 
 const ACCEPTED = new Set(["READY", "READY_WITH_WARNINGS"]);
 
