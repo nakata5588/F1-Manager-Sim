@@ -6,15 +6,19 @@ F1 Manager Sim is a long-form Formula One management and world simulation game. 
 
 ## Current development phase
 
-**Phase 31 — Interactive Race Weekend & Pit Wall Foundation**
+**Phase 32 — Management Core**
 
-The first fully supported target season remains **1980**. The simulation foundation includes historical/save boundaries, autonomous career systems, race weekends, temporal/live race simulation, championship rules, database provenance and long-run validation. Phase 31 turns the Developer Playtest vertical slice into an interactive weekend and race-management loop without moving simulation authority into the browser.
+The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends and the first persistent player-management loop.
 
 Current playable path:
 
 `New Career -> Choose Team -> Create Manager -> Career Home -> Continue -> Practice -> Setup -> Qualifying -> Pre-Race -> Live Race / Pit Wall -> Results -> Standings`
 
-The current playtest exposes controlled-car setup changes, starting tyres, resumable live racing, tyre/fuel/damage telemetry where supported by data, Race Control/event feeds and simulation speed controls with auto-pause on notable events.
+Phase 32 adds a parallel management loop:
+
+`Continue -> Inbox / Recruitment -> Scout -> Negotiate -> Decision -> Save World consequence -> Continue`
+
+The local Developer Playtest now includes a **Management Hub** with persistent Inbox messages/decisions, visibility-safe driver recruitment, shortlists, scouting assignments/reports, driver contract negotiations and future contracts that activate only in their effective season.
 
 ## Architecture rule
 
@@ -28,15 +32,19 @@ The project keeps five concerns separate:
 
 The database packaging boundary is:
 
-`Global Database -> Season Database -> Save World -> Simulation Engine`
+`Global Database -> Season Database -> Save World -> Simulation Engine / Game Systems -> UI projection`
 
 The race-weekend gameplay boundary is:
 
 `Practice -> Qualifying -> Grid -> Strategy -> raceStartBaseline -> Live Race -> Classification -> Championship`
 
+The management gameplay boundary is:
+
+`World Event -> Management State -> Inbox / Report -> Player Decision -> Simulation Event -> Updated Save World`
+
 The live race no longer requires an aggregate placeholder race result before lights out. `raceStartBaseline` is starting state only; the first real classification is the completed live race.
 
-See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md` and `docs/DATA_WORKFLOW.md`.
+See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md` and `docs/DATA_WORKFLOW.md`.
 
 ## Database baseline
 
@@ -51,6 +59,8 @@ The current accepted source baseline is **v1.0 candidate (2026-09-11)**. Its sou
 The historical master database is expected to improve continuously while the simulation is developed. The importer/validator forms a stable boundary so a newer database version can be audited and adopted without rewriting simulation code or altering existing saves.
 
 The importer preserves source provenance, normalizes known legacy column aliases, validates IDs and relationships, repairs only unambiguous name/ID mismatches, versions the database by SHA-256, and emits a season-readiness report.
+
+Management systems are deliberately tolerant of missing historical fields. For example, contract negotiation uses real salary data when it exists and an explicitly labelled abstract compensation index when it does not. Missing historical values are not silently invented.
 
 ## Development
 
@@ -83,7 +93,10 @@ npm run playtest -- /path/to/season-1980.json \
   --global-world /path/to/global-database.json
 ```
 
-Then open `http://127.0.0.1:3000`.
+Then open:
+
+- Career / Race Weekend: `http://127.0.0.1:3000`
+- Management Hub: `http://127.0.0.1:3000/management.html`
 
 Both database inputs may be plain `.json` or `.json.gz`. The browser receives only player-facing projections; hidden future identity pools and reference data remain server-side in the Save World.
 
