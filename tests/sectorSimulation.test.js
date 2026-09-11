@@ -108,15 +108,15 @@ test("sector race remains identical after JSON pause/resume", () => {
   const full = simulateTemporalRace(save("resume-sector"), weekend());
   const paused = simulateTemporalRace(save("resume-sector"), weekend(), { stopAfterLap: 4 });
   assert.equal(paused.timeline.completed, false);
-  assert.equal(paused.resumeState.version, 2);
-  assert.equal(paused.resumeState.model, "sector_lap_v1_resumable");
+  assert.equal(paused.resumeState.version, 3);
+  assert.equal(paused.resumeState.model, "sector_lap_v2_ai_strategy_resumable");
 
   const serialized = JSON.parse(JSON.stringify(paused.resumeState));
   const resumed = simulateTemporalRace(save("resume-sector"), weekend(), { resumeState: serialized });
   assert.deepEqual(resumed.classification, full.classification);
   assert.deepEqual(resumed.timeline.events, full.timeline.events);
   assert.deepEqual(resumed.timeline.leaderByLap, full.timeline.leaderByLap);
-  assert.equal(resumed.timeline.model, "sector_lap_v1_resumable");
+  assert.equal(resumed.timeline.model, "sector_lap_v2_ai_strategy_resumable");
   assert.equal(resumed.timeline.sectorModel.source, "explicit_sector_data");
   assert.equal(resumed.timeline.sectorSummary.length, 3);
 });
