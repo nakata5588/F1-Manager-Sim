@@ -12,17 +12,21 @@ let managerCareer = { career: null, vacancies: [] };
 let responsibilities = { teamId: null, areas: [] };
 let staffRecruitment = { summary: {}, candidates: [] };
 let staffContracts = { summary: {}, negotiations: [] };
+let commercial = { summary: {}, team: null, market: [], negotiations: [] };
 let recruitmentRequest = "/api/recruitment";
 let staffRequest = "/api/staff-recruitment";
+let commercialTier = "partner";
+let commercialRequest = "/api/commercial?tier=partner";
 let activeTab = "inbox";
 let selectedNegotiation = null;
 let selectedStaffNegotiation = null;
+let selectedSponsorNegotiation = null;
 let errorMessage = "";
 let busy = false;
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
-    headers: { "content-type": "application/json", ...(options.headers ?? {}) },
+    headers: { "content-type": "application/json; charset=utf-8", ...(options.headers ?? {}) },
     ...options,
   });
   const payload = await response.json();
@@ -45,6 +49,12 @@ function humanDate(value) {
   return Number.isNaN(date.valueOf()) ? value : new Intl.DateTimeFormat("en-GB", {
     day: "2-digit", month: "short", year: "numeric", timeZone: "UTC",
   }).format(date);
+}
+
+function money(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "—";
+  return new Intl.NumberFormat("en-GB", { maximumFractionDigits: 0 }).format(Math.round(number));
 }
 
 function rangeText(range) {
@@ -73,7 +83,7 @@ async function refreshAll() {
     render();
     return;
   }
-  [overview, inbox, recruitment, contracts, people, market, boardData, managerCareer, responsibilities, staffRecruitment, staffContracts] = await Promise.all([
+  [overview, inbox, recruitment, contracts, people, market, boardData, managerCareer, responsibilities, staffRecruitment, staffContracts, commercial] = await Promise.all([
     api("/api/management"),
     api("/api/inbox"),
     api(recruitmentRequest),
@@ -85,9 +95,11 @@ async function refreshAll() {
     api("/api/responsibilities"),
     api(staffRequest),
     api("/api/staff-contracts"),
+    api(commercialRequest),
   ]);
   selectedNegotiation = contracts.negotiations.find((row) => row.id === selectedNegotiation?.id) ?? null;
   selectedStaffNegotiation = staffContracts.negotiations.find((row) => row.id === selectedStaffNegotiation?.id) ?? null;
+  selectedSponsorNegotiation = commercial.negotiations.find((row) => row.id === selectedSponsorNegotiation?.id) ?? null;
   render();
 }
 
@@ -100,7 +112,8 @@ function tabs() {
     ["staff", `Staff ${overview?.staffContracts?.active ? `(${overview.staffContracts.active})` : ""}`],
     ["recruitment", "Drivers"],
     ["contracts", `Driver Contracts ${overview?.contracts?.active ? `(${overview.contracts.active})` : ""}`],
-    ["market", `Market ${overview?.market?.openOffers ? `(${overview.market.openOffers})` : ""}`],
+    ["market", `Driver Market ${overview?.market?.openOffers ? `(${overview.market.openOffers})` : ""}`],
+    ["commercial", `Commercial ${overview?.commercial?.openNegotiations ? `(${overview.commercial.openNegotiations})` : ""}`],
     ["responsibilities", "Responsibilities"],
   ];
   return `<div class="management-tabs">${rows.map(([id, label]) => `<button class="management-tab ${activeTab === id ? "active" : ""}" data-tab="${id}">${escapeHtml(label)}</button>`).join("")}</div>`;
@@ -209,6 +222,39 @@ function renderMarket() {
   return `<div class="management-stack">${market.offers.map((row) => `<article class="management-message"><div class="management-message-head"><div><span class="management-category">${escapeHtml(row.source)}</span><h3>${escapeHtml(row.driverName)}</h3></div><span class="muted">expires ${humanDate(row.expiresAt)}</span></div><p><strong>${escapeHtml(row.teamId)}</strong> · future season ${row.startSeason}</p><div class="negotiation-context"><strong>Driver interest</strong><span>${Math.round(row.interest?.score ?? 0)}/100 · ${escapeHtml(row.interest?.level?.replaceAll("_", " ") ?? "unknown")}</span></div></article>`).join("")}</div>`;
 }
 
+function sponsorEditor() {
+  if (!selectedSponsorNegotiation || !["open", "countered"].includes(selectedSponsorNegotiation.status)) return "";
+  const counter = selectedSponsorNegotiation.status === "countered" && selectedSponsorNegotiation.counterTerms;
+  const terms = counter ? selectedSponsorNegotiation.counterTerms : selectedSponsorNegotiation.expectedTerms;
+  return `<article class="management-contract-editor commercial-editor">
+    <div class="eyebrow">Sponsor negotiation</div>
+    <h2>${escapeHtml(selectedSponsorNegotiation.sponsorName)}</h2>
+    <p class="muted">${escapeHtml(selectedSponsorNegotiation.tier)} · ${escapeHtml(selectedSponsorNegotiation.categoryLabel)} · interest ${Math.round(selectedSponsorNegotiation.interest?.score ?? 0)}/100 · expires ${humanDate(selectedSponsorNegotiation.expiresAt)}</p>
+    ${counter ? '<div class="management-notice">A sponsor counter-offer is waiting in your Inbox.</div>' : `<div class="management-form-grid"><label>Annual value<input id="sponsor-value" type="number" min="0" value="${Math.round(terms.annualValue)}"></label><label>Duration (years)<input id="sponsor-duration" type="number" min="1" max="5" value="${terms.durationYears}"></label><label>Upfront %<input id="sponsor-upfront" type="number" min="0" max="40" value="${terms.upfrontPercent}"></label><label>Performance bonus %<input id="sponsor-bonus" type="number" min="0" max="40" value="${terms.performanceBonusPercent}"></label><label>Activities / season<input id="sponsor-activities" type="number" min="0" max="8" value="${terms.activationCommitment}"></label></div><div class="management-actions"><button class="primary" data-submit-sponsor-offer="${escapeHtml(selectedSponsorNegotiation.id)}">Submit offer</button><button data-withdraw-sponsor="${escapeHtml(selectedSponsorNegotiation.id)}">Withdraw</button></div>`}
+  </article>`;
+}
+
+function sponsorInterest(row) {
+  return `<strong class="interest ${escapeHtml(row.interest?.level ?? "open")}">${escapeHtml(String(row.interest?.level ?? "unknown").replaceAll("_", " "))}</strong><div class="muted small">${Math.round(row.interest?.score ?? 0)}/100</div>`;
+}
+
+function renderCommercial() {
+  if (!commercial.team) return '<div class="management-empty">Commercial management becomes available when you control a team.</div>';
+  const team = commercial.team;
+  const pending = team.pendingActivities ?? [];
+  const slots = team.slotUsage ?? {};
+  return `<div class="commercial-hero"><div><span class="management-category">Commercial department</span><h2>Marketability ${Math.round(team.marketability ?? 0)}/100</h2><p>${escapeHtml(team.era?.id?.replaceAll("-", " ") ?? "era model")} · sponsor income ${money(team.monthlySponsorIncome)}/month</p></div><div class="commercial-slot-summary"><span>Title ${slots.title?.used ?? 0}/${slots.title?.capacity ?? 0}</span><span>Major ${slots.major?.used ?? 0}/${slots.major?.capacity ?? 0}</span><span>Partner ${slots.partner?.used ?? 0}/${slots.partner?.capacity ?? 0}</span></div></div>
+  ${pending.length ? `<div class="management-section-title"><div><span class="management-category">Commitments</span><h2>Sponsor activities</h2></div></div><div class="objective-grid">${pending.map((row) => `<article class="objective-card"><strong>${escapeHtml(row.sponsorName)}</strong><p>Commercial activation is due.</p><div class="management-actions compact"><button class="primary" data-commercial-activity="${escapeHtml(row.id)}" data-fulfilled="true">Fulfil</button><button data-commercial-activity="${escapeHtml(row.id)}" data-fulfilled="false">Skip</button></div></article>`).join("")}</div>` : ""}
+  <div class="management-section-title"><div><span class="management-category">Portfolio</span><h2>Current partners</h2></div></div>
+  ${team.activeDeals.length ? `<div class="management-table-wrap"><table><thead><tr><th>Sponsor</th><th>Tier</th><th>Category</th><th>Annual value</th><th>Satisfaction</th><th>End</th><th>Source</th><th></th></tr></thead><tbody>${team.activeDeals.map((deal) => `<tr><td><strong>${escapeHtml(deal.sponsorName)}</strong></td><td>${escapeHtml(deal.tier)}</td><td>${escapeHtml(deal.categoryLabel)}</td><td>${money(deal.annualValue)}</td><td>${Math.round(deal.satisfaction)}/100</td><td>${deal.endSeason}</td><td><span class="muted small">${escapeHtml(deal.valueSource)}</span></td><td>${deal.renewalEligible ? `<button data-renew-sponsor="${escapeHtml(deal.sponsorId)}" data-renew-deal="${escapeHtml(deal.id)}" data-sponsor-tier="${escapeHtml(deal.tier)}">Renew</button>` : ""}</td></tr>`).join("")}</tbody></table></div>` : '<div class="management-empty">No active sponsor agreements.</div>'}
+  <div class="management-section-title"><div><span class="management-category">Sponsor market</span><h2>Commercial opportunities</h2></div></div>
+  ${sponsorEditor()}
+  <div class="management-toolbar commercial-toolbar"><input id="commercial-query" placeholder="Search sponsor or category" value="${escapeHtml(queryFrom(commercialRequest))}"><button data-action="search-commercial">Search</button><button class="${commercialTier === "title" ? "primary" : ""}" data-commercial-tier="title">Title</button><button class="${commercialTier === "major" ? "primary" : ""}" data-commercial-tier="major">Major</button><button class="${commercialTier === "partner" ? "primary" : ""}" data-commercial-tier="partner">Partner</button></div>
+  <div class="management-table-wrap"><table><thead><tr><th>Sponsor</th><th>Category</th><th>Country</th><th>Prestige</th><th>Interest</th><th>Expected value</th><th>Activities</th><th></th></tr></thead><tbody>${commercial.market.map((row) => `<tr><td><strong>${escapeHtml(row.name)}</strong></td><td>${escapeHtml(row.categoryLabel)}</td><td>${escapeHtml(row.country ?? "—")}</td><td>${Math.round(row.prestige)}</td><td>${sponsorInterest(row)}</td><td>${money(row.expectedTerms?.annualValue)}</td><td>${row.expectedTerms?.activationCommitment ?? 0}</td><td>${row.categoryConflict ? '<span class="muted">Category conflict</span>' : `<button class="primary" data-negotiate-sponsor="${escapeHtml(row.id)}" data-sponsor-tier="${escapeHtml(commercialTier)}">Approach</button>`}</td></tr>`).join("")}</tbody></table></div>
+  <div class="management-section-title"><div><span class="management-category">Negotiations</span><h2>Sponsor talks</h2></div></div>
+  ${commercial.negotiations.length ? `<div class="management-table-wrap compact-table"><table><thead><tr><th>Sponsor</th><th>Tier</th><th>Status</th><th>Interest</th><th>Offers</th><th>Expires</th></tr></thead><tbody>${commercial.negotiations.map((row) => `<tr data-sponsor-negotiation-row="${escapeHtml(row.id)}" class="${selectedSponsorNegotiation?.id === row.id ? "selected-row" : ""}"><td>${escapeHtml(row.sponsorName)}</td><td>${escapeHtml(row.tier)}</td><td>${escapeHtml(row.status)}</td><td>${Math.round(row.interest?.score ?? 0)}/100</td><td>${row.offers?.length ?? 0}</td><td>${humanDate(row.expiresAt)}</td></tr>`).join("")}</tbody></table></div>` : '<div class="management-empty">No sponsor negotiations yet.</div>'}`;
+}
+
 function renderResponsibilities() {
   if (!responsibilities.teamId) return '<div class="management-empty">Responsibilities become available when you are employed by a team.</div>';
   return `<div class="management-notice">Delegation does not create separate rules. Delegated departments use the same underlying simulation systems as AI teams wherever implemented.</div><div class="responsibility-grid">${responsibilities.areas.map((row) => `<article class="responsibility-card"><div><span class="management-category">${escapeHtml(row.id)}</span><h3>${escapeHtml(row.label)}</h3></div><div class="responsibility-toggle"><button class="${row.owner === "manager" ? "active" : ""}" data-responsibility="${escapeHtml(row.id)}" data-owner="manager">Manager</button><button class="${row.owner === "delegated" ? "active" : ""}" data-responsibility="${escapeHtml(row.id)}" data-owner="delegated">Delegated</button></div></article>`).join("")}</div>`;
@@ -227,10 +273,11 @@ function render() {
           : activeTab === "recruitment" ? renderRecruitment()
             : activeTab === "contracts" ? renderDriverContracts()
               : activeTab === "market" ? renderMarket()
-                : activeTab === "responsibilities" ? renderResponsibilities()
-                  : renderInbox();
+                : activeTab === "commercial" ? renderCommercial()
+                  : activeTab === "responsibilities" ? renderResponsibilities()
+                    : renderInbox();
   const career = managerCareer.career ?? overview?.career ?? {};
-  root.innerHTML = `<div class="management-shell ${busy ? "busy" : ""}"><header class="management-header"><div><div class="eyebrow">Developer Playtest · Management</div><h1>${escapeHtml(career.currentTeamName ?? "F1 Job Centre")}</h1><p>${escapeHtml(career.name ?? careerState.career?.managerName ?? "Manager")} · ${careerState.career?.season ?? "—"} · ${humanDate(careerState.career?.date)}</p></div><a class="management-link-button" href="/">Career / Race Weekend</a></header><section class="management-kpis"><div><span>Board</span><strong>${boardData.board ? Math.round(boardData.board.confidence) : "—"}</strong></div><div><span>Reputation</span><strong>${Math.round(career.reputation ?? 0)}</strong></div><div><span>Unread</span><strong>${overview?.inbox?.unread ?? 0}</strong></div><div><span>Open deals</span><strong>${(overview?.contracts?.active ?? 0) + (overview?.staffContracts?.active ?? 0)}</strong></div></section>${tabs()}${errorMessage ? `<div class="error">${escapeHtml(errorMessage)}</div>` : ""}<main class="management-content">${content}</main></div>`;
+  root.innerHTML = `<div class="management-shell ${busy ? "busy" : ""}"><header class="management-header"><div><div class="eyebrow">Developer Playtest · Management</div><h1>${escapeHtml(career.currentTeamName ?? "F1 Job Centre")}</h1><p>${escapeHtml(career.name ?? careerState.career?.managerName ?? "Manager")} · ${careerState.career?.season ?? "—"} · ${humanDate(careerState.career?.date)}</p></div><a class="management-link-button" href="/">Career / Race Weekend</a></header><section class="management-kpis"><div><span>Board</span><strong>${boardData.board ? Math.round(boardData.board.confidence) : "—"}</strong></div><div><span>Reputation</span><strong>${Math.round(career.reputation ?? 0)}</strong></div><div><span>Marketability</span><strong>${overview?.commercial?.marketability === null || overview?.commercial?.marketability === undefined ? "—" : Math.round(overview.commercial.marketability)}</strong></div><div><span>Unread</span><strong>${overview?.inbox?.unread ?? 0}</strong></div></section>${tabs()}${errorMessage ? `<div class="error">${escapeHtml(errorMessage)}</div>` : ""}<main class="management-content">${content}</main></div>`;
 }
 
 async function action(fn) {
@@ -252,6 +299,14 @@ async function openStaffNegotiation(staffId) {
   const result = await api("/api/staff-contracts/open", { method: "POST", body: JSON.stringify({ staffId }) });
   selectedStaffNegotiation = result.negotiation;
   activeTab = "staff";
+}
+
+async function openSponsorNegotiation(sponsorId, tier, renewDealId = null) {
+  const result = await api("/api/commercial/open", { method: "POST", body: JSON.stringify({ sponsorId, tier, renewDealId }) });
+  selectedSponsorNegotiation = result.negotiation;
+  commercialTier = result.negotiation.tier;
+  commercialRequest = `/api/commercial?tier=${encodeURIComponent(commercialTier)}`;
+  activeTab = "commercial";
 }
 
 root.addEventListener("click", (event) => {
@@ -317,12 +372,48 @@ root.addEventListener("click", (event) => {
     return api("/api/staff-contracts/offer", { method: "POST", body: JSON.stringify({ negotiationId: submitStaff, terms }) });
   });
 
+  const sponsorButton = event.target.closest("[data-negotiate-sponsor]");
+  if (sponsorButton) return action(() => openSponsorNegotiation(sponsorButton.dataset.negotiateSponsor, sponsorButton.dataset.sponsorTier ?? commercialTier));
+  const renewButton = event.target.closest("[data-renew-sponsor]");
+  if (renewButton) return action(() => openSponsorNegotiation(renewButton.dataset.renewSponsor, renewButton.dataset.sponsorTier, renewButton.dataset.renewDeal));
+  const sponsorRow = event.target.closest("[data-sponsor-negotiation-row]")?.dataset.sponsorNegotiationRow;
+  if (sponsorRow) { selectedSponsorNegotiation = commercial.negotiations.find((row) => row.id === sponsorRow) ?? null; render(); return; }
+  const withdrawSponsor = event.target.closest("[data-withdraw-sponsor]")?.dataset.withdrawSponsor;
+  if (withdrawSponsor) return action(() => api("/api/commercial/withdraw", { method: "POST", body: JSON.stringify({ negotiationId: withdrawSponsor }) }));
+  const submitSponsor = event.target.closest("[data-submit-sponsor-offer]")?.dataset.submitSponsorOffer;
+  if (submitSponsor) return action(() => api("/api/commercial/offer", {
+    method: "POST",
+    body: JSON.stringify({
+      negotiationId: submitSponsor,
+      terms: {
+        annualValue: Number(document.querySelector("#sponsor-value")?.value),
+        durationYears: Number(document.querySelector("#sponsor-duration")?.value),
+        upfrontPercent: Number(document.querySelector("#sponsor-upfront")?.value),
+        performanceBonusPercent: Number(document.querySelector("#sponsor-bonus")?.value),
+        activationCommitment: Number(document.querySelector("#sponsor-activities")?.value),
+      },
+    }),
+  }));
+  const commercialActivity = event.target.closest("[data-commercial-activity]");
+  if (commercialActivity) return action(() => api("/api/commercial/activity", {
+    method: "POST",
+    body: JSON.stringify({ activityId: commercialActivity.dataset.commercialActivity, fulfilled: commercialActivity.dataset.fulfilled === "true" }),
+  }));
+  const tierButton = event.target.closest("[data-commercial-tier]")?.dataset.commercialTier;
+  if (tierButton) return action(async () => {
+    commercialTier = tierButton;
+    commercialRequest = `/api/commercial?tier=${encodeURIComponent(commercialTier)}&query=${encodeURIComponent(queryFrom(commercialRequest))}`;
+  });
+
   const actionName = event.target.closest("[data-action]")?.dataset.action;
   if (actionName === "search-recruitment") return action(async () => { recruitmentRequest = `/api/recruitment?query=${encodeURIComponent(document.querySelector("#recruitment-query")?.value ?? "")}`; });
   if (actionName === "show-shortlist") return action(async () => { recruitmentRequest = "/api/recruitment?shortlisted=true"; });
   if (actionName === "show-all-recruitment") return action(async () => { recruitmentRequest = "/api/recruitment"; });
   if (actionName === "search-staff") return action(async () => { staffRequest = `/api/staff-recruitment?query=${encodeURIComponent(document.querySelector("#staff-query")?.value ?? "")}`; });
   if (actionName === "show-all-staff") return action(async () => { staffRequest = "/api/staff-recruitment"; });
+  if (actionName === "search-commercial") return action(async () => {
+    commercialRequest = `/api/commercial?tier=${encodeURIComponent(commercialTier)}&query=${encodeURIComponent(document.querySelector("#commercial-query")?.value ?? "")}`;
+  });
 });
 
 refreshAll().catch((error) => {
