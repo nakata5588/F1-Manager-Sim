@@ -52,6 +52,7 @@ export function createEntityAvailabilitySystem() {
           worldVisibleFrom: visibility.worldVisibleFrom,
           talentVisibleFrom: visibility.talentVisibleFrom,
           f1DebutReference: visibility.f1DebutReference,
+          referenceEntryYear: visibility.f1DebutReference,
           visibilitySource: visibility.visibilitySource,
         };
 
