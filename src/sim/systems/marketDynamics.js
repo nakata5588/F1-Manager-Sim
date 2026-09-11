@@ -166,8 +166,28 @@ function resolveExternalOffers(saveWorld, event) {
           driver_id: row.workerId,
           team_id: row.teamId,
           start_season: row.startSeason,
+          related_negotiation_id: row.relatedNegotiationId ?? null,
         },
       });
+      if (row.relatedNegotiationId) {
+        const negotiation = ensureContractNegotiationState(saveWorld).negotiations.find((item) => item.id === row.relatedNegotiationId);
+        if (negotiation && ["open", "countered"].includes(negotiation.status)) {
+          negotiation.status = "lost_to_rival";
+          negotiation.closedAt = event.date;
+          negotiation.lostToTeamId = row.teamId;
+          output.push({
+            type: CONTRACT_NEGOTIATION_EVENT.LOST_TO_RIVAL,
+            payload: {
+              negotiation_id: negotiation.id,
+              driver_id: negotiation.driverId,
+              driver_name: negotiation.driverName,
+              team_id: negotiation.teamId,
+              rival_team_id: row.teamId,
+              external_offer_id: row.id,
+            },
+          });
+        }
+      }
       output.push({
         type: EMPLOYMENT_EVENT.CONTRACT_SIGNED,
         payload: {
@@ -191,6 +211,7 @@ function resolveExternalOffers(saveWorld, event) {
           external_offer_id: row.id,
           driver_id: row.workerId,
           team_id: row.teamId,
+          related_negotiation_id: row.relatedNegotiationId ?? null,
         },
       });
     }
