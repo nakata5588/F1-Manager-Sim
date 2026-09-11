@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createSaveWorld } from "../src/save/createSaveWorld.js";
+import { deserializeSaveWorld, serializeSaveWorld } from "../src/save/serialization.js";
 import { createCoreWorldSystems } from "../src/sim/systems/coreWorldSystems.js";
 import { advanceDays, dispatchSimulationEvents, initializeSimulation } from "../src/sim/timeEngine.js";
 import {
@@ -155,4 +156,35 @@ test("management inbox summary tracks unread and pending decisions", () => {
   const summary = managementInboxSummary(saveWorld);
   assert.ok(summary.unread >= 1, "career start should create a management inbox item");
   assert.equal(summary.decisionsPending, 0);
+});
+
+test("management state survives Save World serialization and reload", () => {
+  const { saveWorld, systems } = initialized();
+  setDriverShortlist(saveWorld, "D2", true);
+  startDriverScoutingAssignment(saveWorld, "D2", { durationDays: 1 });
+  advanceDays(saveWorld, 1, systems);
+
+  const negotiation = openDriverContractNegotiation(saveWorld, { driverId: "D2", teamId: "T1" });
+  dispatchSimulationEvents(saveWorld, [submitDriverContractOfferEvent(saveWorld, negotiation.id, {
+    salaryIndex: Math.round(negotiation.expectedTerms.salaryIndex * 0.86),
+    lengthYears: negotiation.expectedTerms.lengthYears,
+    role: negotiation.expectedTerms.role,
+  })], systems);
+  const countered = listContractNegotiations(saveWorld).find((row) => row.id === negotiation.id);
+  if (countered.status === "countered") {
+    dispatchSimulationEvents(saveWorld, [acceptDriverContractCounterEvent(saveWorld, negotiation.id)], systems);
+  }
+
+  const serialized = serializeSaveWorld(saveWorld, { pretty: false, savedAt: "1980-01-02T00:00:00.000Z" });
+  const reloaded = deserializeSaveWorld(serialized);
+  const candidate = listRecruitmentCandidates(reloaded).find((row) => row.id === "D2");
+  const storedNegotiation = listContractNegotiations(reloaded).find((row) => row.id === negotiation.id);
+
+  assert.equal(candidate.shortlisted, true);
+  assert.ok(candidate.report);
+  assert.equal(storedNegotiation.status, "accepted");
+  assert.equal(reloaded.world.employment.drivers.D2.teamId, "T2");
+  assert.equal(reloaded.world.employment.futureAssignments.drivers.D2[0].teamId, "T1");
+  assert.ok(listManagementInbox(reloaded).some((item) => item.category === "scouting"));
+  assert.ok(listManagementInbox(reloaded).some((item) => item.sourceType === "contract_accepted"));
 });
