@@ -12,7 +12,9 @@ import {
   developerInbox,
   developerManagementOverview,
   developerMarkInboxRead,
+  developerMarket,
   developerOpenDriverNegotiation,
+  developerPeople,
   developerRecruitment,
   developerResolveInboxDecision,
   developerSetShortlist,
@@ -168,6 +170,12 @@ const server = createServer(async (request, response) => {
 
     if (url.pathname === "/api/management" && request.method === "GET") {
       return json(response, 200, developerManagementOverview(session));
+    }
+    if (url.pathname === "/api/people" && request.method === "GET") {
+      return json(response, 200, developerPeople(session));
+    }
+    if (url.pathname === "/api/market" && request.method === "GET") {
+      return json(response, 200, developerMarket(session));
     }
     if (url.pathname === "/api/inbox" && request.method === "GET") {
       return json(response, 200, developerInbox(session, {
