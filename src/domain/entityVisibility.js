@@ -26,6 +26,7 @@ export function normalizeEntityVisibility(entity = {}, options = {}) {
     "known_from",
     "world_visibility_year",
     "world_activation_year",
+    "world_activation_date",
   ]);
   const explicitTalentVisible = firstYear(entity, [
     "talent_visible_from",
@@ -40,6 +41,7 @@ export function normalizeEntityVisibility(entity = {}, options = {}) {
   ]);
   const debutReference = firstYear(entity, [
     "f1_debut_reference",
+    "f1_debut_reference_year",
     "next_reference_f1_entry_year",
     "reference_entry_year",
     "historical_entry_year",
@@ -47,6 +49,7 @@ export function normalizeEntityVisibility(entity = {}, options = {}) {
   ]);
   const careerEndReference = firstYear(entity, [
     "career_end_reference",
+    "historical_last_f1_year",
     "historical_exit_reference",
     "career_end_year",
     "retirement_year",
@@ -137,6 +140,7 @@ const HIDDEN_REFERENCE_FIELDS = new Set([
   "activation_year",
   "world_or_talent_activation_year",
   "world_activation_year",
+  "world_activation_date",
   "talent_activation_year",
   "talent_pool_entry_year",
   "event_year",
@@ -148,11 +152,13 @@ const HIDDEN_REFERENCE_FIELDS = new Set([
   "f1_eligibility_year",
   "eligible_from",
   "f1_debut_reference",
+  "f1_debut_reference_year",
   "next_reference_f1_entry_year",
   "reference_entry_year",
   "historical_entry_year",
   "f1_rookie_season",
   "career_end_reference",
+  "historical_last_f1_year",
   "historical_exit_reference",
   "career_end_year",
   "retirement_year",
