@@ -4,6 +4,8 @@ import { resolveSectorModel, sectorPaceModifier } from "./sectorModel.js";
 import { evaluateAiLiveStrategyDecision, isAiManagedStrategy } from "./aiLiveStrategy.js";
 import { reviseRaceStrategy } from "./liveStrategy.js";
 import { activeDamagePaceLoss, repairDamageAtPit, resolveIncidentDamage } from "./damageModel.js";
+import { advanceTyreThermalState, completeTyreThermalLap } from "./tyreDynamics.js";
+import { resolveTrackEvolutionModel, trackEvolutionAt } from "./trackDynamics.js";
 
 function numeric(value, fallback = null) {
   const parsed = Number(value);
@@ -223,6 +225,9 @@ function initialDriverState(saveWorld, weekend, row, laps, strategyWasAlreadyApp
     fuelKg: null,
     tyreWear: null,
     maxTyreWear: 0,
+    tyreThermal: null,
+    thermalStatusLaps: { cold: 0, optimal: 0, hot: 0 },
+    thermalTransitions: 0,
     pitStopsCompleted: 0,
     trafficLoss: 0,
     damage: [],
@@ -440,6 +445,9 @@ function restoreStates(raw) {
     state.damagePaceLoss = activeDamagePaceLoss(state.damage);
     state.damageIncidents ??= state.damage.length;
     state.repairsCompleted ??= state.damage.filter((item) => item.status === "repaired").length;
+    state.tyreThermal ??= null;
+    state.thermalStatusLaps ??= { cold: 0, optimal: 0, hot: 0 };
+    state.thermalTransitions ??= 0;
   }
   return states;
 }
@@ -509,6 +517,35 @@ function summarizeDamage(states, events) {
   }]));
 }
 
+function summarizeTyreThermal(states) {
+  return Object.fromEntries([...states.entries()].map(([driverId, state]) => [driverId, {
+    finalTemperatureIndex: state.tyreThermal?.temperatureIndex ?? null,
+    finalStatus: state.tyreThermal?.status ?? null,
+    idealIndex: state.tyreThermal?.idealIndex ?? null,
+    halfWindowIndex: state.tyreThermal?.halfWindowIndex ?? null,
+    compoundId: state.tyreThermal?.compoundId ?? null,
+    lapsOnTyre: state.tyreThermal?.lapsOnTyre ?? null,
+    modelSource: state.tyreThermal?.traits?.source ?? null,
+    dataStatus: state.tyreThermal?.traits?.dataStatus ?? null,
+    statusLaps: structuredClone(state.thermalStatusLaps ?? { cold: 0, optimal: 0, hot: 0 }),
+    transitions: state.thermalTransitions ?? 0,
+  }]));
+}
+
+function trackEvolutionCheckpoints(track, weather, laps, endLap) {
+  const interval = Math.max(1, Math.round(laps / 6));
+  const selected = new Set([1, Math.max(1, endLap)]);
+  for (let lap = interval; lap <= endLap; lap += interval) selected.add(lap);
+  for (const change of weather.changes ?? []) if (change.lap <= endLap) selected.add(change.lap);
+  return [...selected]
+    .filter((lap) => lap >= 1 && lap <= endLap)
+    .sort((a, b) => a - b)
+    .map((lap) => {
+      const condition = conditionAt(weather, lap);
+      return { lap, condition, ...trackEvolutionAt(track, weather.changes, lap, laps, condition) };
+    });
+}
+
 function applyAiStrategyDecisions(saveWorld, weekend, states, lap, laps, condition, activeControl, events) {
   for (const gridRow of weekend.grid ?? []) {
     const driverId = gridRow.driverId;
@@ -560,6 +597,23 @@ function updateDamageAfterRepair(state, repair) {
   state.repairsCompleted = Number(state.repairsCompleted ?? 0) + repair.repaired.length;
 }
 
+function recordThermalTransition(events, state, lap, sector, thermal) {
+  if (!thermal.previousStatus || thermal.previousStatus === thermal.status) return;
+  state.thermalTransitions = Number(state.thermalTransitions ?? 0) + 1;
+  events.push({
+    lap,
+    sectorId: sector.id,
+    sectorName: sector.name,
+    type: "tyre_temperature_transition",
+    driverId: state.driverId,
+    from: thermal.previousStatus,
+    to: thermal.status,
+    temperatureIndex: thermal.temperatureIndex,
+    idealIndex: thermal.idealIndex,
+    compoundId: thermal.compoundId,
+  });
+}
+
 export function simulateTemporalRace(saveWorld, weekend, options = {}) {
   if (!weekend?.key || !Array.isArray(weekend.classification) || !Array.isArray(weekend.grid)) {
     throw new TypeError("A completed race weekend with grid and classification is required.");
@@ -571,6 +625,7 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
   const weather = weatherPlan(weekend, race, track, laps);
   const fuel = fuelModel(race, laps);
   const sectorModel = resolveSectorModel(track);
+  const trackEvolutionModel = resolveTrackEvolutionModel(track);
   const sectors = sectorModel.sectors;
   const mechanicalShares = hazardShares(sectors);
   const incidentShares = hazardShares(sectors, "incidentRisk");
@@ -611,6 +666,7 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
     }
 
     const condition = conditionAt(weather, lap);
+    const trackState = trackEvolutionAt(track, weatherChanges, lap, laps, condition);
     if (lap > 1 && condition !== lastCondition) events.push({ lap, type: "weather_change", from: lastCondition, to: condition });
     lastCondition = condition;
     applyAiStrategyDecisions(saveWorld, weekend, states, lap, laps, condition, activeControl, events);
@@ -735,13 +791,31 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
         const state = states.get(id);
         const currentLapState = lapStates.get(id);
         if (!state || state.status !== "RUNNING" || !currentLapState) continue;
-        const sectorControlPenalty = controlAppliesToSector(activeControl, lap, sector.id)
-          ? controlPenalty(activeControl) * sector.weight
-          : 0;
+        const sectorControlApplies = controlAppliesToSector(activeControl, lap, sector.id);
+        const sectorControlPenalty = sectorControlApplies ? controlPenalty(activeControl) * sector.weight : 0;
         const damagePenalty = activeDamagePaceLoss(state.damage ?? []) * sector.weight;
+        const neutralised = sectorControlApplies
+          && ["safety_car", "virtual_safety_car", "red_flag"].includes(activeControl?.type);
+        const thermal = advanceTyreThermalState(saveWorld, state.tyreThermal, {
+          teamId: state.teamId,
+          stint: currentLapState.stint,
+          condition,
+          sector,
+          neutralised,
+          trackGripIndex: trackState.gripIndex,
+        });
+        recordThermalTransition(events, state, lap, sector, thermal);
+        state.tyreThermal = thermal;
+        const tyreThermalPenalty = thermal.paceModifier * sector.weight;
+        const trackEvolutionPenalty = trackState.paceModifier * sector.weight;
         const sectorCost = Math.max(
           0.01,
-          currentLapState.cost * sector.weight + sectorPaceModifier(state, sector, condition) + sectorControlPenalty + damagePenalty,
+          currentLapState.cost * sector.weight
+            + sectorPaceModifier(state, sector, condition)
+            + sectorControlPenalty
+            + damagePenalty
+            + tyreThermalPenalty
+            + trackEvolutionPenalty,
         );
         state.elapsedIndex += sectorCost;
         state.lastLapCost += sectorCost;
@@ -763,6 +837,12 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
       const state = states.get(id);
       if (!state || state.status !== "RUNNING") continue;
       state.completedLaps = lap;
+      if (state.tyreThermal) {
+        const status = state.tyreThermal.status ?? "optimal";
+        state.thermalStatusLaps ??= { cold: 0, optimal: 0, hot: 0 };
+        if (Object.hasOwn(state.thermalStatusLaps, status)) state.thermalStatusLaps[status] += 1;
+        state.tyreThermal = completeTyreThermalLap(state.tyreThermal);
+      }
       const strategy = strategyFor(weekend, id);
       const stop = pitStopAt(strategy, lap);
       if (!stop) continue;
@@ -838,6 +918,17 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
       maxWearRatio: state.maxTyreWear > 0 ? round(state.maxTyreWear, 4) : null,
       pitStopsCompleted: state.pitStopsCompleted,
       trafficLossIndex: round(state.trafficLoss, 4),
+      thermal: state.tyreThermal ? {
+        temperatureIndex: state.tyreThermal.temperatureIndex,
+        idealIndex: state.tyreThermal.idealIndex,
+        halfWindowIndex: state.tyreThermal.halfWindowIndex,
+        status: state.tyreThermal.status,
+        compoundId: state.tyreThermal.compoundId,
+        lapsOnTyre: state.tyreThermal.lapsOnTyre,
+        trackGripIndex: state.tyreThermal.trackGripIndex,
+      } : null,
+      thermalStatusLaps: structuredClone(state.thermalStatusLaps ?? { cold: 0, optimal: 0, hot: 0 }),
+      thermalTransitions: state.thermalTransitions ?? 0,
     };
   }
 
@@ -849,7 +940,7 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
     classification,
     resumeState: nextResumeState,
     timeline: {
-      version: 5,
+      version: 6,
       model: "sector_lap_v3_damage_resumable",
       completed,
       lapsSimulated: endLap,
@@ -860,6 +951,11 @@ export function simulateTemporalRace(saveWorld, weekend, options = {}) {
       leaderByLap,
       snapshots,
       tyreSummary,
+      tyreThermalSummary: summarizeTyreThermal(states),
+      trackEvolution: {
+        model: trackEvolutionModel,
+        checkpoints: trackEvolutionCheckpoints(track, weather, laps, endLap),
+      },
       damageSummary: summarizeDamage(states, events),
       sectorModel,
       sectorSummary: summarizeSectors(sectorModel, events),
