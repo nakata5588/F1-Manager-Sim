@@ -61,14 +61,21 @@ export function normalizeEntityVisibility(entity = {}, options = {}) {
     "eligible_from",
   ]);
 
+  // Birth is identity/history only. It must never make an entity player-visible.
+  // Dedicated visibility fields come first; combined legacy activation is kept
+  // only for v0.7/v0.8 compatibility.
   let worldVisibleFrom = explicitWorldVisible ?? explicitTalentVisible ?? legacyActivation;
   let talentVisibleFrom = explicitTalentVisible ?? worldVisibleFrom;
   let f1EligibleFrom = explicitF1Eligible;
   let visibilitySource = "explicit";
 
-  if (worldVisibleFrom === null && type === "driver" && birthYear !== null) {
-    worldVisibleFrom = birthYear;
-    visibilitySource = "birth_fallback";
+  // If modern data supplies F1 eligibility but no earlier visibility dates, the
+  // entity must become visible no later than the point at which it can enter the
+  // F1 market. This is not derived from birth or historical debut.
+  if (worldVisibleFrom === null && explicitF1Eligible !== null) {
+    worldVisibleFrom = explicitF1Eligible;
+    talentVisibleFrom ??= explicitF1Eligible;
+    visibilitySource = "explicit_eligibility_visibility_floor";
   }
 
   if (talentVisibleFrom === null) talentVisibleFrom = worldVisibleFrom;
@@ -87,9 +94,9 @@ export function normalizeEntityVisibility(entity = {}, options = {}) {
       f1EligibleFrom = explicitWorldVisible;
       visibilitySource = "world_visibility_eligibility_fallback";
     } else if (debutReference !== null) {
-      // Last-resort compatibility only. Historical F1 debut is not the semantic
-      // visibility boundary; it prevents early market leakage when an old driver
-      // row has no dedicated eligibility metadata at all.
+      // Last-resort legacy compatibility only. Historical F1 debut is not the
+      // semantic visibility boundary; using it here merely prevents an old row
+      // with no dedicated metadata from leaking into the world before debut.
       f1EligibleFrom = debutReference;
       if (worldVisibleFrom === null) worldVisibleFrom = debutReference;
       if (talentVisibleFrom === null) talentVisibleFrom = debutReference;
