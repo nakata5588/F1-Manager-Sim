@@ -12,13 +12,17 @@ export function createSaveWorld(historicalSnapshot, options = {}) {
     eraSafety: [],
     accidentModel: [],
   });
+  const hiddenExternalDriverMarket = structuredClone(clonedSnapshot.externalDriverMarket ?? []);
+  const visibilityPolicy = structuredClone(clonedSnapshot.visibilityPolicy ?? null);
   const databasePolicy = structuredClone(clonedSnapshot.databasePolicy ?? null);
 
-  // Historical records and structural future references are deliberately kept
-  // outside the mutable active world. Future entity pools remain in world so
-  // lifecycle systems can make them eligible without consulting the Master DB.
+  // Historical records and structural/reference future data are deliberately
+  // kept outside the mutable active world. Future identity pools remain in
+  // world because lifecycle systems need them, but player-facing systems must
+  // consume visibility selectors rather than those raw arrays.
   delete clonedSnapshot.historicalArchive;
   delete clonedSnapshot.futureStructure;
+  delete clonedSnapshot.externalDriverMarket;
 
   return {
     meta: {
@@ -39,6 +43,9 @@ export function createSaveWorld(historicalSnapshot, options = {}) {
     },
     reference: {
       futureStructure,
+      hiddenExternalDriverMarket,
+      visibilityPolicy,
+      uiAccessPolicy: "player_facing_code_must_use_visibility_selectors",
       policy: "not_player_history_and_not_authoritative_outcomes",
     },
     world: clonedSnapshot,
