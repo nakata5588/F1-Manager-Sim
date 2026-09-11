@@ -1,8 +1,10 @@
 import { SIM_EVENT } from "../timeEngine.js";
+import { EMPLOYMENT_EVENT } from "./employmentMarket.js";
 
 export const TEAM_FINANCE_EVENT = Object.freeze({
   INITIALIZED: "team.finance_initialized",
   MONTH_CLOSED: "team.finance_month_closed",
+  CONTRACT_TRANSACTION: "team.finance_contract_transaction",
 });
 
 function numeric(value, fallback = 0) {
@@ -117,6 +119,52 @@ function operatingCost(saveWorld, teamId) {
   return Number.isFinite(annual) ? annual / 12 : 0;
 }
 
+function refreshFinancialStatus(team) {
+  team.financialStatus = team.openingCash === 0 && team.cash === 0
+    ? "unknown"
+    : team.cash < 0
+      ? "distressed"
+      : team.cash < Math.max(100000, team.openingCash * 0.08)
+        ? "tight"
+        : "stable";
+}
+
+function applyContractTransaction(saveWorld, event) {
+  const state = ensureTeamState(saveWorld);
+  const teamId = event.payload?.team_id ?? null;
+  if (!teamId || !state[teamId]) return null;
+  const target = state[teamId];
+  const signingBonus = Math.max(0, numeric(event.payload?.signing_bonus, 0));
+  const transferMode = event.payload?.transfer_compensation_mode ?? null;
+  const transferValue = transferMode === "currency" ? Math.max(0, numeric(event.payload?.transfer_compensation_value, 0)) : 0;
+  const fromTeamId = event.payload?.from_team_id ?? null;
+  const cashExpense = signingBonus + transferValue;
+  if (cashExpense > 0) {
+    target.cash = roundMoney(numeric(target.cash) - cashExpense);
+    refreshFinancialStatus(target);
+    if (fromTeamId && state[fromTeamId] && transferValue > 0) {
+      state[fromTeamId].cash = roundMoney(numeric(state[fromTeamId].cash) + transferValue);
+      refreshFinancialStatus(state[fromTeamId]);
+    }
+  }
+  const record = {
+    date: event.date,
+    season: Number(saveWorld.clock?.season),
+    type: "contract_transaction",
+    teamId,
+    workerType: event.payload?.worker_type ?? "driver",
+    workerId: event.payload?.worker_id ?? null,
+    fromTeamId,
+    signingBonus: roundMoney(signingBonus),
+    transferCompensationMode: transferMode,
+    transferCompensationValue: transferMode === "currency" ? roundMoney(transferValue) : numeric(event.payload?.transfer_compensation_value, null),
+    cashImpact: roundMoney(-cashExpense),
+    closingCash: target.cash,
+  };
+  saveWorld.history.finances.push(record);
+  return { type: TEAM_FINANCE_EVENT.CONTRACT_TRANSACTION, payload: record };
+}
+
 function closeMonth(saveWorld, event) {
   const state = ensureTeamState(saveWorld);
   const season = Number(saveWorld.clock.season);
@@ -135,9 +183,25 @@ function closeMonth(saveWorld, event) {
     team.monthlyIncome = roundMoney(income);
     team.monthlyExpenses = roundMoney(expenses);
     team.monthlyNet = roundMoney(net);
-    team.financialStatus = team.openingCash === 0 && team.cash === 0 && income === 0 && expenses === 0 ? "unknown" : team.cash < 0 ? "distressed" : team.cash < Math.max(100000, team.openingCash * 0.08) ? "tight" : "stable";
+    refreshFinancialStatus(team);
     team.lastFinanceDate = event.date;
-    const record = { date: event.date, season, teamId, income: roundMoney(income), expenses: roundMoney(expenses), net: roundMoney(net), closingCash: team.cash, breakdown: { sponsors: roundMoney(sponsors), driverSalaries: roundMoney(driverSalaries), staffSalaries: roundMoney(staffSalaries), facilityMaintenance: roundMoney(maintenance), operations: roundMoney(operations) } };
+    const record = {
+      date: event.date,
+      season,
+      type: "monthly_close",
+      teamId,
+      income: roundMoney(income),
+      expenses: roundMoney(expenses),
+      net: roundMoney(net),
+      closingCash: team.cash,
+      breakdown: {
+        sponsors: roundMoney(sponsors),
+        driverSalaries: roundMoney(driverSalaries),
+        staffSalaries: roundMoney(staffSalaries),
+        facilityMaintenance: roundMoney(maintenance),
+        operations: roundMoney(operations),
+      },
+    };
     saveWorld.history.finances.push(record);
     output.push({ type: TEAM_FINANCE_EVENT.MONTH_CLOSED, payload: record });
   }
@@ -147,12 +211,13 @@ function closeMonth(saveWorld, event) {
 export function createTeamEconomySystem() {
   return {
     id: "team.economy",
-    eventTypes: [SIM_EVENT.CAREER_STARTED, SIM_EVENT.MONTH_STARTED],
+    eventTypes: [SIM_EVENT.CAREER_STARTED, SIM_EVENT.MONTH_STARTED, EMPLOYMENT_EVENT.CONTRACT_SIGNED],
     handle({ saveWorld, event }) {
       if (event.type === SIM_EVENT.CAREER_STARTED) {
         const teams = initializeTeams(saveWorld, event.date);
         return { type: TEAM_FINANCE_EVENT.INITIALIZED, payload: { teams } };
       }
+      if (event.type === EMPLOYMENT_EVENT.CONTRACT_SIGNED) return applyContractTransaction(saveWorld, event);
       return closeMonth(saveWorld, event);
     },
   };

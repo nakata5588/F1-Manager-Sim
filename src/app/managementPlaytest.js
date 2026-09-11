@@ -19,6 +19,16 @@ import {
   submitDriverContractOfferEvent,
   withdrawDriverContractNegotiationEvent,
 } from "../game/management/contracts.js";
+import {
+  evaluateDriverTransferInterest,
+  peopleSummary,
+  personProjection,
+  personProfile,
+} from "../game/management/people.js";
+import {
+  listOpenExternalOffers,
+  marketSummary,
+} from "../game/management/market.js";
 import { dispatchSimulationEvents } from "../sim/timeEngine.js";
 
 function requireSession(session) {
@@ -37,12 +47,19 @@ function dispatchManagementEvent(session, raw) {
   }], session.systems ?? []);
 }
 
+function personName(saveWorld, type, id) {
+  const row = personProfile(saveWorld, type, id) ?? {};
+  return row.display_name ?? row.driver_name ?? row.staff_name ?? row.name ?? id;
+}
+
 export function developerManagementOverview(session) {
   const saveWorld = requireSession(session);
   return {
     inbox: managementInboxSummary(saveWorld),
     scouting: scoutingSummary(saveWorld),
     contracts: contractNegotiationSummary(saveWorld, session.controlledTeamId),
+    people: peopleSummary(saveWorld),
+    market: marketSummary(saveWorld),
   };
 }
 
@@ -79,9 +96,6 @@ export function developerResolveInboxDecision(session, itemId, optionId) {
     const raw = optionId === "accept_counter"
       ? acceptDriverContractCounterEvent(saveWorld, item.decision.refId)
       : withdrawDriverContractNegotiationEvent(saveWorld, item.decision.refId);
-    // Apply the authoritative gameplay consequence before marking the UI-facing
-    // decision resolved. A failed dispatch therefore cannot leave a false
-    // resolved decision behind in Save World.
     dispatchManagementEvent(session, raw);
   }
   resolveManagementInboxDecision(saveWorld, itemId, optionId);
@@ -90,9 +104,15 @@ export function developerResolveInboxDecision(session, itemId, optionId) {
 
 export function developerRecruitment(session, options = {}) {
   const saveWorld = requireSession(session);
+  const candidates = listRecruitmentCandidates(saveWorld, options).map((row) => ({
+    ...row,
+    transferInterest: row.visibilityState === "f1_eligible" && row.knowledge >= 55
+      ? evaluateDriverTransferInterest(saveWorld, row.id, session.controlledTeamId)
+      : null,
+  }));
   return {
     summary: scoutingSummary(saveWorld),
-    candidates: listRecruitmentCandidates(saveWorld, options),
+    candidates,
   };
 }
 
@@ -149,4 +169,49 @@ export function developerWithdrawDriverNegotiation(session, negotiationId) {
   if (!negotiation || negotiation.teamId !== session.controlledTeamId) throw new Error("This negotiation does not belong to the controlled team.");
   dispatchManagementEvent(session, withdrawDriverContractNegotiationEvent(saveWorld, negotiationId));
   return developerContractNegotiations(session);
+}
+
+export function developerPeople(session) {
+  const saveWorld = requireSession(session);
+  const drivers = Object.entries(saveWorld.world?.employment?.drivers ?? {})
+    .filter(([, row]) => row?.teamId === session.controlledTeamId && row?.status === "employed")
+    .map(([id, assignment]) => ({
+      id,
+      name: personName(saveWorld, "driver", id),
+      role: assignment.role ?? "driver",
+      assignment: structuredClone(assignment),
+      ...personProjection(saveWorld, "driver", id),
+    }));
+  const staff = Object.entries(saveWorld.world?.employment?.staff ?? {})
+    .filter(([, row]) => row?.teamId === session.controlledTeamId && row?.status === "employed")
+    .map(([id, assignment]) => ({
+      id,
+      name: personName(saveWorld, "staff", id),
+      role: assignment.role ?? "staff",
+      assignment: structuredClone(assignment),
+      ...personProjection(saveWorld, "staff", id),
+    }));
+  return {
+    summary: peopleSummary(saveWorld),
+    drivers: drivers.sort((a, b) => a.name.localeCompare(b.name)),
+    staff: staff.sort((a, b) => a.name.localeCompare(b.name)),
+  };
+}
+
+export function developerMarket(session) {
+  const saveWorld = requireSession(session);
+  const negotiations = listContractNegotiations(saveWorld, { teamId: session.controlledTeamId });
+  const relevantDriverIds = new Set([
+    ...Object.entries(saveWorld.world?.employment?.drivers ?? {})
+      .filter(([, row]) => row?.teamId === session.controlledTeamId)
+      .map(([id]) => id),
+    ...negotiations.map((row) => row.driverId),
+  ]);
+  const offers = listOpenExternalOffers(saveWorld)
+    .filter((row) => relevantDriverIds.has(row.workerId) || (row.relatedNegotiationId && negotiations.some((negotiation) => negotiation.id === row.relatedNegotiationId)))
+    .map((row) => ({ ...row, driverName: personName(saveWorld, "driver", row.workerId) }));
+  return {
+    summary: marketSummary(saveWorld),
+    offers,
+  };
 }

@@ -1,5 +1,11 @@
 import { listVisibleDrivers } from "../../domain/entityVisibility.js";
 import { createRng } from "../../sim/random.js";
+import {
+  ensureRepresentative,
+  evaluateDriverTransferInterest,
+  personProfile,
+} from "./people.js";
+import { marketPressureForDriver } from "./market.js";
 
 export const CONTRACT_NEGOTIATION_EVENT = Object.freeze({
   OFFER_SUBMITTED: "management.contract.offer_submitted",
@@ -9,6 +15,7 @@ export const CONTRACT_NEGOTIATION_EVENT = Object.freeze({
   COUNTER_ACCEPTED: "management.contract.counter_accepted",
   WITHDRAWN: "management.contract.withdrawn",
   EXPIRED: "management.contract.expired",
+  LOST_TO_RIVAL: "management.contract.lost_to_rival",
 });
 
 function text(value, fallback = "") {
@@ -45,8 +52,7 @@ export function ensureContractNegotiationState(saveWorld) {
 }
 
 function driverProfile(saveWorld, driverId) {
-  return [...(saveWorld.world?.drivers ?? []), ...(saveWorld.world?.futureDrivers ?? [])]
-    .find((row) => String(row.driver_id ?? row.id) === String(driverId)) ?? null;
+  return personProfile(saveWorld, "driver", driverId);
 }
 
 function driverName(profile, driverId) {
@@ -62,9 +68,13 @@ function currentAssignment(saveWorld, driverId) {
 }
 
 function activeContract(saveWorld, driverId, teamId = null) {
+  const currentSeason = Number(saveWorld.clock?.season);
   const rows = (saveWorld.world?.contracts ?? []).filter((row) => {
     if (String(row.driver_id ?? "") !== String(driverId)) return false;
-    return teamId === null || String(row.team_id ?? "") === String(teamId);
+    if (teamId !== null && String(row.team_id ?? "") !== String(teamId)) return false;
+    const start = Number(row.contract_start ?? row.year ?? currentSeason);
+    const until = Number(row.contract_until ?? row.contract_until_year ?? row.end_year ?? currentSeason);
+    return start <= currentSeason && until >= currentSeason;
   });
   return [...rows].sort((a, b) => Number(b.contract_start ?? b.year ?? 0) - Number(a.contract_start ?? a.year ?? 0))[0] ?? null;
 }
@@ -101,20 +111,74 @@ function teamReputation(saveWorld, teamId) {
   return 50;
 }
 
+function explicitReleaseValue(contract) {
+  for (const field of ["release_clause", "release_clause_value", "buyout", "buyout_value", "transfer_fee", "compensation_fee"]) {
+    const value = numeric(contract?.[field]);
+    if (value !== null && value >= 0) return { value, field };
+  }
+  return null;
+}
+
+export function transferCompensationRequirement(saveWorld, driverId, targetTeamId, startSeason = saveWorld.clock?.season) {
+  const current = currentAssignment(saveWorld, driverId);
+  if (!current?.teamId || String(current.teamId) === String(targetTeamId)) return null;
+  const currentUntil = Number(current.contractUntil);
+  const start = Number(startSeason);
+  if (!Number.isInteger(currentUntil) || !Number.isInteger(start) || start > currentUntil) return null;
+  const contract = activeContract(saveWorld, driverId, current.teamId) ?? {};
+  const remainingSeasons = Math.max(1, currentUntil - start + 1);
+  const explicit = explicitReleaseValue(contract);
+  if (explicit) {
+    return {
+      required: true,
+      fromTeamId: current.teamId,
+      mode: "currency",
+      value: Math.round(explicit.value),
+      source: `historical_clause:${explicit.field}`,
+      remainingSeasons,
+    };
+  }
+  const salary = salaryFromContract(contract) ?? numeric(current.annualSalary);
+  const metrics = abilityAndReputation(saveWorld, driverId);
+  if (salary !== null && salary > 0) {
+    const multiplier = 0.7 + metrics.reputation / 125 + metrics.potential / 300;
+    return {
+      required: true,
+      fromTeamId: current.teamId,
+      mode: "currency",
+      value: Math.max(1, Math.round(salary * remainingSeasons * multiplier)),
+      source: "simulation_estimate_from_known_salary",
+      remainingSeasons,
+    };
+  }
+  return {
+    required: true,
+    fromTeamId: current.teamId,
+    mode: "abstract_index",
+    value: Math.round(clamp(18 + metrics.ability * 0.34 + metrics.reputation * 0.28 + metrics.potential * 0.12 + remainingSeasons * 8, 20, 120)),
+    source: "simulation_compensation_index",
+    remainingSeasons,
+  };
+}
+
 function expectedTerms(saveWorld, driverId, teamId, requestedRole, startSeason) {
   const current = currentAssignment(saveWorld, driverId);
   const sourceContract = activeContract(saveWorld, driverId, current?.teamId ?? null);
-  const knownSalary = salaryFromContract(sourceContract);
+  const knownSalary = salaryFromContract(sourceContract) ?? numeric(current?.annualSalary);
   const metrics = abilityAndReputation(saveWorld, driverId);
   const role = requestedRole ?? current?.role ?? "driver";
   const teamRep = teamReputation(saveWorld, teamId);
+  const interest = evaluateDriverTransferInterest(saveWorld, driverId, teamId, { role });
+  const representative = ensureRepresentative(saveWorld, "driver", driverId);
   const leverage = clamp((metrics.ability * 0.42 + metrics.potential * 0.18 + metrics.reputation * 0.4) / 100, 0.25, 1);
   const switchPremium = current?.teamId && current.teamId !== teamId ? 1.08 : 1.02;
   const attractiveness = clamp((teamRep - metrics.reputation) / 180, -0.18, 0.16);
+  const interestPremium = clamp((55 - interest.score) / 260, -0.08, 0.16);
+  const agentPremium = clamp((representative.negotiationRigidity - 50) / 550, -0.04, 0.07);
   const requestedLength = metrics.potential > metrics.ability + 8 ? 3 : 2;
 
   if (knownSalary !== null && knownSalary > 0) {
-    const annualSalary = Math.max(1, Math.round(knownSalary * switchPremium * (1.04 - attractiveness) * (0.9 + roleWeight(role) * 0.12)));
+    const annualSalary = Math.max(1, Math.round(knownSalary * switchPremium * (1.04 - attractiveness + interestPremium + agentPremium) * (0.9 + roleWeight(role) * 0.12)));
     return {
       compensationMode: "currency",
       annualSalary,
@@ -126,7 +190,7 @@ function expectedTerms(saveWorld, driverId, teamId, requestedRole, startSeason) 
     };
   }
 
-  const salaryIndex = Math.round(clamp(28 + leverage * 64 - attractiveness * 35 + roleWeight(role) * 6, 25, 100));
+  const salaryIndex = Math.round(clamp(28 + leverage * 64 - attractiveness * 35 + interestPremium * 70 + agentPremium * 70 + roleWeight(role) * 6, 25, 110));
   return {
     compensationMode: "abstract_index",
     annualSalary: null,
@@ -138,10 +202,20 @@ function expectedTerms(saveWorld, driverId, teamId, requestedRole, startSeason) 
   };
 }
 
+function normalizedTransferOffer(negotiation, input) {
+  const requirement = negotiation.transferCompensation;
+  if (!requirement?.required) return null;
+  if (requirement.mode === "currency") {
+    return { mode: "currency", value: Math.max(0, Math.round(numeric(input.transferFee ?? input.transfer_fee, 0))) };
+  }
+  return { mode: "abstract_index", value: Math.max(0, Math.round(numeric(input.transferCompensationIndex ?? input.transfer_compensation_index, 0))) };
+}
+
 function normalizeOffer(negotiation, input = {}) {
   const expected = negotiation.expectedTerms;
   const lengthYears = Math.round(clamp(numeric(input.lengthYears ?? input.length_years, expected.lengthYears), 1, 5));
   const role = text(input.role, expected.role).trim() || expected.role;
+  const transferCompensation = normalizedTransferOffer(negotiation, input);
   if (expected.compensationMode === "currency") {
     const annualSalary = numeric(input.annualSalary ?? input.annual_salary ?? input.salary);
     if (annualSalary === null || annualSalary <= 0) throw new Error("This negotiation requires a positive annualSalary.");
@@ -153,6 +227,7 @@ function normalizeOffer(negotiation, input = {}) {
       lengthYears,
       role,
       startSeason: negotiation.startSeason,
+      transferCompensation,
     };
   }
   const salaryIndex = numeric(input.salaryIndex ?? input.salary_index);
@@ -165,7 +240,15 @@ function normalizeOffer(negotiation, input = {}) {
     lengthYears,
     role,
     startSeason: negotiation.startSeason,
+    transferCompensation,
   };
+}
+
+function transferRatio(negotiation, offer) {
+  const required = negotiation.transferCompensation;
+  if (!required?.required) return 1;
+  if (!offer.transferCompensation || offer.transferCompensation.mode !== required.mode) return 0;
+  return offer.transferCompensation.value / Math.max(1, required.value);
 }
 
 function negotiationScore(saveWorld, negotiation, offer, attempt) {
@@ -182,32 +265,43 @@ function negotiationScore(saveWorld, negotiation, offer, attempt) {
   const expectedRole = roleWeight(expected.role);
   const roleFit = clamp(1 - Math.max(0, expectedRole - offeredRole) * 1.7, 0.35, 1.08);
   const durationFit = clamp(1 - Math.abs(offer.lengthYears - expected.lengthYears) * 0.06, 0.76, 1.04);
-  const metrics = abilityAndReputation(saveWorld, negotiation.driverId);
-  const teamRep = teamReputation(saveWorld, negotiation.teamId);
-  const teamFit = clamp((teamRep - metrics.reputation) / 250, -0.12, 0.12);
+  const interest = evaluateDriverTransferInterest(saveWorld, negotiation.driverId, negotiation.teamId, { role: offer.role });
+  const interestFit = clamp(0.82 + interest.score / 280, 0.8, 1.16);
+  const pressure = marketPressureForDriver(saveWorld, negotiation.driverId, negotiation.teamId);
+  const representative = ensureRepresentative(saveWorld, "driver", negotiation.driverId);
+  const agentResistance = Math.max(0, representative.negotiationRigidity - 50) / 850;
+  const competitionPenalty = pressure.competingOffers * 0.025;
   const rng = createRng(`${saveWorld.meta.seed}|${negotiation.id}|offer|${attempt}`);
-  const noise = (rng.next() - 0.5) * 0.035;
-  return compensationRatio * 0.74 + roleFit * 0.14 + durationFit * 0.08 + 0.04 + teamFit + noise;
+  const noise = (rng.next() - 0.5) * 0.03;
+  return compensationRatio * 0.7 + roleFit * 0.12 + durationFit * 0.07 + interestFit * 0.11 - agentResistance - competitionPenalty + noise;
 }
 
-function counterTerms(negotiation, offer, score) {
+function counterTerms(saveWorld, negotiation, offer, score) {
   const expected = negotiation.expectedTerms;
-  const pressure = clamp((0.99 - score) * 0.55, 0.02, 0.11);
+  const pressure = marketPressureForDriver(saveWorld, negotiation.driverId, negotiation.teamId);
+  const representative = ensureRepresentative(saveWorld, "driver", negotiation.driverId);
+  const marketPremium = pressure.competingOffers * 0.025 + Math.max(0, representative.negotiationRigidity - 50) / 900;
+  const concession = clamp((0.99 - score) * 0.5, 0.015, 0.1);
+  const transferCompensation = negotiation.transferCompensation?.required
+    ? { mode: negotiation.transferCompensation.mode, value: negotiation.transferCompensation.value }
+    : null;
   if (expected.compensationMode === "currency") {
-    const floor = Math.round(expected.annualSalary * (1 - pressure));
+    const floor = Math.round(expected.annualSalary * (1 - concession + marketPremium));
     return {
       ...expected,
-      annualSalary: Math.max(floor, Math.round(offer.annualSalary * 1.04)),
+      annualSalary: Math.max(floor, Math.round(offer.annualSalary * 1.035)),
       signingBonus: Math.max(Math.round(expected.signingBonus * 0.8), offer.signingBonus),
       lengthYears: offer.lengthYears,
       role: roleWeight(offer.role) >= roleWeight(expected.role) ? offer.role : expected.role,
+      transferCompensation,
     };
   }
   return {
     ...expected,
-    salaryIndex: Math.max(Math.round(expected.salaryIndex * (1 - pressure)), Math.round(offer.salaryIndex + 2)),
+    salaryIndex: Math.max(Math.round(expected.salaryIndex * (1 - concession + marketPremium)), Math.round(offer.salaryIndex + 2)),
     lengthYears: offer.lengthYears,
     role: roleWeight(offer.role) >= roleWeight(expected.role) ? offer.role : expected.role,
+    transferCompensation,
   };
 }
 
@@ -228,33 +322,40 @@ export function openDriverContractNegotiation(saveWorld, input = {}) {
 
   const currentSeason = Number(saveWorld.clock?.season);
   const current = currentAssignment(saveWorld, driverId);
-  let earliestStart = currentSeason;
-  if (current?.teamId && current.teamId !== teamId) {
-    if (!Number.isInteger(Number(current.contractUntil))) {
-      throw new Error("Transfer compensation is not implemented yet and this driver's contract end is unknown.");
-    }
-    earliestStart = Number(current.contractUntil) + 1;
-  }
-  const requestedStart = Math.round(numeric(input.startSeason ?? input.start_season, earliestStart));
-  if (requestedStart < earliestStart) {
-    throw new Error(`This driver cannot join before season ${earliestStart} without a transfer/compensation agreement.`);
-  }
+  const naturalStart = current?.teamId && current.teamId !== teamId && Number.isInteger(Number(current.contractUntil))
+    ? Number(current.contractUntil) + 1
+    : currentSeason;
+  const requestedStart = Math.max(currentSeason, Math.round(numeric(input.startSeason ?? input.start_season, naturalStart)));
+  const role = text(input.role, current?.role ?? "driver");
+  const interest = evaluateDriverTransferInterest(saveWorld, driverId, teamId, { role });
+  if (interest.score < 20) throw new Error(`${driverName(profile, driverId)} is not interested in discussing a move to this team.`);
 
   const serial = state.nextNegotiationId++;
   const id = `negotiation:${String(serial).padStart(6, "0")}`;
-  const role = text(input.role, current?.role ?? "driver");
   const expected = expectedTerms(saveWorld, driverId, teamId, role, requestedStart);
+  const transferCompensation = transferCompensationRequirement(saveWorld, driverId, teamId, requestedStart);
+  const representative = ensureRepresentative(saveWorld, "driver", driverId);
   const row = {
     id,
     workerType: "driver",
     driverId,
     driverName: driverName(profile, driverId),
     teamId,
+    currentTeamId: current?.teamId ?? null,
     status: "open",
     openedAt: saveWorld.clock?.date ?? null,
-    expiresAt: addDays(saveWorld.clock?.date, Math.max(3, Math.round(numeric(input.windowDays, 14)))),
+    expiresAt: addDays(saveWorld.clock?.date, Math.max(3, Math.round(numeric(input.windowDays, representative.patience >= 65 ? 18 : representative.patience <= 40 ? 8 : 14)))),
     startSeason: requestedStart,
     expectedTerms: expected,
+    transferCompensation,
+    interest,
+    representative: {
+      id: representative.id,
+      name: representative.name,
+      source: representative.source,
+      style: representative.style,
+    },
+    marketPressure: marketPressureForDriver(saveWorld, driverId, teamId),
     offers: [],
     counterTerms: null,
     acceptedTerms: null,
@@ -290,17 +391,25 @@ export function withdrawDriverContractNegotiationEvent(saveWorld, negotiationId)
 
 export function evaluateDriverContractOffer(saveWorld, negotiation, terms) {
   const attempt = negotiation.offers.length + 1;
+  const transfer = transferRatio(negotiation, terms);
+  if (transfer < 0.95) {
+    return { outcome: "rejected", score: transfer, terms, reason: "transfer_compensation_insufficient" };
+  }
   const score = negotiationScore(saveWorld, negotiation, terms, attempt);
-  if (score >= 0.985) return { outcome: "accepted", score, terms };
-  if (score >= 0.79) return { outcome: "countered", score, terms, counterTerms: counterTerms(negotiation, terms, score) };
-  return { outcome: "rejected", score, terms };
+  const representative = ensureRepresentative(saveWorld, "driver", negotiation.driverId);
+  const pressure = marketPressureForDriver(saveWorld, negotiation.driverId, negotiation.teamId);
+  const acceptanceThreshold = clamp(0.965 + (representative.negotiationRigidity - 50) / 1250 + pressure.competingOffers * 0.012, 0.94, 1.08);
+  const counterThreshold = acceptanceThreshold - 0.19;
+  if (score >= acceptanceThreshold) return { outcome: "accepted", score, terms };
+  if (score >= counterThreshold) return { outcome: "countered", score, terms, counterTerms: counterTerms(saveWorld, negotiation, terms, score) };
+  return { outcome: "rejected", score, terms, reason: "terms_below_expectation" };
 }
 
 export function listContractNegotiations(saveWorld, options = {}) {
   let rows = ensureContractNegotiationState(saveWorld).negotiations;
   if (options.status) rows = rows.filter((row) => row.status === options.status);
   if (options.teamId) rows = rows.filter((row) => row.teamId === options.teamId);
-  return structuredClone([...rows].sort((a, b) => b.openedAt.localeCompare(a.openedAt) || b.id.localeCompare(a.id)));
+  return structuredClone([...rows].sort((a, b) => String(b.openedAt ?? "").localeCompare(String(a.openedAt ?? "")) || b.id.localeCompare(a.id)));
 }
 
 export function contractNegotiationSummary(saveWorld, teamId = null) {
@@ -309,5 +418,6 @@ export function contractNegotiationSummary(saveWorld, teamId = null) {
     active: rows.filter((row) => ["open", "countered"].includes(row.status)).length,
     countered: rows.filter((row) => row.status === "countered").length,
     accepted: rows.filter((row) => row.status === "accepted").length,
+    withTransferCompensation: rows.filter((row) => row.transferCompensation?.required).length,
   };
 }

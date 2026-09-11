@@ -6,19 +6,23 @@ F1 Manager Sim is a long-form Formula One management and world simulation game. 
 
 ## Current development phase
 
-**Phase 32 — Management Core**
+**Phase 33 — People, Mentality & Market Dynamics**
 
-The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends and the first persistent player-management loop.
+The first fully supported target season remains **1980**. The simulation foundation combines historical/save boundaries, autonomous career systems, interactive race weekends and a persistent Football Manager-style management loop.
 
-Current playable path:
+Current race path:
 
 `New Career -> Choose Team -> Create Manager -> Career Home -> Continue -> Practice -> Setup -> Qualifying -> Pre-Race -> Live Race / Pit Wall -> Results -> Standings`
 
-Phase 32 adds a parallel management loop:
+Current management loop:
 
-`Continue -> Inbox / Recruitment -> Scout -> Negotiate -> Decision -> Save World consequence -> Continue`
+`Continue -> Inbox / People / Recruitment -> Scout -> Assess Interest -> Negotiate / Compete -> Decision -> Save World consequence -> Continue`
 
-The local Developer Playtest now includes a **Management Hub** with persistent Inbox messages/decisions, visibility-safe driver recruitment, shortlists, scouting assignments/reports, driver contract negotiations and future contracts that activate only in their effective season.
+Phase 33 makes drivers and staff persistent people. Historical personality fields are consumed when known; missing traits use explicitly neutral fallbacks rather than invented historical claims. Morale, confidence, team/role/contract satisfaction, pressure, relationships and transfer openness evolve inside the Save World.
+
+The transfer market now includes behavioral representatives, dynamic interest, competing offers, AI poaching, future contracts, immediate approaches, transfer compensation/buyouts and persistent cash consequences when real currency values are available. Immediate transfers create a real vacancy for the origin team instead of silently deleting a seat.
+
+The local Developer Playtest Management Hub now exposes Inbox, People, Recruitment, Contracts and Market views.
 
 ## Architecture rule
 
@@ -40,27 +44,22 @@ The race-weekend gameplay boundary is:
 
 The management gameplay boundary is:
 
-`World Event -> Management State -> Inbox / Report -> Player Decision -> Simulation Event -> Updated Save World`
+`World Event -> People / Market / Management State -> Inbox / Report -> Player Decision -> Simulation Event -> Updated Save World`
 
-The live race no longer requires an aggregate placeholder race result before lights out. `raceStartBaseline` is starting state only; the first real classification is the completed live race.
+See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md` and `docs/DATA_WORKFLOW.md`.
 
-See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md` and `docs/DATA_WORKFLOW.md`.
+## Historical data policy
 
-## Database baseline
+The current accepted source baseline is **v1.0 candidate (2026-09-11)** and the first career-ready season remains 1980.
 
-The current accepted source baseline is **v1.0 candidate (2026-09-11)**. Its source identity, checksums, readiness counts and historical calendar race-count reference are pinned in:
+Management systems are deliberately tolerant of missing historical fields. Salary, personality, agent and contract-clause data are used when the database supplies them. Missing values do not become fabricated historical truth:
 
-`data/database-baselines/v1.0-candidate/baseline.json`
+- personality falls back to neutral gameplay values with explicit fallback provenance;
+- representatives may receive deterministic behavioral profiles but no invented real-world name;
+- contract negotiation uses an abstract compensation index when real salary is unavailable;
+- transfer compensation uses explicit historical clauses first, known-salary simulation estimates second, and an abstract index otherwise.
 
-1980 is `READY`; later seasons are enabled only when their active starting-state data passes readiness validation. A database update is audited against the current baseline before promotion rather than silently replacing it.
-
-## Parallel database development
-
-The historical master database is expected to improve continuously while the simulation is developed. The importer/validator forms a stable boundary so a newer database version can be audited and adopted without rewriting simulation code or altering existing saves.
-
-The importer preserves source provenance, normalizes known legacy column aliases, validates IDs and relationships, repairs only unambiguous name/ID mismatches, versions the database by SHA-256, and emits a season-readiness report.
-
-Management systems are deliberately tolerant of missing historical fields. For example, contract negotiation uses real salary data when it exists and an explicitly labelled abstract compensation index when it does not. Missing historical values are not silently invented.
+The historical master database can therefore improve in parallel without requiring gameplay architecture rewrites or altering existing saves.
 
 ## Development
 
@@ -86,7 +85,7 @@ npm run save:from-season-db -- /path/to/season-1980.json \
   --seed 1980-playtest
 ```
 
-Run the local Developer Playtest UI against a materialized Season Database:
+Run the local Developer Playtest UI:
 
 ```bash
 npm run playtest -- /path/to/season-1980.json \
