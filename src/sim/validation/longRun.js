@@ -151,11 +151,38 @@ function raceCountsForSeasons(saveWorld, expectedSeasons) {
   return Object.fromEntries(expectedSeasons.map((season) => [season, (grouped.get(season) ?? []).length]));
 }
 
+function expectedRaceCountMap(options, expectedSeasons) {
+  const explicit = options.expectedRaceCounts;
+  if (explicit && typeof explicit === "object") {
+    return Object.fromEntries(expectedSeasons.map((season) => {
+      const value = numeric(explicit[season] ?? explicit[String(season)]);
+      return [season, value];
+    }));
+  }
+  const uniform = numeric(options.expectedRacesPerSeason);
+  return Object.fromEntries(expectedSeasons.map((season) => [season, uniform]));
+}
+
+function expectedRaceCountsFromSnapshot(snapshot, startSeason, seasons) {
+  const result = {};
+  let fallback = Array.isArray(snapshot.calendar) ? snapshot.calendar.length : null;
+  for (let season = startSeason; season < startSeason + seasons; season += 1) {
+    if (season === startSeason) {
+      result[season] = fallback;
+      continue;
+    }
+    const reference = snapshot.futureStructure?.calendars?.[String(season)];
+    if (Array.isArray(reference) && reference.length) fallback = reference.length;
+    result[season] = fallback;
+  }
+  return result;
+}
+
 export function validateLongRunWorld(saveWorld, options = {}) {
   const startSeason = Number(options.startSeason ?? saveWorld.meta?.sourceSeason ?? saveWorld.world?.season);
   const seasons = Math.max(1, Math.round(Number(options.seasons ?? 10)));
   const expectedSeasons = Array.from({ length: seasons }, (_, index) => startSeason + index);
-  const expectedRacesPerSeason = numeric(options.expectedRacesPerSeason);
+  const expectedCounts = expectedRaceCountMap(options, expectedSeasons);
   const errors = [];
   const warnings = [];
 
@@ -166,9 +193,10 @@ export function validateLongRunWorld(saveWorld, options = {}) {
   const raceCounts = raceCountsForSeasons(saveWorld, expectedSeasons);
   for (const season of expectedSeasons) {
     const count = raceCounts[season] ?? 0;
+    const expected = expectedCounts[season];
     if (count === 0) errors.push(`Season ${season} completed with no races.`);
-    if (expectedRacesPerSeason !== null && count !== expectedRacesPerSeason) {
-      errors.push(`Season ${season} completed ${count} races; expected ${expectedRacesPerSeason}.`);
+    if (expected !== null && count !== expected) {
+      errors.push(`Season ${season} completed ${count} races; expected ${expected}.`);
     }
   }
 
@@ -196,6 +224,7 @@ export function validateLongRunWorld(saveWorld, options = {}) {
       finalSeason: Number(saveWorld.clock?.season),
       races: saveWorld.history?.races?.length ?? 0,
       raceCounts,
+      expectedRaceCounts: expectedCounts,
       archivedChampionships: championshipSeasons.length,
       championshipSeasons,
       transfers,
@@ -248,10 +277,15 @@ export function runLongRunValidation(historicalSnapshot, options = {}) {
     });
   }
 
+  const expectedRaceCounts = options.expectedRaceCounts
+    ?? (options.expectedRacesPerSeason !== undefined
+      ? undefined
+      : expectedRaceCountsFromSnapshot(historicalSnapshot, startSeason, seasons));
   const report = validateLongRunWorld(saveWorld, {
     startSeason,
     seasons,
-    expectedRacesPerSeason: options.expectedRacesPerSeason ?? historicalSnapshot.calendar?.length ?? null,
+    expectedRacesPerSeason: options.expectedRacesPerSeason,
+    expectedRaceCounts,
   });
 
   return { saveWorld, checkpoints, report };
