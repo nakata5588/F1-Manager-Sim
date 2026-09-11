@@ -7,20 +7,31 @@ import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
 import { DeveloperPlaytestSession } from "../src/app/developerPlaytest.js";
 import {
+  developerApplyManagerJob,
   developerArchiveInboxItem,
+  developerBoard,
   developerContractNegotiations,
   developerInbox,
   developerManagementOverview,
+  developerManagerCareer,
   developerMarkInboxRead,
   developerMarket,
   developerOpenDriverNegotiation,
+  developerOpenStaffNegotiation,
   developerPeople,
   developerRecruitment,
   developerResolveInboxDecision,
+  developerResponsibilities,
+  developerSetResponsibility,
   developerSetShortlist,
+  developerStaffContractNegotiations,
+  developerStaffRecruitment,
   developerStartScouting,
+  developerSubmitBoardRequest,
   developerSubmitDriverOffer,
+  developerSubmitStaffOffer,
   developerWithdrawDriverNegotiation,
+  developerWithdrawStaffNegotiation,
 } from "../src/app/managementPlaytest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -177,6 +188,28 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/market" && request.method === "GET") {
       return json(response, 200, developerMarket(session));
     }
+    if (url.pathname === "/api/board" && request.method === "GET") {
+      return json(response, 200, developerBoard(session));
+    }
+    if (url.pathname === "/api/board/request" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerSubmitBoardRequest(session, input.kind));
+    }
+    if (url.pathname === "/api/manager-career" && request.method === "GET") {
+      return json(response, 200, developerManagerCareer(session));
+    }
+    if (url.pathname === "/api/manager-career/apply" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerApplyManagerJob(session, input.teamId));
+    }
+    if (url.pathname === "/api/responsibilities" && request.method === "GET") {
+      return json(response, 200, developerResponsibilities(session));
+    }
+    if (url.pathname === "/api/responsibilities/set" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerSetResponsibility(session, input.area, input.owner));
+    }
+
     if (url.pathname === "/api/inbox" && request.method === "GET") {
       return json(response, 200, developerInbox(session, {
         unreadOnly: url.searchParams.get("unreadOnly") === "true",
@@ -228,6 +261,28 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/contracts/withdraw" && request.method === "POST") {
       const input = await body(request);
       return json(response, 200, developerWithdrawDriverNegotiation(session, input.negotiationId));
+    }
+
+    if (url.pathname === "/api/staff-recruitment" && request.method === "GET") {
+      return json(response, 200, developerStaffRecruitment(session, { query: url.searchParams.get("query") ?? undefined }));
+    }
+    if (url.pathname === "/api/staff-contracts" && request.method === "GET") {
+      return json(response, 200, developerStaffContractNegotiations(session));
+    }
+    if (url.pathname === "/api/staff-contracts/open" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerOpenStaffNegotiation(session, input.staffId, {
+        role: input.role,
+        startSeason: input.startSeason,
+      }));
+    }
+    if (url.pathname === "/api/staff-contracts/offer" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerSubmitStaffOffer(session, input.negotiationId, input.terms));
+    }
+    if (url.pathname === "/api/staff-contracts/withdraw" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerWithdrawStaffNegotiation(session, input.negotiationId));
     }
 
     if (request.method === "GET" && serveStatic(request, response)) return;
