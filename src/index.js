@@ -4,11 +4,15 @@ export { getSeasonReadiness, listSupportedSeasons, loadHistoricalSeason } from "
 export { createSeasonDatabasePayload, loadSeasonDatabasePayload, mergeSeasonBoundaryReferences, SEASON_DATABASE_FORMAT, SEASON_DATABASE_SCHEMA_VERSION, validateSeasonDatabasePayload } from "./data/seasonDatabase.js";
 export { createCareerFromSeasonDatabase, validateSeasonDatabaseAgainstGlobal } from "./data/careerBootstrap.js";
 export { DeveloperPlaytestSession, listDeveloperPlaytestTeams } from "./app/developerPlaytest.js";
+export { developerArchiveInboxItem, developerContractNegotiations, developerInbox, developerManagementOverview, developerMarkInboxRead, developerOpenDriverNegotiation, developerRecruitment, developerResolveInboxDecision, developerSetShortlist, developerStartScouting, developerSubmitDriverOffer, developerWithdrawDriverNegotiation } from "./app/managementPlaytest.js";
 export { loadSeasonPackPayload, parseSeasonPackPayload, seasonPackSheetRows, SeasonPackValidationError, validateSeasonPackPayload } from "./data/seasonPackLoader.js";
 export { applySeasonPackOverlay, overlaySourceChecksum, SeasonPackOverlayError } from "./data/seasonPackOverlay.js";
 export { loadSeasonPackRuntimePayload, validateSeasonPackRuntimePayload } from "./data/seasonPackRuntime.js";
 export { createSaveWorld } from "./save/createSaveWorld.js";
 export { deserializeSaveWorld, SAVE_FORMAT, SAVE_SCHEMA_VERSION, serializeSaveWorld } from "./save/serialization.js";
+export { addManagementInboxItem, archiveManagementInboxItem, ensureManagementInbox, listManagementInbox, managementInboxSummary, markManagementInboxRead, resolveManagementInboxDecision } from "./game/management/inbox.js";
+export { buildDriverScoutingReport, completeDriverScoutingAssignment, driverScoutingKnowledge, ensureScoutingState, listRecruitmentCandidates, SCOUTING_EVENT, scoutingSummary, setDriverShortlist, startDriverScoutingAssignment } from "./game/management/scouting.js";
+export { acceptDriverContractCounterEvent, CONTRACT_NEGOTIATION_EVENT, contractNegotiationSummary, ensureContractNegotiationState, evaluateDriverContractOffer, listContractNegotiations, openDriverContractNegotiation, submitDriverContractOfferEvent, withdrawDriverContractNegotiationEvent } from "./game/management/contracts.js";
 export { createRng } from "./sim/random.js";
 export { availableTyreCompounds, createRaceStrategyPlan, evaluateRaceStrategy } from "./sim/raceStrategy.js";
 export { currentStrategyStint, reviseRaceStrategy, reviseStartingTyreCompound, selectLiveTyreCompound } from "./sim/liveStrategy.js";
@@ -33,6 +37,9 @@ export { createCareerDevelopmentSystem } from "./sim/systems/careerDevelopment.j
 export { createRetirementSystem, retirementProbability } from "./sim/systems/retirement.js";
 export { createRetirementEmploymentSystem } from "./sim/systems/retirementEmployment.js";
 export { EMPLOYMENT_EVENT, createAiEmploymentDecisionSystem, createEmploymentMarketSystem } from "./sim/systems/employmentMarket.js";
+export { createScoutingManagementSystem } from "./sim/systems/scoutingManagement.js";
+export { createContractNegotiationSystem } from "./sim/systems/contractNegotiation.js";
+export { createManagementInboxSystem } from "./sim/systems/managementInbox.js";
 export { RACE_ENTRY_EVENT, createRaceEntrySystem } from "./sim/systems/raceEntry.js";
 export { TEAM_FINANCE_EVENT, createTeamEconomySystem } from "./sim/systems/teamEconomy.js";
 export { TEAM_DEVELOPMENT_EVENT, createTeamDevelopmentSystem } from "./sim/systems/teamDevelopment.js";
