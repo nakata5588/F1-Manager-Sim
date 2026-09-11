@@ -2,6 +2,7 @@ export { createSeasonSnapshot } from "./domain/seasonMaterializer.js";
 export { entityVisibilityState, isEntityF1EligibleInSeason, isEntityTalentVisibleInSeason, isEntityVisibleInSeason, listVisibleDrivers, listVisibleSponsors, listVisibleStaff, listVisibleTeams, normalizeEntityVisibility } from "./domain/entityVisibility.js";
 export { getSeasonReadiness, listSupportedSeasons, loadHistoricalSeason } from "./domain/historicalWorld.js";
 export { createSeasonDatabasePayload, loadSeasonDatabasePayload, mergeSeasonBoundaryReferences, SEASON_DATABASE_FORMAT, SEASON_DATABASE_SCHEMA_VERSION, validateSeasonDatabasePayload } from "./data/seasonDatabase.js";
+export { createCareerFromSeasonDatabase, validateSeasonDatabaseAgainstGlobal } from "./data/careerBootstrap.js";
 export { loadSeasonPackPayload, parseSeasonPackPayload, seasonPackSheetRows, SeasonPackValidationError, validateSeasonPackPayload } from "./data/seasonPackLoader.js";
 export { applySeasonPackOverlay, overlaySourceChecksum, SeasonPackOverlayError } from "./data/seasonPackOverlay.js";
 export { loadSeasonPackRuntimePayload, validateSeasonPackRuntimePayload } from "./data/seasonPackRuntime.js";
