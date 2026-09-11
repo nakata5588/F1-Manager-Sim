@@ -11,9 +11,7 @@ function shiftDateToYear(value, year) {
   const month = Number(monthText);
   const day = Number(dayText);
   const candidate = new Date(Date.UTC(year, month - 1, day));
-  if (candidate.getUTCMonth() !== month - 1) {
-    candidate.setUTCDate(0);
-  }
+  if (candidate.getUTCMonth() !== month - 1) candidate.setUTCDate(0);
   return candidate.toISOString().slice(0, 10);
 }
 
@@ -37,6 +35,42 @@ function generateCalendar(previousCalendar, season) {
     }));
 }
 
+function referenceCalendar(saveWorld, season) {
+  const rows = saveWorld.reference?.futureStructure?.calendars?.[String(season)];
+  return Array.isArray(rows) ? rows : [];
+}
+
+function materializeReferenceCalendar(rows, season) {
+  return [...rows]
+    .sort((a, b) => Number(a.round ?? 999) - Number(b.round ?? 999))
+    .map((race, index) => ({
+      ...structuredClone(race),
+      year: season,
+      round: Number(race.round ?? index + 1),
+      gp_id: race.gp_id ?? race.race_id ?? generatedGpId(race, season, index),
+      generated: false,
+      historical_structure_reference: true,
+      generation_source: "global_historical_calendar_reference",
+    }));
+}
+
+function materializeReferencedTracks(saveWorld, calendar) {
+  const required = new Set(calendar.map((row) => row.track_id ?? row.circuit_id).filter(Boolean));
+  if (!required.size) return 0;
+  saveWorld.world.tracks ??= [];
+  const active = new Set(saveWorld.world.tracks.map((row) => row.track_id ?? row.circuit_id).filter(Boolean));
+  const references = saveWorld.reference?.futureStructure?.tracks ?? [];
+  let added = 0;
+  for (const track of references) {
+    const id = track.track_id ?? track.circuit_id;
+    if (!id || !required.has(id) || active.has(id)) continue;
+    saveWorld.world.tracks.push(structuredClone(track));
+    active.add(id);
+    added += 1;
+  }
+  return added;
+}
+
 export function createSeasonRolloverSystem() {
   return {
     id: "season.rollover",
@@ -46,18 +80,34 @@ export function createSeasonRolloverSystem() {
       const previousSeason = Number(event.payload?.previousSeason ?? season - 1);
       const existingCurrent = (saveWorld.world?.calendar ?? []).filter((row) => Number(row.year) === season);
       const previous = (saveWorld.world?.calendar ?? []).filter((row) => Number(row.year) === previousSeason);
-      const template = previous.length ? previous : saveWorld.world?.calendar ?? [];
-      const generated = existingCurrent.length ? existingCurrent : generateCalendar(template, season);
+      const references = referenceCalendar(saveWorld, season);
 
-      saveWorld.world.calendar = generated;
+      let calendar;
+      let calendarSource;
+      if (existingCurrent.length) {
+        calendar = existingCurrent;
+        calendarSource = "active_world_existing";
+      } else if (references.length) {
+        calendar = materializeReferenceCalendar(references, season);
+        calendarSource = "global_historical_calendar_reference";
+      } else {
+        const template = previous.length ? previous : saveWorld.world?.calendar ?? [];
+        calendar = generateCalendar(template, season);
+        calendarSource = "previous_season_calendar_fallback";
+      }
+
+      const referencedTracksAdded = materializeReferencedTracks(saveWorld, calendar);
+      saveWorld.world.calendar = calendar;
       saveWorld.world.season = season;
       saveWorld.history.seasons ??= [];
       saveWorld.history.seasons.push({
         season,
         previousSeason,
         date: event.date,
-        calendarGenerated: existingCurrent.length === 0,
-        races: generated.length,
+        calendarGenerated: calendarSource === "previous_season_calendar_fallback",
+        calendarSource,
+        races: calendar.length,
+        referencedTracksAdded,
       });
 
       return {
@@ -65,8 +115,10 @@ export function createSeasonRolloverSystem() {
         payload: {
           season,
           previous_season: previousSeason,
-          calendar_generated: existingCurrent.length === 0,
-          races: generated.length,
+          calendar_generated: calendarSource === "previous_season_calendar_fallback",
+          calendar_source: calendarSource,
+          races: calendar.length,
+          referenced_tracks_added: referencedTracksAdded,
         },
       };
     },
