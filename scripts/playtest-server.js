@@ -36,13 +36,13 @@ function parseArgs(argv) {
 }
 
 function json(response, status, payload) {
-  const body = JSON.stringify(payload);
+  const bodyText = JSON.stringify(payload);
   response.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
-    "content-length": Buffer.byteLength(body),
+    "content-length": Buffer.byteLength(bodyText),
     "cache-control": "no-store",
   });
-  response.end(body);
+  response.end(bodyText);
 }
 
 async function body(request) {
@@ -108,6 +108,20 @@ const server = createServer(async (request, response) => {
     }
     if (url.pathname === "/api/continue" && request.method === "POST") {
       return json(response, 200, session.continue());
+    }
+    if (url.pathname === "/api/weekend/advance" && request.method === "POST") {
+      return json(response, 200, session.advanceWeekend());
+    }
+    if (url.pathname === "/api/weekend/setup" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, session.changeSetup(input.driverId, input.setup));
+    }
+    if (url.pathname === "/api/weekend/starting-tyre" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, session.changeStartingTyre(input.driverId, input.compoundId));
+    }
+    if (url.pathname === "/api/weekend/start-race" && request.method === "POST") {
+      return json(response, 200, session.startRace());
     }
     if (url.pathname === "/api/race/advance" && request.method === "POST") {
       const input = await body(request);

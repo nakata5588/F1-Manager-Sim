@@ -6,15 +6,15 @@ F1 Manager Sim is a long-form Formula One management and world simulation game. 
 
 ## Current development phase
 
-**Phase 30 — Developer Playtest UI**
+**Phase 31 — Interactive Race Weekend & Pit Wall Foundation**
 
-The first fully supported target season remains **1980**. The simulation foundation includes historical/save boundaries, autonomous career systems, race weekends, temporal/live race simulation, championship rules, database provenance and long-run validation. Phase 30 exposes the first playable vertical slice without moving simulation authority into the browser.
+The first fully supported target season remains **1980**. The simulation foundation includes historical/save boundaries, autonomous career systems, race weekends, temporal/live race simulation, championship rules, database provenance and long-run validation. Phase 31 turns the Developer Playtest vertical slice into an interactive weekend and race-management loop without moving simulation authority into the browser.
 
 Current playable path:
 
-`New Career -> Choose Team -> Create Manager -> Career Home -> Continue -> Race Weekend -> Live Race -> Results -> Standings`
+`New Career -> Choose Team -> Create Manager -> Career Home -> Continue -> Practice -> Setup -> Qualifying -> Pre-Race -> Live Race / Pit Wall -> Results -> Standings`
 
-The UI is deliberately functional rather than polished. It consumes a real Season Database and advances the same Save World/simulation systems used by automated tests.
+The current playtest exposes controlled-car setup changes, starting tyres, resumable live racing, tyre/fuel/damage telemetry where supported by data, Race Control/event feeds and simulation speed controls with auto-pause on notable events.
 
 ## Architecture rule
 
@@ -29,6 +29,12 @@ The project keeps five concerns separate:
 The database packaging boundary is:
 
 `Global Database -> Season Database -> Save World -> Simulation Engine`
+
+The race-weekend gameplay boundary is:
+
+`Practice -> Qualifying -> Grid -> Strategy -> raceStartBaseline -> Live Race -> Classification -> Championship`
+
+The live race no longer requires an aggregate placeholder race result before lights out. `raceStartBaseline` is starting state only; the first real classification is the completed live race.
 
 See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md` and `docs/DATA_WORKFLOW.md`.
 

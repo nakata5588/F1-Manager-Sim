@@ -86,6 +86,63 @@ export function currentStrategyStint(plan, lap) {
     ?? null;
 }
 
+export function reviseStartingTyreCompound(saveWorld, weekend, driverId, currentPlan, compoundId, options = {}) {
+  if (!driverId || !currentPlan) throw new TypeError("A driver and current strategy plan are required.");
+  const entrant = entrantFor(weekend, driverId);
+  if (!entrant) throw new Error(`Driver ${driverId} is not on the current race grid.`);
+
+  const compounds = compoundMap(saveWorld, entrant.teamId);
+  const requested = compounds.get(String(compoundId));
+  if (!requested) throw new Error(`Tyre compound ${compoundId} is not available to team ${entrant.teamId}.`);
+
+  const laps = totalLaps(saveWorld, weekend);
+  const currentStints = (currentPlan.stints ?? []).length
+    ? currentPlan.stints.map((stint) => ({ ...stint }))
+    : [{ stint: 1, compoundId: requested.compoundId, targetLaps: laps }];
+  currentStints[0] = {
+    ...currentStints[0],
+    stint: 1,
+    compoundId: requested.compoundId,
+  };
+
+  let assigned = currentStints.reduce((sum, stint) => sum + Math.max(1, Math.round(numeric(stint.targetLaps, 1))), 0);
+  if (assigned !== laps) {
+    const delta = laps - assigned;
+    currentStints[currentStints.length - 1].targetLaps = Math.max(
+      1,
+      Math.round(numeric(currentStints[currentStints.length - 1].targetLaps, 1)) + delta,
+    );
+    assigned = currentStints.reduce((sum, stint) => sum + Math.max(1, Math.round(numeric(stint.targetLaps, 1))), 0);
+  }
+  if (assigned !== laps) throw new Error("Starting tyre change produced an invalid stint plan.");
+
+  const source = options.source ?? "player_prerace";
+  const evaluated = evaluateRaceStrategy(
+    saveWorld,
+    { ...weekend, race: currentRace(saveWorld, weekend), track: currentTrack(saveWorld, weekend) },
+    entrant,
+    {
+      ...currentPlan,
+      source,
+      condition: requested.condition ?? currentPlan.condition ?? "dry",
+      dataStatus: "tyre_data_available",
+      stints: currentStints,
+      plannedStops: Math.max(0, currentStints.length - 1),
+    },
+    options.entropyKey ?? `${weekend.key}|starting-tyre|${driverId}|${compoundId}`,
+  );
+
+  return annotateEvaluatedPlan(saveWorld, entrant.teamId, {
+    ...evaluated,
+    source,
+    preRaceRevision: {
+      startingCompoundId: requested.compoundId,
+      reason: options.reason ?? "starting_tyre_change",
+      source,
+    },
+  });
+}
+
 export function reviseRaceStrategy(saveWorld, weekend, driverId, currentPlan, instruction, options = {}) {
   if (!driverId || !currentPlan) throw new TypeError("A driver and current strategy plan are required.");
   const entrant = entrantFor(weekend, driverId);
