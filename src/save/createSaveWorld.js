@@ -2,10 +2,7 @@ export function createSaveWorld(historicalSnapshot, options = {}) {
   if (!historicalSnapshot?.season) throw new TypeError("A historical season snapshot is required.");
 
   const clonedSnapshot = structuredClone(historicalSnapshot);
-  const historicalArchive = structuredClone(clonedSnapshot.historicalArchive ?? {
-    throughSeason: historicalSnapshot.season - 1,
-    cutoff: `${historicalSnapshot.season}-01-01`,
-  });
+  const historicalArchive = structuredClone(clonedSnapshot.historicalArchive ?? []);
   const futureStructure = structuredClone(clonedSnapshot.futureStructure ?? {
     policy: "hidden_structural_reference_only_no_future_results",
     calendars: {},
