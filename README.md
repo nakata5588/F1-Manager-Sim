@@ -6,9 +6,9 @@ F1 Manager Sim is a long-form Formula One management and world simulation game. 
 
 ## Current development phase
 
-**Phase 34 — Board, Manager Career & Staff Management**
+**Phase 35 — Sponsors, Marketability & Commercial**
 
-The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics and a manager career that can survive team changes or dismissal.
+The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure and an evolving commercial market.
 
 Current race path:
 
@@ -16,15 +16,17 @@ Current race path:
 
 Current management loop:
 
-`Continue -> Board / Inbox / People / Staff / Recruitment -> Decision -> Save World consequence -> Continue`
+`Continue -> Board / Inbox / People / Staff / Recruitment / Commercial -> Decision -> Save World consequence -> Continue`
 
-Phase 34 makes the **manager** a persistent career entity rather than a permanent label on one team. Board confidence and objectives evolve from current Save World performance; sustained severe underperformance can lead to dismissal. The manager keeps a separate paddock reputation, career history, applications and job offers, and can become genuinely unemployed or move to another team.
+Phase 35 turns sponsorship from passive historical income into dynamic Save World state. Historical sponsor contracts are materialized once as starting agreements, while renewals, new negotiations, activities, bonuses, satisfaction and commercial performance are free to diverge from real history.
 
-Staff recruitment now uses the same employment and contract world as drivers. Staff interest responds to team prestige, personality, satisfaction, relationships and representatives; future agreements remain future assignments until their effective season. Real salary data is used when available and explicit abstract compensation is used when it is not.
+Team marketability now reacts to reputation, drivers, recent performance, championship position and available commercial facilities. Driver marketability responds to reputation, recent results and confidence. Sponsor interest then reacts to that evolving world rather than a hardcoded historical outcome.
 
-Responsibilities are persistent Save World policy. The first areas cover driver recruitment, staff recruitment, scouting, car development, race strategy, finances and commercial work. Delegated car development is already functional and uses the same development rules as AI teams rather than a separate player-only model.
+Sponsor negotiations support title, major and partner tiers, category exclusivity, duration, upfront payments, performance bonuses and commercial-activity commitments. AI teams and delegated commercial departments use the same negotiation pipeline as the player.
 
-The local Developer Playtest Management Hub now exposes **Inbox, Board, Career, People, Staff, Drivers, Driver Contracts, Market and Responsibilities**.
+`Sponsor_Model` remains a gameplay calibration source and is never silently counted on top of historical sponsor contracts. Monetary provenance is explicit: historical contract values, gameplay estimates and in-career negotiated values remain distinguishable.
+
+The local Developer Playtest Management Hub now exposes **Inbox, Board, Career, People, Staff, Drivers, Driver Contracts, Driver Market, Commercial and Responsibilities**.
 
 ## Architecture rule
 
@@ -46,21 +48,23 @@ The race-weekend gameplay boundary is:
 
 The management gameplay boundary is:
 
-`World Event -> Board / People / Market / Career State -> Inbox / Advice -> Player Decision -> Simulation Event -> Updated Save World`
+`World Event -> Board / People / Market / Commercial / Career State -> Inbox / Advice -> Player Decision -> Simulation Event -> Updated Save World`
 
-See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md` and `docs/DATA_WORKFLOW.md`.
+See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md` and `docs/DATA_WORKFLOW.md`.
 
 ## Historical data policy
 
 The current accepted source baseline is **v1.0 candidate (2026-09-11)** and the first career-ready season remains 1980.
 
-Management systems are deliberately tolerant of missing historical fields. Salary, personality, agent, staff-rating and contract data are used when the database supplies them. Missing values do not become fabricated historical truth:
+Management systems are deliberately tolerant of missing historical fields. Salary, personality, agent, staff-rating, sponsor and contract data are used when the database supplies them. Missing values do not become fabricated historical truth:
 
 - personality falls back to neutral gameplay values with explicit fallback provenance;
 - representatives may receive deterministic behavioral profiles but no invented real-world name;
 - driver and staff negotiation uses an abstract compensation index when real salary is unavailable;
 - transfer compensation uses explicit historical clauses first, known-salary simulation estimates second, and an abstract index otherwise;
-- board confidence, manager reputation and job-market outcomes are dynamic Save World state rather than claimed historical facts.
+- sponsor monetary values retain explicit provenance between historical contracts, gameplay-model estimates and simulation negotiations;
+- unknown sponsor industries remain uncategorized rather than receiving invented historical categories;
+- board confidence, manager reputation, marketability and commercial outcomes are dynamic Save World state rather than claimed historical facts.
 
 The historical master database can therefore improve in parallel without requiring gameplay architecture rewrites or altering existing saves.
 
