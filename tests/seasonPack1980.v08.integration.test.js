@@ -112,7 +112,7 @@ test("1980 v0.8 materializes calibration models while keeping estimates labelled
   assert.equal(Object.isFrozen(snapshot), true);
 });
 
-test("1980 v0.8 contextual later entrants and external market do not auto-load into the career", async () => {
+test("1980 v0.8 contextual later entrants and external market remain reference-only in the career", async () => {
   const { payload } = await loadV08();
   const snapshot = loadSeasonPackRuntimePayload(payload, { sourceChecksum: SOURCE_SHA256 });
   const save = createSaveWorld(snapshot, { seed: "1980-v08-isolation", startDate: "1980-01-01" });
@@ -124,9 +124,11 @@ test("1980 v0.8 contextual later entrants and external market do not auto-load i
   assert.equal(startingDriverIds.has("DRV0211"), false, "Rupert Keegan must remain a later-season historical reference");
   assert.equal(startingDriverIds.has("DRV0191"), false, "Mike Thackwell must remain a later-season historical reference");
   assert.equal(startingDriverIds.has("DRVX0001"), true, "David Kennedy is a genuine round-one starter");
-  assert.equal(save.world.externalDriverMarket.length, 93);
+
+  assert.equal(save.world.externalDriverMarket, undefined, "raw external market context must not be exposed as active world state");
+  assert.equal(save.reference.hiddenExternalDriverMarket.length, 93);
 
   const originalName = snapshot.externalDriverMarket[0].driver_name;
-  save.world.externalDriverMarket[0].driver_name = "Diverged Save World";
+  save.reference.hiddenExternalDriverMarket[0].driver_name = "Diverged Save World";
   assert.equal(snapshot.externalDriverMarket[0].driver_name, originalName);
 });
