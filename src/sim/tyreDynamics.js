@@ -82,11 +82,19 @@ export function advanceTyreThermalState(saveWorld, previousState, context = {}) 
   const technicalLoad = clamp(numeric(sector.technicality, 0.5), 0, 1);
   const aeroLoad = clamp(numeric(sector.aeroSensitivity, 0.5), 0, 1);
   const sectorWeight = clamp(numeric(sector.weight, 1 / 3), 0.05, 1);
+  const trackGripIndex = clamp(numeric(context.trackGripIndex, 50), 25, 75);
   const neutralised = Boolean(context.neutralised);
 
-  let target = ideal + (brakeLoad - 0.5) * 7 + (technicalLoad - 0.5) * 4 + (aeroLoad - 0.5) * 2;
+  let target = ideal
+    + (brakeLoad - 0.5) * 7
+    + (technicalLoad - 0.5) * 4
+    + (aeroLoad - 0.5) * 2
+    + (trackGripIndex - 50) * 0.08;
   if (neutralised) target -= 12;
-  const response = (0.055 + traits.warmup * 0.00145) * clamp(sectorWeight * 3, 0.3, 1.8);
+  const gripResponse = 0.94 + (trackGripIndex - 50) * 0.002;
+  const response = (0.055 + traits.warmup * 0.00145)
+    * clamp(sectorWeight * 3, 0.3, 1.8)
+    * clamp(gripResponse, 0.88, 1.08);
   const nextTemperature = clamp(priorTemperature + (target - priorTemperature) * response, 20, 110);
   const status = windowStatus(nextTemperature, ideal, halfWindow);
   const deviation = Math.max(0, Math.abs(nextTemperature - ideal) - halfWindow);
@@ -105,6 +113,7 @@ export function advanceTyreThermalState(saveWorld, previousState, context = {}) 
     temperatureIndex: round(nextTemperature, 3),
     idealIndex: ideal,
     halfWindowIndex: round(halfWindow, 3),
+    trackGripIndex: round(trackGripIndex, 3),
     status,
     previousStatus: isNewStint ? null : previousState.status ?? null,
     paceModifier: round(paceModifier, 4),
