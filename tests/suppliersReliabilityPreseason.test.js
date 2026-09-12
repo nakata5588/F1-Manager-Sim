@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   PRESEASON_EVENT,
   RELIABILITY_EVENT,
+  SIM_EVENT,
   SUPPLIER_EVENT,
   activeEngineForTeam,
   activeSupplierContract,
@@ -265,7 +266,7 @@ test("negotiated supplier money becomes a monthly team-economy expense after act
   const monthly = technicalSupplierMonthlyCost(save, "T1");
   assert.ok(monthly > 0);
 
-  dispatchSimulationEvents(save, [{ type: "calendar.month_started", date: "1981-02-01", payload: { year: 1981, month: 2 } }], [createTeamEconomySystem()]);
+  dispatchSimulationEvents(save, [{ type: SIM_EVENT.MONTH_STARTED, date: "1981-02-01", payload: { year: 1981, month: 2 } }], [createTeamEconomySystem()]);
   const close = [...save.history.finances].reverse().find((row) => row.type === "monthly_close" && row.teamId === "T1");
   assert.equal(close.breakdown.engineSupplier, monthly);
 });
@@ -275,7 +276,7 @@ test("delegated Car Development uses the same preseason rules as AI teams", () =
   setResponsibility(save, "T1", "carDevelopment", "delegated");
   const system = createTechnicalReliabilitySystem({ controlledTeamIds: ["T1"] });
   const before = save.world.technical.teams.T1.preseason.sessionsCompleted;
-  const output = system.handle({ saveWorld: save, event: { type: "calendar.month_started", date: "1980-02-01", payload: { year: 1980, month: 2 } } }) ?? [];
+  const output = system.handle({ saveWorld: save, event: { type: SIM_EVENT.MONTH_STARTED, date: "1980-02-01", payload: { year: 1980, month: 2 } } }) ?? [];
   const after = save.world.technical.teams.T1.preseason.sessionsCompleted;
   assert.ok(after > before);
   assert.ok(output.some((event) => event.type === PRESEASON_EVENT.TEST_COMPLETED && event.payload.source === "delegated"));
