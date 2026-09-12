@@ -1,0 +1,20 @@
+{
+  "F1_Manager_Sim_Global_Database_v1.2.2_relationships_source_pack_candidate.json": "79d85678db968243c6b34fd9e1d0109ab7fee4b25b0d8f03f5802692e0ea5895",
+  "F1_Manager_Sim_Global_Database_v1.2.2_relationships_source_pack_candidate.sqlite": "e56fd6b0da1393356cd4b6c985ca37f19ed94e08cab827f06df68137bb168488",
+  "F1_Manager_Sim_SeasonDefinition_1980_v1.2.2_relationships_source_pack_candidate.json": "3a0147451b6f31ee45af72b1e4413a397ee9ae0541fac7b8bbbd09a0691e989f",
+  "F1_Manager_Sim_SeasonDefinition_1980_v1.2.2_relationships_source_pack_candidate.sqlite": "1edba292762aa42915bccb254377617405d6ab4e639080e2cc2e0522f2702dcf",
+  "F1_Manager_Sim_Database_Rebuild_v1.2.2_relationships_source_pack_candidate_EDITOR.xlsx": "81e1574e3750b7085b3d4991f0bf77ab4aa3ab672415ad123a0c47929e62e48f",
+  "F1_Manager_Sim_Database_Rebuild_v1.2.2_relationships_source_pack_candidate_REPORT.md": "bdfe19b93d9cf58ccccadeef45b10d46467f285eead95b60a4b8630ab2326382",
+  "canonical_id_corrections_v1.2.2.csv": "fbbef81aab9865bbe9cdd1dbde6bd5a3f6c124770739b3a05c8bd6c2df0bc646",
+  "historical_research_backlog_1980_v1.2.2.csv": "1c6d9c26c4f3480b7354b0023599e11e11c10fa5ea800ddc8a8e38bddead29bc",
+  "phase33_database_readiness_matrix_v1.2.2.csv": "c37ab487189abb4315cc7c330f46c8df14d69885fbc10901b4ef77caab27b8a2",
+  "relationship_source_pack_1980.csv": "83bc18707149b523cf951afce5865fc48f48725c5f26678df763661020a19caf",
+  "relationships_materializer_delta_spec_v1.2.2.csv": "d553e34252d6a7a9e3790924f6934e5f5d9547a04f536f32545cfa94522c7b38",
+  "source_manifest_v1.2.2.csv": "a48bf8c1999c9a355f4b63b1c73d158bb9bd8cb8dc8c1fe829fe65022af30138",
+  "sponsor_source_lock_1980.csv": "0b2811b1da7d3f7951d64235225c0c774c5083190f0b333e8abc1f5544acdb57",
+  "sponsor_spelling_corrections_v1.2.2.csv": "a000e64d220047d14ae178045df8d95f88b6ba1241bce56ef4aa005fcd2505f3",
+  "sqlite_integrity_checks.csv": "9d04f3f05d8bc8d51f888b4b44ff3d7346e937f3f499704fd007f53720e23fff",
+  "staff_source_lock_1980.csv": "d31475f297e20f7c0c20599e8d5de793e16d7135f9ea91d06d7d965ad4e7ce86",
+  "summary_cards.csv": "ebeeae446b1da33b901c0f5bc39c7a9d3ee66cf5ee6b87012d951145a538b2de",
+  "suppressed_or_review_claims_1980.csv": "bef3e9cd2d474c74e175828fd67f82d519123d91506798f054959f88e15568f3"
+}
