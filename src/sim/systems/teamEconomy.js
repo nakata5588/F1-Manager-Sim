@@ -1,6 +1,7 @@
 import { SIM_EVENT } from "../timeEngine.js";
 import { EMPLOYMENT_EVENT } from "./employmentMarket.js";
 import { commercialMonthlySponsorIncome } from "../../game/management/commercial.js";
+import { technicalFacilityMaintenanceAnnual } from "../../game/management/technical.js";
 
 export const TEAM_FINANCE_EVENT = Object.freeze({
   INITIALIZED: "team.finance_initialized",
@@ -93,8 +94,6 @@ function legacySponsorIncome(saveWorld, teamId, season) {
 }
 
 function sponsorIncome(saveWorld, teamId, season) {
-  // Once the Phase 35 commercial state is initialized it is the single mutable
-  // source for sponsor cash. Historical contracts remain starting data only.
   const dynamic = commercialMonthlySponsorIncome(saveWorld, teamId, season);
   return dynamic === null ? legacySponsorIncome(saveWorld, teamId, season) : dynamic;
 }
@@ -117,7 +116,11 @@ function assignmentSalary(saveWorld, teamId, type, season) {
 function facilityMaintenance(saveWorld, teamId) {
   const facility = (saveWorld.world?.facilities ?? []).find((row) => row.team_id === teamId);
   const annual = Number(facility?.maintenance_cost ?? facility?.annual_maintenance_cost);
-  return Number.isFinite(annual) ? annual / 12 : 0;
+  const historical = Number.isFinite(annual) ? annual : 0;
+  const dynamic = saveWorld.world?.technical?.teams?.[teamId]
+    ? technicalFacilityMaintenanceAnnual(saveWorld, teamId)
+    : 0;
+  return (historical + dynamic) / 12;
 }
 
 function operatingCost(saveWorld, teamId) {
