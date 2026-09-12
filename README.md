@@ -6,29 +6,29 @@ F1 Manager Sim is a long-form Formula One management and world simulation game. 
 
 ## Current development phase
 
-**Phase 37 — Suppliers, Reliability & Preseason**
+**Phase 38 — Regulations, Governance & Team Evolution**
 
-The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market and a persistent physical technical lifecycle.
+The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market, a persistent physical technical lifecycle and a dynamic governance/grid layer.
 
 Current race path:
 
 `New Career -> Choose Team -> Create Manager -> Career Home -> Continue -> Practice -> Setup -> Qualifying -> Pre-Race -> Live Race / Pit Wall -> Results -> Standings`
 
-Current management loop:
+Current management/world loop:
 
-`Continue -> Board / Inbox / People / Staff / Recruitment / Commercial / Technical -> Decision -> Save World consequence -> Continue`
+`Continue -> Board / Inbox / People / Staff / Recruitment / Commercial / Technical / Governance / F1 World -> Decision -> Save World consequence -> Continue`
 
-The technical lifecycle now extends through:
+The technical lifecycle extends through:
 
 `Supplier -> Preseason Test -> Design / Research -> Specification -> Manufacture -> Inventory -> Fit -> Wear / Failure -> Replace / Rebuild -> Race`
 
-Phase 36 established physical specifications, manufacturing, stock, per-car fitment and facility development. Phase 37 adds mutable engine-supplier contracts, per-car engine/component condition, deterministic race wear, persistent mechanical failures, spare consumption, component rebuilds, engine service and preseason testing.
+Phase 38 adds a dynamic annual governance layer. Future historical rules are hidden references that may become proposals; they are never automatically imposed. Active teams vote Yes / No / Abstain, approved packages take effect only in their target season, and technical resets alter carry-over without overwriting historical database data or destroying physical specification history.
 
-Historical `teamEngines` seeds the opening supplier only. Future supplier negotiations belong to Save World and activate at the agreed future season rather than changing the current car early. Unknown historical engine-contract money remains unknown/abstract instead of receiving fabricated cash terms; negotiated future contracts become real Team Economy expenses after activation.
+The Formula One grid can now evolve. Eligible future team identities may apply to enter, governance may approve or reject them, and accepted entrants receive explicitly generated Save World resources before using the same recruitment, supplier, technical, reliability, commercial and race systems as existing teams. Financially distressed uncontrolled teams may leave the championship after sustained trouble, while their stable identity and completed history remain preserved.
 
-Physical condition now carries across races and affects both effective reliability and, when sufficiently poor, performance. A mechanical DNF can mark a persistent physical subsystem failed. Replacing a component consumes a matching manufactured spare, while a worn or failed removed component does not magically return to inventory as a fresh part.
+Team rebrands change presentation identity without replacing the stable `team_id`, preserving coherent results, records, contracts and histories across long careers.
 
-Preseason testing creates persistent development knowledge, reliability preparation and setup knowledge. Testing costs real cash, closes at the first race date and uses technical staff, driver feedback, facilities and deterministic seeded uncertainty. AI teams and a player team with **Car Development = Delegated** use the same supplier, testing, wear and maintenance systems.
+Phase 36 established physical specifications, manufacturing, stock, per-car fitment and facility development. Phase 37 added mutable engine-supplier contracts, per-car engine/component condition, deterministic race wear, persistent mechanical failures, spare consumption, component rebuilds, engine service and preseason testing. Phase 38 connects the annual technical/offseason loop to dynamic regulation and grid evolution.
 
 Facilities remain mutable Save World upgrade state. Upgrades cost real team cash, take time and add maintenance cost without rewriting historical database rows. The canonical v1.2.5 database provides explicit 1980 component/facility/manufacturing starting baselines with source-lock provenance; derived values remain explicitly non-source-locked.
 
@@ -37,6 +37,7 @@ The local Developer Playtest exposes:
 - Career / Race Weekend
 - Management Hub
 - Technical Operations, including suppliers, preseason, reliability, R&D, manufacturing and facilities
+- Governance & F1 World, including regulation votes, grid evolution and team identity changes
 
 ## Architecture rule
 
@@ -45,7 +46,7 @@ The project keeps five concerns separate:
 - **Historical World Database** — immutable source data.
 - **Save World** — evolving career state.
 - **Simulation Engine** — systems that advance and change the world.
-- **Game Systems** — contracts, development, finances, staff, sponsors and management mechanics.
+- **Game Systems** — contracts, development, finances, staff, sponsors, technical operations and governance mechanics.
 - **UI** — presentation and player interaction; never the authoritative simulation state.
 
 The database packaging boundary is:
@@ -58,13 +59,17 @@ The race-weekend gameplay boundary is:
 
 The management gameplay boundary is:
 
-`World Event -> Board / People / Market / Commercial / Technical / Career State -> Inbox / Advice -> Player Decision -> Simulation Event -> Updated Save World`
+`World Event -> Board / People / Market / Commercial / Technical / Governance / Career State -> Inbox / Advice -> Player Decision -> Simulation Event -> Updated Save World`
 
 The technical gameplay boundary is:
 
 `Historical starting car/supplier -> Preseason -> Design / Research -> Specification -> Manufacture -> Inventory -> Fit -> Wear / Failure -> Maintain -> Race`
 
-See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
+The governance boundary is:
+
+`Historical future reference / Dynamic pressure -> Proposal / Application -> Vote / Review -> Enacted decision -> Save World consequence -> News / History`
+
+See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/REGULATIONS_GOVERNANCE_TEAM_EVOLUTION.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
 
 ## Historical data policy
 
@@ -72,7 +77,7 @@ The current promoted canonical source baseline is **v1.2.5-1980-technical-source
 
 The canonical source identity remains `9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097`. The promoted Global JSON hash is `315fdd58ef24b02bc6aeb073876d8fa1966839c134751979d8800393b83a36cd` and the promoted Season Definition 1980 JSON hash is `e22b89da311991fad300d873973513cba438ebac38b450e8bf5248f61dfc9303`.
 
-Management and technical systems are deliberately tolerant of missing historical fields. Salary, personality, agent, staff-rating, sponsor, contract, facility and technical data are used when the database supplies them. Missing values do not become fabricated historical truth:
+Management, technical and governance systems are deliberately tolerant of missing historical fields. Missing values do not become fabricated historical truth:
 
 - personality falls back to neutral gameplay values with explicit fallback provenance;
 - representatives may receive deterministic behavioral profiles but no invented real-world name;
@@ -88,6 +93,10 @@ Management and technical systems are deliberately tolerant of missing historical
 - historical `teamEngines` provides the opening supplier assignment only; future supplier contracts are Save World state;
 - unknown historical supplier monetary values remain abstract rather than becoming invented costs;
 - technical specifications, reliability ratings, wear, failures, maintenance, preseason preparation and supplier agreements created after career start are simulation state;
+- future historical regulations are reference inputs only and require career governance before becoming active;
+- future team identities are eligibility candidates, not scripted future grid members;
+- generated resources for newly admitted teams are explicit simulation baselines, not historical facts;
+- rebrands preserve stable team IDs;
 - facility upgrades never overwrite the historical starting facility rows or reference baselines;
 - source-lock manifests, canonical ID correction maps, technical audits and research/readiness packs remain reference context rather than mutable Save World state.
 
@@ -129,6 +138,7 @@ Then open:
 - Career / Race Weekend: `http://127.0.0.1:3000`
 - Management Hub: `http://127.0.0.1:3000/management.html`
 - Technical Operations: `http://127.0.0.1:3000/technical.html`
+- Governance & F1 World: `http://127.0.0.1:3000/governance.html`
 
 Both database inputs may be plain `.json` or `.json.gz`. The browser receives only player-facing projections; hidden future identity pools and reference data remain server-side in the Save World.
 
