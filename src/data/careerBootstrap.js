@@ -42,7 +42,7 @@ export function validateSeasonDatabaseAgainstGlobal(payload, globalDatabase, opt
       issues.push(`Season Database version ${identity.databaseVersion} does not match Global Database ${globalVersion}.`);
     }
     if (globalChecksum && identity.sourceChecksum && globalChecksum !== text(identity.sourceChecksum)) {
-      issues.push("Season Database sourceChecksum does not match Global Database source identity.");
+      issues.push("Season Database sourceChecksum does not match Global Database sourceSha256.");
     }
 
     const readiness = getSeasonReadiness(globalDatabase, identity.season);
