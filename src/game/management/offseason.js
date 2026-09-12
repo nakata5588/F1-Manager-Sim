@@ -4,7 +4,6 @@ import { preseasonProjection } from "./preseason.js";
 import { regulationProjection } from "./regulations.js";
 import { supplierProjection } from "./suppliers.js";
 import { teamEvolutionProjection } from "./teamEvolution.js";
-import { technicalProjection } from "./technical.js";
 
 export const OFFSEASON_EVENT = Object.freeze({
   OPENED: "offseason.opened",
@@ -122,7 +121,7 @@ function planFor(saveWorld, teamId, source, confirmed) {
 function preparationStatus(saveWorld, teamId, closingSeason, targetSeason) {
   const supplier = supplierProjection(saveWorld, teamId);
   const commercial = commercialProjection(saveWorld, teamId);
-  const technical = technicalProjection(saveWorld, teamId);
+  const technical = saveWorld.world?.technical?.teams?.[teamId] ?? null;
   const regulations = regulationProjection(saveWorld);
   const evolution = teamEvolutionProjection(saveWorld);
   const drivers = workerContractReadiness(saveWorld, teamId, targetSeason, "driver");
@@ -131,8 +130,8 @@ function preparationStatus(saveWorld, teamId, closingSeason, targetSeason) {
   const futureSupplierCovers = Number(supplier?.futureDeal?.effectiveSeason ?? Infinity) <= targetSeason
     && Number(supplier?.futureDeal?.endSeason ?? targetSeason) >= targetSeason;
   const sponsorDeals = (commercial?.activeDeals ?? []).filter((row) => Number(row.endSeason ?? closingSeason) >= targetSeason);
-  const futureSpecs = (technical?.specifications ?? []).filter((row) => Number(row.targetSeason) === targetSeason);
-  const activeFutureDesigns = (technical?.design?.active ?? []).filter((row) => Number(row.targetSeason) === targetSeason);
+  const futureSpecs = Object.values(technical?.specs ?? {}).filter((row) => Number(row.targetSeason) === targetSeason && ["future", "ready_for_manufacture", "active"].includes(row.status));
+  const activeFutureDesigns = (technical?.designProjects ?? []).filter((row) => row.status === "active" && Number(row.targetSeason) === targetSeason);
   const targetProposals = (regulations?.openProposals ?? []).filter((row) => Number(row.targetSeason) === targetSeason);
   const targetApplications = (evolution?.applications ?? []).filter((row) => Number(row.targetSeason) === targetSeason && ["pending", "accepted"].includes(row.status));
   const preseason = Number(saveWorld.clock?.season) === targetSeason ? preseasonProjection(saveWorld, teamId) : null;
