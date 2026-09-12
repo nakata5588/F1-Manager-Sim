@@ -1,0 +1,27 @@
+{
+  "releaseName": "F1_Manager_Sim_Database_Rebuild_v1.2.5_1980_technical_source_lock_candidate",
+  "databaseVersion": "v1.2.5-1980-technical-source-lock-candidate",
+  "generatedAt": "2026-09-12T11:02:00+01:00",
+  "checksums": [
+    {"filename":"F1_Manager_Sim_Global_Database_v1.2.5_1980_technical_source_lock_candidate.json","sha256":"315fdd58ef24b02bc6aeb073876d8fa1966839c134751979d8800393b83a36cd","bytes":22552016},
+    {"filename":"F1_Manager_Sim_Global_Database_v1.2.5_1980_technical_source_lock_candidate.sqlite","sha256":"1676259db4a50b2e596c38c030a9152f9d5d587b2627b48fe7196553dfa4992c","bytes":5693440},
+    {"filename":"F1_Manager_Sim_SeasonDefinition_1980_v1.2.5_1980_technical_source_lock_candidate.json","sha256":"e22b89da311991fad300d873973513cba438ebac38b450e8bf5248f61dfc9303","bytes":10730684},
+    {"filename":"F1_Manager_Sim_SeasonDefinition_1980_v1.2.5_1980_technical_source_lock_candidate.sqlite","sha256":"85027332b8045454eecedcdb7a684bf9997c66063d990e1440f43d46bc7c4495","bytes":3481600},
+    {"filename":"F1_Manager_Sim_Database_Rebuild_v1.2.5_1980_technical_source_lock_candidate_EDITOR.xlsx","sha256":"391004767149c2c73870e691932375dc5eeb9512c0ab9f924048da7b2011487c","bytes":61442},
+    {"filename":"F1_Manager_Sim_Database_Rebuild_v1.2.5_1980_technical_source_lock_candidate_REPORT.md","sha256":"fa6f597904513b8cc388e1b80c3e26739b84dbaf0380ffcf0e5416e06192acb0","bytes":2475},
+    {"filename":"F1_Manager_Sim_Database_Rebuild_v1.2.5_1980_technical_source_lock_candidate_baseline.json","sha256":"d4cc28f126ec0b1665d7a92189e187ea80fb1fb818850775fd5d756c8eded807","bytes":2082},
+    {"filename":"f1_db_v125_1980_technical_source_lock_outputs/baseline_diff_v1.2.4_to_v1.2.5.csv","sha256":"26d67cabbe3ddfd7edfe9a2d2f3e47fad2c992ebdbe5b6326a61a29c6cf136ba","bytes":511},
+    {"filename":"f1_db_v125_1980_technical_source_lock_outputs/manufacturing_capacity_baseline_1980.csv","sha256":"5acb65746487121169804c944a7fb2c54439edb8a241230f03b0f59ea2f4e240","bytes":5413},
+    {"filename":"f1_db_v125_1980_technical_source_lock_outputs/sqlite_integrity_checks.csv","sha256":"3e752790ec3ad92a75c1eac6d03673f941531b7549a734a9953a70a6418cba06","bytes":53},
+    {"filename":"f1_db_v125_1980_technical_source_lock_outputs/summary_cards.csv","sha256":"009f46d34e298301375c0137be2059a8cccb45608fa4a9ab421d9db905586dba","bytes":327},
+    {"filename":"f1_db_v125_1980_technical_source_lock_outputs/technical_component_baselines_1980.csv","sha256":"450058d9f1fc73ab08deb3c886299f0d982e28fca90817ff67da15995c5e8c27","bytes":26263},
+    {"filename":"f1_db_v125_1980_technical_source_lock_outputs/technical_facility_baselines_1980.csv","sha256":"a1b9d3ceccd49b99ad6da9b6b453fa9a9f3d659d0c5eaed3d3b343f9c66fd0c2","bytes":20687},
+    {"filename":"f1_db_v125_1980_technical_source_lock_outputs/technical_materializer_delta_spec_v1.2.5.csv","sha256":"77c7235483bd5ecfc133bb546c9453a09dd3020778c7b3f15ea66b11bd3bc92a","bytes":678},
+    {"filename":"f1_db_v125_1980_technical_source_lock_outputs/technical_source_lock_audit_1980.csv","sha256":"de17c5065bf78c7ff2fed6bc3558922917cfe06965f47283034d50ff7cb59df9","bytes":199494},
+    {"filename":"f1_db_v125_1980_technical_source_lock_outputs/technical_source_lock_policy.csv","sha256":"80cec4b41714193e7b95b5745c86f654c2dab68a9e86e4bd37e93585d59819fd","bytes":917},
+    {"filename":"f1_db_v125_1980_technical_source_lock_outputs/technical_source_lock_readiness_1980.csv","sha256":"1b3eef67c9444c4ffae353554fe656db49e494c52f931049a631bf96fd8115bc","bytes":455},
+    {"filename":"f1_db_v125_1980_technical_source_lock_outputs/technical_source_manifest_v1.2.5.csv","sha256":"aa8460546e50b484ae7f45a6c6ce58245d70eff18423fccab8569e80bffe9db8","bytes":846},
+    {"filename":"f1_db_v125_1980_technical_source_lock_outputs/technical_suppressed_dynamic_state_rules.csv","sha256":"8f67f56a81912a04062e5cb51be098e03eba7d060b1614351331d929b8d65b89","bytes":1039},
+    {"filename":"f1_db_v125_1980_technical_source_lock_outputs/technical_unknown_fields_1980.csv","sha256":"8c39a0bee4ab54baf5450ceeaea67759b1d41e6f6c93fea11c89fd018f128cc2","bytes":1222}
+  ]
+}
