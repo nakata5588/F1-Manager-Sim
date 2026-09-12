@@ -6,6 +6,7 @@ export { createCareerFromSeasonDatabase, validateSeasonDatabaseAgainstGlobal } f
 export { DeveloperPlaytestSession, listDeveloperPlaytestTeams } from "./app/developerPlaytest.js";
 export { developerApplyManagerJob, developerArchiveInboxItem, developerBoard, developerCommercial, developerContractNegotiations, developerInbox, developerManagementOverview, developerManagerCareer, developerMarkInboxRead, developerMarket, developerOpenDriverNegotiation, developerOpenSponsorNegotiation, developerOpenStaffNegotiation, developerPeople, developerRecruitment, developerResolveInboxDecision, developerResolveSponsorActivity, developerResponsibilities, developerSetResponsibility, developerSetShortlist, developerStaffContractNegotiations, developerStaffRecruitment, developerStartScouting, developerSubmitBoardRequest, developerSubmitDriverOffer, developerSubmitSponsorOffer, developerSubmitStaffOffer, developerWithdrawDriverNegotiation, developerWithdrawSponsorNegotiation, developerWithdrawStaffNegotiation } from "./app/managementPlaytest.js";
 export { developerCastGovernanceVote, developerGovernance, developerRebrandControlledTeam } from "./app/governancePlaytest.js";
+export { developerConfirmOffseasonPlan, developerContinueCalendar, developerOffseason, developerUpdateOffseasonPlan } from "./app/offseasonPlaytest.js";
 export { loadSeasonPackPayload, parseSeasonPackPayload, seasonPackSheetRows, SeasonPackValidationError, validateSeasonPackPayload } from "./data/seasonPackLoader.js";
 export { applySeasonPackOverlay, overlaySourceChecksum, SeasonPackOverlayError } from "./data/seasonPackOverlay.js";
 export { loadSeasonPackRuntimePayload, validateSeasonPackRuntimePayload } from "./data/seasonPackRuntime.js";
@@ -16,7 +17,8 @@ export { buildDriverScoutingReport, completeDriverScoutingAssignment, driverScou
 export { acceptDriverContractCounterEvent, CONTRACT_NEGOTIATION_EVENT, contractNegotiationSummary, ensureContractNegotiationState, evaluateDriverContractOffer, listContractNegotiations, openDriverContractNegotiation, submitDriverContractOfferEvent, transferCompensationRequirement, withdrawDriverContractNegotiationEvent } from "./game/management/contracts.js";
 export { activeCompetingOffers, adjustRelationship, ensurePeopleState, ensurePersonState, ensureRelationship, ensureRepresentative, evaluateDriverTransferInterest, peopleSummary, personProfile, personProjection } from "./game/management/people.js";
 export { chooseRivalTeam, createExternalDriverOffer, expireExternalOffers, listOpenExternalOffers, marketPressureForDriver, marketSummary } from "./game/management/market.js";
-export { boardProjection, boardStatus, ensureBoardState, evaluateBoard, initializeBoardTeam, resolveBoardRequest, submitBoardRequest } from "./game/management/board.js";
+export { boardProjection, boardStatus, ensureBoardState, evaluateBoard, initializeBoardTeam, renewBoardSeason, resolveBoardRequest, submitBoardRequest } from "./game/management/board.js";
+export { OFFSEASON_EVENT, completeOffseasonCycle, confirmOffseasonPlan, ensureOffseasonState, finalBoardReviews, offseasonProjection, openOffseasonCycle, prepareNewSeasonFromOffseason, refreshOffseasonCycle, setOffseasonPlan } from "./game/management/offseason.js";
 export { acceptManagerJobOfferEvent, adjustManagerReputation, appointManager, createManagerJobOffer, decideManagerApplication, dismissManager, ensureManagerCareer, listManagerJobVacancies, MANAGER_EVENT, managerCareerProjection, submitManagerApplicationEvent } from "./game/management/managerCareer.js";
 export { ensureResponsibilities, responsibilityAreas, responsibilityOwner, responsibilityProjection, setResponsibility } from "./game/management/responsibilities.js";
 export { acceptStaffCounterEvent, buildStaffCounterTerms, evaluateStaffInterest, evaluateStaffOffer, listStaffContractNegotiations, listStaffRecruitmentCandidates, openStaffContractNegotiation, STAFF_NEGOTIATION_EVENT, staffRecruitmentSummary, submitStaffContractOfferEvent, withdrawStaffNegotiationEvent } from "./game/management/staffRecruitment.js";
@@ -73,6 +75,8 @@ export { RACE_ENTRY_EVENT, createRaceEntrySystem } from "./sim/systems/raceEntry
 export { TEAM_FINANCE_EVENT, createTeamEconomySystem } from "./sim/systems/teamEconomy.js";
 export { TEAM_DEVELOPMENT_EVENT, createTeamDevelopmentSystem } from "./sim/systems/teamDevelopment.js";
 export { SEASON_EVENT, createSeasonRolloverSystem } from "./sim/systems/seasonRollover.js";
+export { createOffseasonManagementSystem } from "./sim/systems/offseasonManagement.js";
+export { createOffseasonInboxSystem } from "./sim/systems/offseasonInbox.js";
 export { STRATEGY_EVENT, createRaceStrategySystem } from "./sim/systems/raceStrategy.js";
 export { PERFORMANCE_CALIBRATION_EVENT, calibratedCarComponents, calibrateTyreStrategies, createPerformanceCalibrationSystem } from "./sim/systems/performanceCalibration.js";
 export { RACE_EVENT, createRaceWeekendSystem } from "./sim/systems/raceWeekend.js";
