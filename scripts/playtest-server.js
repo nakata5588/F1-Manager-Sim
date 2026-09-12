@@ -39,11 +39,19 @@ import {
   developerWithdrawStaffNegotiation,
 } from "../src/app/managementPlaytest.js";
 import {
+  developerAcceptSupplierCounter,
   developerFitTechnicalSpec,
+  developerOpenSupplierNegotiation,
+  developerRebuildComponent,
+  developerReplaceWornComponent,
+  developerRunPreseasonTest,
+  developerServiceEngine,
   developerStartFacilityUpgrade,
   developerStartManufacturing,
   developerStartTechnicalDesign,
+  developerSubmitSupplierOffer,
   developerTechnical,
+  developerWithdrawSupplierNegotiation,
 } from "../src/app/technicalPlaytest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -312,6 +320,38 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/technical/facility" && request.method === "POST") {
       const input = await body(request);
       return json(response, 200, developerStartFacilityUpgrade(session, input.facilityId));
+    }
+    if (url.pathname === "/api/technical/supplier/open" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerOpenSupplierNegotiation(session, input));
+    }
+    if (url.pathname === "/api/technical/supplier/offer" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerSubmitSupplierOffer(session, input));
+    }
+    if (url.pathname === "/api/technical/supplier/counter" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerAcceptSupplierCounter(session, input.negotiationId));
+    }
+    if (url.pathname === "/api/technical/supplier/withdraw" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerWithdrawSupplierNegotiation(session, input.negotiationId));
+    }
+    if (url.pathname === "/api/technical/reliability/replace" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerReplaceWornComponent(session, input));
+    }
+    if (url.pathname === "/api/technical/reliability/rebuild" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerRebuildComponent(session, input));
+    }
+    if (url.pathname === "/api/technical/reliability/engine" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerServiceEngine(session, input.carSlot));
+    }
+    if (url.pathname === "/api/technical/preseason-test" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerRunPreseasonTest(session, input));
     }
 
     if (request.method === "GET" && serveStatic(request, response)) return;
