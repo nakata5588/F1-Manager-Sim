@@ -1,3 +1,5 @@
+import { technicalCarComponentsForDriver } from "../game/management/technical.js";
+
 function numeric(value, fallback = null) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -39,10 +41,15 @@ function driverAttribute(saveWorld, driverId, names, fallback = 50) {
   return fallback;
 }
 
-function carComponents(saveWorld, teamId) {
+function teamCarComponents(saveWorld, teamId) {
   const dynamic = saveWorld.world?.carState?.[teamId]?.components;
   if (dynamic && Object.keys(dynamic).length) return dynamic;
   return (saveWorld.world?.carStats ?? []).find((row) => row.team_id === teamId) ?? {};
+}
+
+function carComponents(saveWorld, teamId, driverId = null) {
+  const team = teamCarComponents(saveWorld, teamId);
+  return driverId ? technicalCarComponentsForDriver(saveWorld, teamId, driverId, team) : team;
 }
 
 function engineForTeam(saveWorld, teamId) {
@@ -56,8 +63,8 @@ function average(values, fallback = 50) {
   return usable.reduce((sum, value) => sum + value, 0) / usable.length;
 }
 
-function carScore(saveWorld, teamId) {
-  const car = carComponents(saveWorld, teamId);
+function carScore(saveWorld, teamId, driverId = null) {
+  const car = carComponents(saveWorld, teamId, driverId);
   return average([
     car.chassis_spec,
     car.aero_spec,
@@ -69,8 +76,8 @@ function carScore(saveWorld, teamId) {
   ]);
 }
 
-function reliabilityScore(saveWorld, teamId) {
-  const car = carComponents(saveWorld, teamId);
+function reliabilityScore(saveWorld, teamId, driverId = null) {
+  const car = carComponents(saveWorld, teamId, driverId);
   const engine = engineForTeam(saveWorld, teamId);
   const engineReliability = normalizeRating(engine.reliability, 65);
   const carReliability = average([
@@ -96,7 +103,7 @@ function baselinePerformance(saveWorld, weekend, gridRow) {
   const intelligence = driverAttribute(saveWorld, driverId, ["race_intelligence", "racecraft"]);
   const start = driverAttribute(saveWorld, driverId, ["start_launch", "starts", "racecraft"]);
   const driver = pace * 0.32 + racecraft * 0.22 + consistency * 0.12 + tyre * 0.10 + intelligence * 0.08 + start * 0.06;
-  const car = carScore(saveWorld, teamId);
+  const car = carScore(saveWorld, teamId, driverId);
   const enginePower = normalizeRating(engineForTeam(saveWorld, teamId).power, 50);
   const setup = setupQuality(weekend, driverId);
   const qualifying = normalizeRating(gridRow.qualifyingScore, driver);
@@ -131,7 +138,7 @@ export function createRaceStartBaseline(saveWorld, weekend) {
     status: "STARTING",
     completedLaps: 0,
     performanceIndex: round(baselinePerformance(saveWorld, weekend, gridRow), 4),
-    reliability: round(reliabilityScore(saveWorld, gridRow.teamId), 2),
+    reliability: round(reliabilityScore(saveWorld, gridRow.teamId, gridRow.driverId), 2),
     source: "race_start_baseline",
   }));
 }
