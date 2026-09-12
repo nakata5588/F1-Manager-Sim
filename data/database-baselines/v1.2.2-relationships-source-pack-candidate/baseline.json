@@ -1,0 +1,106 @@
+{
+  "format": "f1-manager-sim-database-baseline",
+  "schemaVersion": 1,
+  "baselineId": "v1.2.2-relationships-source-pack-candidate-2026-09-12",
+  "candidateStatus": "VALIDATED_WITH_PROMOTION_BLOCKERS",
+  "canonical": false,
+  "bundle": {
+    "filename": "F1_Manager_Sim_Database_Rebuild_v1.2.2_relationships_source_pack_candidate_Bundle.zip",
+    "cumulative": true,
+    "supersedes": [
+      "v1.0.1",
+      "v1.1.0",
+      "v1.2.0",
+      "v1.2.1"
+    ],
+    "files": 19
+  },
+  "globalDatabase": {
+    "releaseName": "F1_Manager_Sim_Database_Rebuild_v1.2.2_relationships_source_pack_candidate",
+    "databaseVersion": "v1.2.2-relationships-source-pack-candidate",
+    "previousDatabaseVersion": "v1.2.1-source-lock-candidate",
+    "jsonFilename": "F1_Manager_Sim_Global_Database_v1.2.2_relationships_source_pack_candidate.json",
+    "jsonSha256": "79d85678db968243c6b34fd9e1d0109ab7fee4b25b0d8f03f5802692e0ea5895",
+    "jsonBytes": 22052025,
+    "manifestDatabaseVersion": "f1db-v1.2.0-people-market-candidate",
+    "manifestReleaseName": "F1_Manager_Sim_Global_Database_v1.2.1_source_lock_candidate",
+    "manifestReleaseVersion": "1.2.0-management-people-market-candidate",
+    "sourceFilename": "f1_db(2).xlsx",
+    "sourceSha256": "9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097",
+    "supportedSeasons": [1980],
+    "readiness": {
+      "1980": "READY",
+      "2000": "BLOCKED"
+    },
+    "drivers": 863,
+    "staff": 61,
+    "teams": 212,
+    "entityAliases": 205,
+    "sourceLockedFactRegister": 9
+  },
+  "seasonDatabases": {
+    "1980": {
+      "releaseName": "F1_Manager_Sim_SeasonDefinition_1980_v1.2.2_relationships_source_pack_candidate",
+      "format": "f1-manager-sim-season-database",
+      "schemaVersion": 1,
+      "databaseVersion": "v1.2.2-relationships-source-pack-candidate",
+      "sourceChecksum": "82627e7de1aa007ea7592ab30b8271b3f4f00536733ea5434c25812d0b3032bc",
+      "jsonFilename": "F1_Manager_Sim_SeasonDefinition_1980_v1.2.2_relationships_source_pack_candidate.json",
+      "jsonSha256": "3a0147451b6f31ee45af72b1e4413a397ee9ae0541fac7b8bbbd09a0691e989f",
+      "jsonBytes": 9792441,
+      "activeTeams": 15,
+      "activeDrivers": 50,
+      "activeStaff": 55,
+      "calendarRaces": 14,
+      "seasonRecruitmentPool": 66,
+      "contractNegotiationBaseline": 79,
+      "initialInboxEvents": 90,
+      "driverPersonalityProfiles": 66,
+      "staffPersonalityProfiles": 55,
+      "entityRelationshipSeeds": 159,
+      "relationshipSourcePack1980": 8,
+      "sponsorSourceLock1980": 24,
+      "staffSourceLock1980": 53
+    }
+  },
+  "validation": {
+    "bundleChecksums": "PASS",
+    "sqliteIntegrity": "PASS",
+    "canonicalIdDuplicates": "PASS",
+    "aliasCrosswalkDuplicates": "PASS",
+    "futureOutcomeAuthority": "PASS_WITH_REFERENCE_PARTITION",
+    "derivedGameplayBaselinePolicy": "PASS",
+    "historicalReferenceHiddenPolicy": "PASS_WITH_REFERENCE_PARTITION",
+    "globalSeasonCompatibility": "FAIL_SUPPLIED_SEASON_ARTIFACT",
+    "activeStartFactCanonicalIds": "FAIL_SUPPLIED_SEASON_ARTIFACT"
+  },
+  "promotionBlockers": [
+    {
+      "id": "V122-IDENTITY-001",
+      "severity": "P0",
+      "area": "Global manifest release identity",
+      "detail": "Top-level Global databaseVersion is v1.2.2-relationships-source-pack-candidate, but embedded manifest still declares f1db-v1.2.0-people-market-candidate and v1.2.1/v1.2.0 release labels.",
+      "requiredFix": "Regenerate the Global candidate with one coherent release identity while preserving source workbook lineage separately."
+    },
+    {
+      "id": "V122-IDENTITY-002",
+      "severity": "P0",
+      "area": "Season source identity",
+      "detail": "Supplied Season Definition sourceChecksum 82627e7de1aa007ea7592ab30b8271b3f4f00536733ea5434c25812d0b3032bc does not match the Global source identity 9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097 and cannot be traced to a declared bundle artifact.",
+      "requiredFix": "Regenerate Season Definition from the corrected Global candidate and publish the matching source identity/checksum."
+    },
+    {
+      "id": "V122-ID-003",
+      "severity": "P0",
+      "area": "Pre-materialized Season source-locked facts",
+      "detail": "canonicalIdCorrectionsV122 contains eight repairs, but activeStartSourceLockedFacts and auditOnly.sourceLockedFactRegisterAll still retain several pre-repair canonical IDs.",
+      "requiredFix": "Apply the v1.2.2 correction map before writing every Season Definition/audit fact surface."
+    }
+  ],
+  "policies": {
+    "databaseBoundary": "Global Database -> Season Database -> Save World -> Simulation Engine",
+    "largeEditorialArtifacts": "JSON/SQLite/XLSX remain external; source repo pins hashes and small source/audit packs only.",
+    "derivedGameplayBaseline": "Preserve data_status/source_lock_status; never promote derived_gameplay_baseline to source-locked historical fact.",
+    "historicalReferenceHidden": "Reference/audit only; never a mandatory Save World outcome."
+  }
+}
