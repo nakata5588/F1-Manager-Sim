@@ -1,4 +1,8 @@
 import { extractDatabaseReferenceContext } from "../data/databaseManagementMaterializer.js";
+import {
+  extractTechnicalReferenceContext,
+  initializeTechnicalStartingState,
+} from "../data/databaseTechnicalMaterializer.js";
 
 export function createSaveWorld(historicalSnapshot, options = {}) {
   if (!historicalSnapshot?.season) throw new TypeError("A historical season snapshot is required.");
@@ -17,7 +21,15 @@ export function createSaveWorld(historicalSnapshot, options = {}) {
   const hiddenExternalDriverMarket = structuredClone(clonedSnapshot.externalDriverMarket ?? []);
   const visibilityPolicy = structuredClone(clonedSnapshot.visibilityPolicy ?? null);
   const databasePolicy = structuredClone(clonedSnapshot.databasePolicy ?? null);
-  const databaseContext = extractDatabaseReferenceContext(clonedSnapshot);
+  const startDate = options.startDate ?? `${historicalSnapshot.season}-01-01`;
+
+  // Database technical rows are immutable starting/reference inputs. Materialize
+  // the mutable fitted-car state before moving those source rows out of world.
+  initializeTechnicalStartingState(clonedSnapshot, startDate);
+  const databaseContext = {
+    ...extractDatabaseReferenceContext(clonedSnapshot),
+    ...extractTechnicalReferenceContext(clonedSnapshot),
+  };
   const hasDatabaseContext = Object.keys(databaseContext).length > 0;
 
   // Historical records and structural/reference future data are deliberately
@@ -41,7 +53,7 @@ export function createSaveWorld(historicalSnapshot, options = {}) {
       createdAt: options.createdAt ?? new Date().toISOString(),
     },
     clock: {
-      date: options.startDate ?? `${historicalSnapshot.season}-01-01`,
+      date: startDate,
       season: historicalSnapshot.season,
       day: 1,
     },
