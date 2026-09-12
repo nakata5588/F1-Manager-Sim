@@ -14,14 +14,17 @@ import {
   ensurePreseasonTeam,
   initializePreseasonWorld,
   isPreseasonWindow,
+  preseasonDevelopmentBonus,
   runPreseasonTest,
 } from "../../game/management/preseason.js";
 import {
   RELIABILITY_EVENT,
   applyRaceWear,
   ensureReliabilityTeam,
+  fittedComponentReturnable,
   initializeReliabilityWorld,
   rebuildFittedComponent,
+  registerFittedComponentUnit,
   reliabilityProjection,
   replaceWornComponent,
   serviceEngineUnit,
@@ -41,6 +44,22 @@ function numeric(value, fallback = null) {
   if (value === null || value === undefined || value === "") return fallback;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function clamp(value, minimum = 0, maximum = 100) {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
+function round(value, digits = 2) {
+  return Number(Number(value).toFixed(digits));
+}
+
+function normalizeRating(value, fallback = 70) {
+  const parsed = numeric(value);
+  if (parsed === null) return fallback;
+  if (parsed >= 0 && parsed <= 1) return parsed * 100;
+  if (parsed >= 1 && parsed <= 10) return parsed * 10;
+  return clamp(parsed);
 }
 
 function mayAutoManage(saveWorld, teamId, controlled) {
@@ -109,7 +128,9 @@ function maybeAiPreseasonTest(saveWorld, teamId, source) {
   if (!state || state.sessionsCompleted >= Math.min(2, state.maxSessions)) return null;
   if (!financeCanSpend(saveWorld, teamId, 65000)) return null;
   const rng = createRng(`${saveWorld.meta.seed}|${saveWorld.clock.season}|ai-preseason|${teamId}|${state.sessionsCompleted}`);
-  const focus = rng.next() < 0.42 ? "reliability" : rng.next() < 0.55 ? "development" : "balanced";
+  const first = rng.next();
+  const second = rng.next();
+  const focus = first < 0.42 ? "reliability" : second < 0.55 ? "development" : "balanced";
   try {
     const result = runPreseasonTest(saveWorld, teamId, { focus, source });
     return { type: PRESEASON_EVENT.TEST_COMPLETED, payload: { team_id: teamId, test_id: result.testId, focus: result.focus, effectiveness: result.effectiveness, reliability_prep_gain: result.reliabilityPrepGain, development_knowledge_gain: result.developmentKnowledgeGain, cost: result.cost, source } };
@@ -215,6 +236,87 @@ function autoManagementRound(saveWorld, event, options) {
   return output;
 }
 
+function fittedReliability(team, component) {
+  const values = ["car1", "car2"]
+    .map((slot) => team.specs?.[team.fittedCars?.[slot]?.components?.[component]])
+    .filter(Boolean)
+    .map((spec) => normalizeRating(spec.reliabilityRating ?? spec.reliabilityReference, 70));
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 70;
+}
+
+function enrichCompletedDesign(saveWorld, event) {
+  const teamId = event.payload?.team_id;
+  const projectId = event.payload?.project_id;
+  const specId = event.payload?.spec_id;
+  if (!teamId || !specId) return null;
+  const team = ensureTechnicalTeam(saveWorld, teamId);
+  const spec = team.specs?.[specId];
+  const project = team.designProjects.find((row) => row.projectId === projectId);
+  if (!spec || !project) return null;
+
+  const rng = createRng(`${saveWorld.meta.seed}|${projectId}|reliability-design`);
+  const baseReliability = fittedReliability(team, project.component);
+  const focusReliabilityGain = project.focus === "reliability"
+    ? 7 + rng.next() * 5
+    : project.focus === "performance"
+      ? -1.8 + rng.next() * 2.8
+      : 2 + rng.next() * 3;
+  const execution = (numeric(project.staffEfficiency, 0.5) + numeric(project.facilityEfficiency, 0.5)) * 1.4;
+  spec.reliabilityRating = round(clamp(baseReliability + focusReliabilityGain + execution, 25, 100), 2);
+  spec.reliabilitySource = "simulation_design";
+
+  const preseasonBonus = preseasonDevelopmentBonus(saveWorld, teamId, project.targetSeason);
+  const preseasonGain = round(preseasonBonus * 3, 3);
+  if (preseasonGain > 0) {
+    spec.rating = round(clamp(numeric(spec.rating, 50) + preseasonGain, 1, 100), 3);
+    spec.gain = round(numeric(spec.gain, 0) + preseasonGain, 3);
+    project.realizedGain = spec.gain;
+    spec.preseasonDevelopmentGain = preseasonGain;
+  }
+
+  event.payload.rating = spec.rating;
+  event.payload.gain = spec.gain;
+  event.payload.reliability_rating = spec.reliabilityRating;
+  event.payload.preseason_gain = preseasonGain;
+  const history = saveWorld.history?.technical ?? [];
+  const record = [...history].reverse().find((row) => row.type === "design_completed" && row.specId === specId);
+  if (record) {
+    record.gain = spec.gain;
+    record.rating = spec.rating;
+    record.reliabilityRating = spec.reliabilityRating;
+    record.preseasonDevelopmentGain = preseasonGain;
+  }
+  return spec;
+}
+
+function integrateFittedUnit(saveWorld, event) {
+  const teamId = event.payload?.team_id;
+  const carSlot = event.payload?.car_slot;
+  const component = event.payload?.component;
+  const specId = event.payload?.spec_id;
+  const previousSpecId = event.payload?.previous_spec_id ?? null;
+  if (!teamId || !carSlot || !component || !specId) return null;
+  const team = ensureTechnicalTeam(saveWorld, teamId);
+  const returnable = previousSpecId ? fittedComponentReturnable(saveWorld, teamId, carSlot, component) : false;
+  if (previousSpecId && !returnable) {
+    const returned = team.inventory?.[previousSpecId];
+    if (returned) returned.available = Math.max(0, Number(returned.available ?? 0) - 1);
+    saveWorld.history.reliability ??= [];
+    saveWorld.history.reliability.push({
+      date: event.date,
+      type: "unserviceable_component_removed",
+      teamId,
+      carSlot,
+      component,
+      specId: previousSpecId,
+      reason: "condition_below_return_to_stock_threshold",
+    });
+  }
+  registerFittedComponentUnit(saveWorld, teamId, carSlot, component, specId, "freshly_fitted_unit");
+  event.payload.previous_unit_returned_to_stock = Boolean(previousSpecId && returnable);
+  return { previousSpecId, returnable };
+}
+
 function raceWearEvents(saveWorld, event, options) {
   const result = applyRaceWear(saveWorld, event.payload ?? {}, event.date);
   const output = [{ type: RELIABILITY_EVENT.RACE_WEAR_APPLIED, payload: { teams: result.teams.length, failures: result.failures.length } }];
@@ -240,7 +342,14 @@ function raceWearEvents(saveWorld, event, options) {
 export function createTechnicalReliabilitySystem(options = {}) {
   return {
     id: "technical.reliability-suppliers",
-    eventTypes: [SIM_EVENT.CAREER_STARTED, SIM_EVENT.MONTH_STARTED, SIM_EVENT.SEASON_STARTED, RACE_EVENT.COMPLETED],
+    eventTypes: [
+      SIM_EVENT.CAREER_STARTED,
+      SIM_EVENT.MONTH_STARTED,
+      SIM_EVENT.SEASON_STARTED,
+      RACE_EVENT.COMPLETED,
+      TECHNICAL_EVENT.DESIGN_COMPLETED,
+      TECHNICAL_EVENT.COMPONENT_FITTED,
+    ],
     handle({ saveWorld, event }) {
       if (event.type === SIM_EVENT.CAREER_STARTED) {
         const suppliers = initializeSupplierWorld(saveWorld, event.date);
@@ -260,6 +369,14 @@ export function createTechnicalReliabilitySystem(options = {}) {
           ensureReliabilityTeam(saveWorld, teamId, event.date);
         }
         return [...activated, { type: PRESEASON_EVENT.SEASON_RESET, payload: { season: Number(saveWorld.clock.season) } }, ...autoManagementRound(saveWorld, event, options)];
+      }
+      if (event.type === TECHNICAL_EVENT.DESIGN_COMPLETED) {
+        enrichCompletedDesign(saveWorld, event);
+        return null;
+      }
+      if (event.type === TECHNICAL_EVENT.COMPONENT_FITTED) {
+        integrateFittedUnit(saveWorld, event);
+        return null;
       }
       if (event.type === RACE_EVENT.COMPLETED) return raceWearEvents(saveWorld, event, options);
       return autoManagementRound(saveWorld, event, options);
