@@ -4,6 +4,7 @@ import {
   mergeDatabaseOwnedSeasonFields,
   normalizeSeasonDatabaseSnapshot,
 } from "./databaseManagementMaterializer.js";
+import { mergeDatabaseTechnicalFields } from "./databaseTechnicalMaterializer.js";
 
 export const SEASON_DATABASE_FORMAT = "f1-manager-sim-season-database";
 export const SEASON_DATABASE_SCHEMA_VERSION = 1;
@@ -31,7 +32,8 @@ export function mergeSeasonBoundaryReferences(activeSnapshot, globalSnapshot) {
     throw new Error(`Cannot merge season ${activeSnapshot.season} with Global season ${globalSnapshot.season}.`);
   }
 
-  const databaseOwned = mergeDatabaseOwnedSeasonFields(activeSnapshot, globalSnapshot);
+  const managementOwned = mergeDatabaseOwnedSeasonFields(activeSnapshot, globalSnapshot);
+  const databaseOwned = mergeDatabaseTechnicalFields(managementOwned, globalSnapshot);
 
   return deepFreeze({
     ...databaseOwned,
@@ -48,6 +50,7 @@ export function mergeSeasonBoundaryReferences(activeSnapshot, globalSnapshot) {
       activeSeasonState: activeSnapshot.databaseVersion ?? activeSnapshot.sourcePackage?.databaseVersion ?? "season_snapshot",
       historicalAndFutureReference: globalSnapshot.databaseVersion ?? "global_database",
       databaseOwnedManagementContext: globalSnapshot.databaseVersion ?? "global_database",
+      databaseOwnedTechnicalContext: globalSnapshot.databaseVersion ?? "global_database",
       policy: "season_state_plus_global_history_boundary",
     },
   });
