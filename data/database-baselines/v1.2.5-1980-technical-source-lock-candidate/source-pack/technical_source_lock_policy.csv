@@ -1,0 +1,7 @@
+policy_id,scope,rule
+TECH-SL-POL-001,component_baselines,Component values from carStats may seed relative starting specs but must not be described as exact real-world measured engineering values.
+TECH-SL-POL-002,starting_specs,Starting specs are fitted-on-car seeds only; they do not create inventory or imply spare stock.
+TECH-SL-POL-003,facilities,Known facility fields seed starting facilities; absent concepts use derived_gameplay_baseline and remain non-source-locked.
+TECH-SL-POL-004,manufacturing,"Manufacturing capacity is an index for gameplay initialization; actual jobs, queues and production are Save World state."
+TECH-SL-POL-005,external_source_lock,Upgrade source_lock_status only after row-level external source confirms the historical claim.
+TECH-SL-POL-006,github_integration,v1.2.5 should be integrated only after v1.2.3 canonical promotion and v1.2.4 technical source candidate validation.
