@@ -26,6 +26,8 @@ import { createRaceEntrySystem } from "./raceEntry.js";
 import { createTeamEconomySystem } from "./teamEconomy.js";
 import { createTeamDevelopmentSystem } from "./teamDevelopment.js";
 import { createSeasonRolloverSystem } from "./seasonRollover.js";
+import { createOffseasonManagementSystem } from "./offseasonManagement.js";
+import { createOffseasonInboxSystem } from "./offseasonInbox.js";
 import { createRaceStrategySystem } from "./raceStrategy.js";
 import { createPerformanceCalibrationSystem } from "./performanceCalibration.js";
 import { createRaceWeekendSystem } from "./raceWeekend.js";
@@ -76,6 +78,8 @@ export function createCoreWorldSystems(options = {}) {
     createStaffAdviceSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createManagementInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createSeasonRolloverSystem(),
+    createOffseasonManagementSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
+    createOffseasonInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createTechnicalReliabilitySystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createTechnicalInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createRaceStrategySystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
