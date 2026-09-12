@@ -1,5 +1,9 @@
 import { deepFreeze } from "../domain/immutable.js";
 import { loadHistoricalSeason } from "../domain/historicalWorld.js";
+import {
+  mergeDatabaseOwnedSeasonFields,
+  normalizeSeasonDatabaseSnapshot,
+} from "./databaseManagementMaterializer.js";
 
 export const SEASON_DATABASE_FORMAT = "f1-manager-sim-season-database";
 export const SEASON_DATABASE_SCHEMA_VERSION = 1;
@@ -27,8 +31,10 @@ export function mergeSeasonBoundaryReferences(activeSnapshot, globalSnapshot) {
     throw new Error(`Cannot merge season ${activeSnapshot.season} with Global season ${globalSnapshot.season}.`);
   }
 
+  const databaseOwned = mergeDatabaseOwnedSeasonFields(activeSnapshot, globalSnapshot);
+
   return deepFreeze({
-    ...structuredClone(activeSnapshot),
+    ...databaseOwned,
     databasePolicy: structuredClone(globalSnapshot.databasePolicy ?? activeSnapshot.databasePolicy ?? null),
     historicalArchive: structuredClone(globalSnapshot.historicalArchive ?? activeSnapshot.historicalArchive ?? null),
     futureStructure: structuredClone(globalSnapshot.futureStructure ?? activeSnapshot.futureStructure ?? null),
@@ -41,6 +47,7 @@ export function mergeSeasonBoundaryReferences(activeSnapshot, globalSnapshot) {
     boundarySources: {
       activeSeasonState: activeSnapshot.databaseVersion ?? activeSnapshot.sourcePackage?.databaseVersion ?? "season_snapshot",
       historicalAndFutureReference: globalSnapshot.databaseVersion ?? "global_database",
+      databaseOwnedManagementContext: globalSnapshot.databaseVersion ?? "global_database",
       policy: "season_state_plus_global_history_boundary",
     },
   });
@@ -92,5 +99,5 @@ export function validateSeasonDatabasePayload(payload) {
 
 export function loadSeasonDatabasePayload(payload) {
   validateSeasonDatabasePayload(payload);
-  return deepFreeze(structuredClone(payload.snapshot));
+  return deepFreeze(normalizeSeasonDatabaseSnapshot(payload.snapshot));
 }

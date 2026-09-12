@@ -1,0 +1,12 @@
+metric,value
+database_version,v1.2.2-relationships-source-pack-candidate
+source_manifest_v122,17
+canonical_id_repairs,8
+new_staff_identities_reference,2
+sponsor_rows_audited_1980,24
+sponsor_rows_source_locked_or_keep_with_warning,14
+sponsor_rows_review_or_suppressed,10
+staff_rows_audited_1980,53
+relationship_fact_rows,8
+named_agent_profiles_created,0
+dynamic_save_world_state_stored,false

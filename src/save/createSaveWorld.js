@@ -1,3 +1,5 @@
+import { extractDatabaseReferenceContext } from "../data/databaseManagementMaterializer.js";
+
 export function createSaveWorld(historicalSnapshot, options = {}) {
   if (!historicalSnapshot?.season) throw new TypeError("A historical season snapshot is required.");
 
@@ -15,6 +17,8 @@ export function createSaveWorld(historicalSnapshot, options = {}) {
   const hiddenExternalDriverMarket = structuredClone(clonedSnapshot.externalDriverMarket ?? []);
   const visibilityPolicy = structuredClone(clonedSnapshot.visibilityPolicy ?? null);
   const databasePolicy = structuredClone(clonedSnapshot.databasePolicy ?? null);
+  const databaseContext = extractDatabaseReferenceContext(clonedSnapshot);
+  const hasDatabaseContext = Object.keys(databaseContext).length > 0;
 
   // Historical records and structural/reference future data are deliberately
   // kept outside the mutable active world. Future identity pools remain in
@@ -45,6 +49,7 @@ export function createSaveWorld(historicalSnapshot, options = {}) {
       futureStructure,
       hiddenExternalDriverMarket,
       visibilityPolicy,
+      ...(hasDatabaseContext ? { databaseContext } : {}),
       uiAccessPolicy: "player_facing_code_must_use_visibility_selectors",
       policy: "not_player_history_and_not_authoritative_outcomes",
     },
