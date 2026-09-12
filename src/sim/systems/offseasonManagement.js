@@ -18,6 +18,41 @@ function championshipComplete(saveWorld, event) {
   return Number(championship.season) === eventSeason;
 }
 
+function teamName(row) {
+  return row?.team_name ?? row?.display_name ?? row?.name ?? row?.team_id ?? "Team";
+}
+
+function addSeasonStartEntrantsToCycle(saveWorld, cycle, date) {
+  if (!cycle || cycle.status === "completed") return 0;
+  cycle.teams ??= {};
+  let added = 0;
+  for (const team of saveWorld.world?.teams ?? []) {
+    const teamId = team?.team_id;
+    if (!teamId || cycle.teams[teamId]) continue;
+    const finance = saveWorld.world?.teamState?.[teamId] ?? {};
+    const distressed = finance.financialStatus === "distressed" || finance.financialStatus === "tight";
+    cycle.teams[teamId] = {
+      teamId,
+      teamName: teamName(team),
+      controlled: false,
+      plan: {
+        technicalFocus: "balanced",
+        staffingFocus: distressed ? "rebuild" : "retain",
+        commercialFocus: distressed ? "expand" : "retain",
+        financialRisk: distressed ? "conservative" : "balanced",
+        source: "season_start_new_entrant_default",
+        confirmed: true,
+        confirmedAt: date ?? saveWorld.clock?.date ?? null,
+        updatedAt: date ?? saveWorld.clock?.date ?? null,
+      },
+      preparation: {},
+      joinedCycleAtSeasonStart: true,
+    };
+    added += 1;
+  }
+  return added;
+}
+
 export function createOffseasonManagementSystem(options = {}) {
   return {
     id: "management.offseason",
@@ -54,6 +89,7 @@ export function createOffseasonManagementSystem(options = {}) {
 
       if (event.type === SIM_EVENT.SEASON_STARTED) {
         const season = Number(event.payload?.season ?? saveWorld.clock?.season);
+        const newEntrants = addSeasonStartEntrantsToCycle(saveWorld, state.current, event.date);
         const prepared = prepareNewSeasonFromOffseason(saveWorld, season, { date: event.date });
         return {
           type: OFFSEASON_EVENT.SEASON_PREPARED,
@@ -61,6 +97,7 @@ export function createOffseasonManagementSystem(options = {}) {
             season,
             previous_season: Number(event.payload?.previousSeason ?? season - 1),
             teams: prepared,
+            new_entrant_teams_added_to_cycle: newEntrants,
           },
         };
       }
