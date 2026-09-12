@@ -1,0 +1,11 @@
+metric,value,note
+database_version,v1.2.3-canonical-candidate,cumulative corrected publication candidate
+global_json_sha256,e247978c04d3ed88d1ade9e354892666e1f24bbfcc3e39e34fc4444e91c3d95f,artifact checksum
+season_json_sha256,136d662040427f9ce1e12597c6b52fd11985c2c34e0e40a4ce2d088103ce75d5,artifact checksum
+global_manifest_source_sha256,9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097,Season sourceChecksum must match this value
+active_1980_teams,15,Season active teams
+season_recruitment_pool_1980,66,Should remain 66
+contract_negotiation_baseline_1980,79,Should remain 79
+initial_inbox_events_1980,90,Should remain 90
+canonical_id_corrections_applied,8,applied before JSON/SQLite/XLSX/hash emit
+promotion_blockers_remaining,0,0 required for canonical promotion
