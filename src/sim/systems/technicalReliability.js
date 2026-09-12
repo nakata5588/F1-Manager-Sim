@@ -21,7 +21,6 @@ import {
   RELIABILITY_EVENT,
   applyRaceWear,
   ensureReliabilityTeam,
-  fittedComponentReturnable,
   initializeReliabilityWorld,
   rebuildFittedComponent,
   registerFittedComponentUnit,
@@ -297,7 +296,19 @@ function integrateFittedUnit(saveWorld, event) {
   const previousSpecId = event.payload?.previous_spec_id ?? null;
   if (!teamId || !carSlot || !component || !specId) return null;
   const team = ensureTechnicalTeam(saveWorld, teamId);
-  const returnable = previousSpecId ? fittedComponentReturnable(saveWorld, teamId, carSlot, component) : false;
+
+  // Phase 36 has already changed fittedCars by the time this event arrives.
+  // Capture the previous physical unit directly from reliability state before
+  // any synchronization can replace it with the newly fitted specification.
+  const previousUnit = team.reliability?.cars?.[carSlot]?.components?.[component] ?? null;
+  const returnable = Boolean(
+    previousSpecId
+    && previousUnit
+    && previousUnit.specId === previousSpecId
+    && !previousUnit.failed
+    && Number(previousUnit.condition ?? 100) >= 72,
+  );
+
   if (previousSpecId && !returnable) {
     const returned = team.inventory?.[previousSpecId];
     if (returned) returned.available = Math.max(0, Number(returned.available ?? 0) - 1);
@@ -309,6 +320,7 @@ function integrateFittedUnit(saveWorld, event) {
       carSlot,
       component,
       specId: previousSpecId,
+      previousCondition: previousUnit?.condition ?? null,
       reason: "condition_below_return_to_stock_threshold",
     });
   }
