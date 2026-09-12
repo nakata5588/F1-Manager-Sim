@@ -48,9 +48,19 @@ function checkFiniteObject(source, prefix, errors) {
   }
 }
 
+function historicalTeamIds(saveWorld) {
+  return new Set([
+    ...(saveWorld.world?.teams ?? []).map((row) => row.team_id),
+    ...(saveWorld.world?.inactiveTeams ?? []).map((row) => row.team_id),
+  ].filter(Boolean));
+}
+
 function raceHealth(saveWorld, errors, warnings) {
   const driverIds = new Set((saveWorld.world?.drivers ?? []).map((row) => row.driver_id));
-  const teamIds = new Set((saveWorld.world?.teams ?? []).map((row) => row.team_id));
+  // Race history must continue to validate after a team has left the active grid.
+  // `world.teams` is the active championship roster; `inactiveTeams` preserves
+  // stable identities that remain valid references for completed seasons.
+  const teamIds = historicalTeamIds(saveWorld);
   const races = saveWorld.history?.races ?? [];
 
   for (const race of races) {
@@ -230,6 +240,8 @@ export function validateLongRunWorld(saveWorld, options = {}) {
       transfers,
       retirements,
       currentRaceEntries: currentEntries,
+      activeTeams: saveWorld.world?.teams?.length ?? 0,
+      inactiveTeams: saveWorld.world?.inactiveTeams?.length ?? 0,
       employedDrivers: Object.keys(saveWorld.world?.employment?.drivers ?? {}).length,
       employedStaff: Object.keys(saveWorld.world?.employment?.staff ?? {}).length,
       freeDrivers: saveWorld.world?.employment?.freeAgents?.drivers?.length ?? 0,
