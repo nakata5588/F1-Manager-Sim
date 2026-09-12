@@ -66,6 +66,7 @@ function systems(options = {}) {
 
 function newSave(options = {}) {
   const save = createSaveWorld(createSeasonSnapshot(database(), 1980), { seed: options.seed ?? "technical-test", startDate: "1980-01-01" });
+  if (options.controlledTeamIds?.length) save.player = { controlledTeamIds: [...options.controlledTeamIds] };
   initializeSimulation(save, systems(options.systemOptions));
   save.world.raceEntryState = {
     season: 1980,
@@ -150,7 +151,10 @@ test("facility upgrades take time and increase dynamic maintenance instead of mu
 });
 
 test("delegated car development uses the same design-manufacture-fit pipeline as AI teams", () => {
-  const save = newSave({ systemOptions: { controlledTeamIds: ["T1"], projectDurationMonths: 1 } });
+  const save = newSave({
+    controlledTeamIds: ["T1"],
+    systemOptions: { controlledTeamIds: ["T1"], projectDurationMonths: 1 },
+  });
   setResponsibility(save, "T1", "carDevelopment", "delegated");
   const result = advanceDays(save, 200, systems({ controlledTeamIds: ["T1"], projectDurationMonths: 1 }));
   assert.ok(result.events.some((event) => event.type === "technical.design_started"));
