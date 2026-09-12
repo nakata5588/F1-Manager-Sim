@@ -58,6 +58,12 @@ import {
   developerGovernance,
   developerRebrandControlledTeam,
 } from "../src/app/governancePlaytest.js";
+import {
+  developerConfirmOffseasonPlan,
+  developerContinueCalendar,
+  developerOffseason,
+  developerUpdateOffseasonPlan,
+} from "../src/app/offseasonPlaytest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const STATIC_ROOT = resolve(__dirname, "../playtest");
@@ -181,9 +187,9 @@ const server = createServer(async (request, response) => {
       return json(response, 200, session.startCareer(input));
     }
     if (url.pathname === "/api/continue" && request.method === "POST") {
-      session.continue();
+      const state = developerContinueCalendar(session);
       syncManagerControl();
-      return json(response, 200, session.state());
+      return json(response, 200, state);
     }
     if (url.pathname === "/api/weekend/advance" && request.method === "POST") return json(response, 200, session.advanceWeekend());
     if (url.pathname === "/api/weekend/setup" && request.method === "POST") {
@@ -318,6 +324,13 @@ const server = createServer(async (request, response) => {
       const input = await body(request);
       return json(response, 200, developerRebrandControlledTeam(session, input.displayName));
     }
+
+    if (url.pathname === "/api/offseason" && request.method === "GET") return json(response, 200, developerOffseason(session));
+    if (url.pathname === "/api/offseason/plan" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerUpdateOffseasonPlan(session, input));
+    }
+    if (url.pathname === "/api/offseason/confirm" && request.method === "POST") return json(response, 200, developerConfirmOffseasonPlan(session));
 
     if (url.pathname === "/api/technical" && request.method === "GET") return json(response, 200, developerTechnical(session));
     if (url.pathname === "/api/technical/design" && request.method === "POST") {
