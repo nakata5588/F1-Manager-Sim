@@ -2,6 +2,7 @@ import { SIM_EVENT } from "../timeEngine.js";
 import { EMPLOYMENT_EVENT } from "./employmentMarket.js";
 import { commercialMonthlySponsorIncome } from "../../game/management/commercial.js";
 import { technicalFacilityMaintenanceAnnual } from "../../game/management/technical.js";
+import { technicalSupplierMonthlyCost } from "../../game/management/suppliers.js";
 
 export const TEAM_FINANCE_EVENT = Object.freeze({
   INITIALIZED: "team.finance_initialized",
@@ -187,8 +188,9 @@ function closeMonth(saveWorld, event) {
     const staffSalaries = assignmentSalary(saveWorld, teamId, "staff", season);
     const maintenance = facilityMaintenance(saveWorld, teamId);
     const operations = operatingCost(saveWorld, teamId);
+    const engineSupplier = technicalSupplierMonthlyCost(saveWorld, teamId);
     const income = sponsors;
-    const expenses = driverSalaries + staffSalaries + maintenance + operations;
+    const expenses = driverSalaries + staffSalaries + maintenance + operations + engineSupplier;
     const net = income - expenses;
     team.cash = roundMoney(numeric(team.cash) + net);
     team.monthlyIncome = roundMoney(income);
@@ -211,6 +213,7 @@ function closeMonth(saveWorld, event) {
         staffSalaries: roundMoney(staffSalaries),
         facilityMaintenance: roundMoney(maintenance),
         operations: roundMoney(operations),
+        engineSupplier: roundMoney(engineSupplier),
       },
     };
     saveWorld.history.finances.push(record);
