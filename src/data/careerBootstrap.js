@@ -31,13 +31,18 @@ export function validateSeasonDatabaseAgainstGlobal(payload, globalDatabase, opt
   if (!manifest) {
     issues.push("Global Database manifest is required for source compatibility validation.");
   } else {
-    const globalVersion = text(manifest.databaseVersion);
-    const globalChecksum = text(manifest.sourceSha256);
+    // Rebuild candidates may carry a top-level release identity while the
+    // manifest continues to describe the immutable master/source lineage.
+    // Prefer the explicit release identity when present, but keep the source
+    // checksum anchored to the manifest source hash unless the Global Database
+    // publishes an explicit sourceChecksum of its own.
+    const globalVersion = text(globalDatabase?.databaseVersion ?? manifest.databaseVersion);
+    const globalChecksum = text(globalDatabase?.sourceChecksum ?? manifest.sourceSha256);
     if (globalVersion && identity.databaseVersion && globalVersion !== text(identity.databaseVersion)) {
       issues.push(`Season Database version ${identity.databaseVersion} does not match Global Database ${globalVersion}.`);
     }
     if (globalChecksum && identity.sourceChecksum && globalChecksum !== text(identity.sourceChecksum)) {
-      issues.push("Season Database sourceChecksum does not match Global Database sourceSha256.");
+      issues.push("Season Database sourceChecksum does not match Global Database source identity.");
     }
 
     const readiness = getSeasonReadiness(globalDatabase, identity.season);
