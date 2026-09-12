@@ -93,12 +93,12 @@ test("career start initializes board manager career and responsibilities in Save
   assert.equal(responsibilityOwner(saveWorld, "T1", "carDevelopment"), "manager");
 });
 
-test("delegating car development lets the controlled team use the same AI project rules", () => {
+test("delegating car development lets the controlled team use the same AI technical rules", () => {
   const { saveWorld, systems } = createWorld();
   setResponsibility(saveWorld, "T1", "carDevelopment", "delegated");
   dispatchSimulationEvents(saveWorld, [{ type: SIM_EVENT.MONTH_STARTED, date: "1980-02-01", payload: { year: 1980, month: 2 } }], systems);
-  const project = (saveWorld.world.development.projects ?? []).find((row) => row.teamId === "T1");
-  assert.ok(project, "delegated controlled-team development should start a project when finances allow");
+  const project = (saveWorld.world.technical?.teams?.T1?.designProjects ?? []).find((row) => row.status === "active");
+  assert.ok(project, "delegated controlled-team development should start a design when finances allow");
   assert.equal(project.source, "delegated");
 });
 
