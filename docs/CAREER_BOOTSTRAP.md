@@ -25,7 +25,8 @@ The function:
 5. records the Season Database identity in save metadata;
 6. preserves pre-career history under `history.preCareer`;
 7. preserves hidden future structure under `reference.futureStructure`;
-8. never treats future historical outcomes as authoritative.
+8. preserves source/audit-only database context under `reference.databaseContext`;
+9. never treats future historical outcomes as authoritative.
 
 If `options.globalDatabase` is supplied, the bootstrap rejects mismatched database versions/checksums, blocked seasons and seasons not declared supported by the Global manifest.
 
@@ -34,8 +35,8 @@ If `options.globalDatabase` is supplied, the bootstrap rejects mismatched databa
 A career save can be materialized from JSON or gzip-compressed JSON:
 
 ```bash
-npm run save:from-season-db -- F1_Manager_Sim_SeasonDefinition_1980_v1.2.3_canonical_candidate.json \
-  --global-world F1_Manager_Sim_Global_Database_v1.2.3_canonical_candidate.json \
+npm run save:from-season-db -- F1_Manager_Sim_SeasonDefinition_1980_v1.2.5_1980_technical_source_lock_candidate.json \
+  --global-world F1_Manager_Sim_Global_Database_v1.2.5_1980_technical_source_lock_candidate.json \
   --out build/saves/1980.save.json \
   --seed 1980-playtest
 ```
@@ -46,7 +47,7 @@ Both `season-database` and `global-world` inputs may end in `.json.gz`.
 
 The current promoted canonical baseline is recorded in:
 
-`data/database-baselines/v1.2.3-canonical-candidate/baseline.json`
+`data/database-baselines/v1.2.5-1980-technical-source-lock-candidate/baseline.json`
 
 It pins:
 
@@ -55,31 +56,46 @@ It pins:
 - Season Definition 1980 version/checksum;
 - readiness and materialization counts;
 - management/people starting-context counts;
-- source-lock and relationship audit counts;
+- 1980 technical component/facility/manufacturing starting counts;
+- technical source-lock/audit counts;
 - promotion-blocker status.
 
-The earlier v1.0 and v1.2.2 baseline folders remain in the repository as historical audit records. They are not the current canonical baseline and must not be applied sequentially on top of v1.2.3.
+Earlier baseline folders remain in the repository as historical audit records. v1.2.5 is cumulative and supersedes v1.2.4, so those releases must not be applied sequentially.
 
 The actual career runtime uses the external Season Database content, not the baseline manifest. The baseline manifest is a reproducibility/audit contract used to detect accidental source drift between database releases. Large JSON/SQLite/XLSX artifacts stay outside git; the repository pins their hashes and the small source/audit packs needed to explain the release.
 
-## v1.2.3 source identity
+## v1.2.5 source identity
 
-For the canonical v1.2.3 promotion:
+For the canonical v1.2.5 promotion:
 
-- Global `databaseVersion`: `v1.2.3-canonical-candidate`;
-- Global `manifest.databaseVersion`: `v1.2.3-canonical-candidate`;
+- Global `databaseVersion`: `v1.2.5-1980-technical-source-lock-candidate`;
+- Global `manifest.databaseVersion`: `v1.2.5-1980-technical-source-lock-candidate`;
 - Global source SHA-256: `9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097`;
 - Season 1980 `sourceChecksum`: the same source SHA-256;
-- Global JSON SHA-256: `e247978c04d3ed88d1ade9e354892666e1f24bbfcc3e39e34fc4444e91c3d95f`;
-- Season 1980 JSON SHA-256: `136d662040427f9ce1e12597c6b52fd11985c2c34e0e40a4ce2d088103ce75d5`.
+- Global JSON SHA-256: `315fdd58ef24b02bc6aeb073876d8fa1966839c134751979d8800393b83a36cd`;
+- Season 1980 JSON SHA-256: `e22b89da311991fad300d873973513cba438ebac38b450e8bf5248f61dfc9303`.
 
-The Season Database therefore validates against the same immutable Global source identity rather than against an unexplained generated-artifact checksum.
+The Season Database therefore validates against the same immutable Global source identity rather than against a generated-artifact checksum.
+
+## Technical starting-state policy
+
+v1.2.5 adds an explicit database contract for the 1980 technical opening state.
+
+The Season Database carries component baselines, fitted-start specification seeds, facility baselines, manufacturing-capacity baselines and technical source-lock metadata. During Save World creation:
+
+1. those immutable rows seed the initial mutable `world.technical` / `world.carState` state;
+2. both cars receive the same opening fitted specifications;
+3. zero starting spare inventory is created unless a future source-locked row explicitly provides it;
+4. source provenance is copied onto the starting Save World specifications/facilities;
+5. the source rows themselves are moved to `reference.databaseContext` and removed from the mutable world.
+
+This keeps the database as the authority for historical starting conditions while preserving Save World as the only authority for post-start designs, manufacturing jobs, inventory, fitment changes and facility upgrades.
 
 ## Calendar policy
 
 A Season Database may carry hidden non-outcome historical calendar structure for later seasons. Season rollover consumes that reference before using the previous-season fallback.
 
-For the promoted v1.2.3 baseline the opening sequence remains:
+For the promoted v1.2.5 baseline the opening sequence remains:
 
 `1980: 14 -> 1981: 15 -> 1982: 16 -> 1983: 15 -> 1984: 16`
 
@@ -98,6 +114,7 @@ When a replacement database bundle is supplied, do not silently overwrite the cu
 - future entity visibility boundaries;
 - future outcome leakage;
 - calendar/reference continuity;
+- technical source-lock and dynamic-state boundaries where applicable;
 - compatibility with the current Save World and simulation contracts.
 
 Only after that audit should the baseline manifest be promoted to the new release.
