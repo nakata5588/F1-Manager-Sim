@@ -20,6 +20,7 @@ import { createTechnicalInboxSystem } from "./technicalInbox.js";
 import { createTechnicalReliabilitySystem } from "./technicalReliability.js";
 import { createGovernanceManagementSystem } from "./governanceManagement.js";
 import { createGovernanceInboxSystem } from "./governanceInbox.js";
+import { createTeamExitCleanupSystem } from "./teamExitCleanup.js";
 import { createManagementInboxSystem } from "./managementInbox.js";
 import { createRaceEntrySystem } from "./raceEntry.js";
 import { createTeamEconomySystem } from "./teamEconomy.js";
@@ -39,6 +40,7 @@ export function createCoreWorldSystems(options = {}) {
     // Future teams and historical future rules may therefore become candidates
     // without becoming mandatory outcomes.
     createGovernanceManagementSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
+    createTeamExitCleanupSystem(),
     createGovernanceInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createCareerLifecycleSystem(),
     createCareerDevelopmentSystem(),
