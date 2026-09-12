@@ -101,36 +101,43 @@ test("monthly team cashflow uses sponsors salaries and maintenance from the seas
   assert.equal(save.world.teamState.TEAM1.cash, 1269000);
 });
 
-test("AI development spends real team cash and improves the weakest car area after project completion", () => {
+test("AI development spends real cash and reaches the car only after design manufacture and fit", () => {
   const save = createSaveWorld(createSeasonSnapshot(teamDatabase(), 1980), {
     seed: "development-team-test",
     startDate: "1980-01-01",
   });
   const systems = economySystems([createTeamDevelopmentSystem({ projectDurationMonths: 1 })]);
   initializeSimulation(save, systems);
-  const result = advanceDays(save, 60, systems);
+  const result = advanceDays(save, 160, systems);
 
   const starts = result.events.filter((event) => event.type === TEAM_DEVELOPMENT_EVENT.PROJECT_STARTED);
   const completions = result.events.filter((event) => event.type === TEAM_DEVELOPMENT_EVENT.PROJECT_COMPLETED);
+  const manufacture = result.events.filter((event) => event.type === TEAM_DEVELOPMENT_EVENT.MANUFACTURING_COMPLETED);
+  const fitted = result.events.filter((event) => event.type === TEAM_DEVELOPMENT_EVENT.COMPONENT_FITTED);
   assert.ok(starts.length >= 1);
   assert.ok(completions.length >= 1);
+  assert.ok(manufacture.length >= 1);
+  assert.ok(fitted.length >= 1);
   assert.equal(starts[0].payload.component, "aero_spec");
   assert.ok(save.world.carState.TEAM1.components.aero_spec > 50);
-  assert.ok(save.history.development.some((entry) => entry.type === "completed"));
-  assert.ok(save.world.teamState.TEAM1.cash < 1200000 + 69000 * 2);
+  assert.ok(save.history.technical.some((entry) => entry.type === "design_completed"));
+  assert.ok(save.history.technical.some((entry) => entry.type === "manufacturing_completed"));
+  assert.ok(save.history.technical.some((entry) => entry.type === "component_fitted"));
+  assert.ok(save.world.teamState.TEAM1.cash < 1200000 + 69000 * 5);
 });
 
-test("AI does not start development projects for a human-controlled team", () => {
+test("AI does not start technical projects for a human-controlled team", () => {
   const save = createSaveWorld(createSeasonSnapshot(teamDatabase(), 1980), {
     seed: "controlled-team-test",
     startDate: "1980-01-01",
   });
+  save.player = { controlledTeamIds: ["TEAM1"] };
   const systems = economySystems([
     createTeamDevelopmentSystem({ controlledTeamIds: ["TEAM1"], projectDurationMonths: 1 }),
   ]);
   initializeSimulation(save, systems);
   const result = advanceDays(save, 60, systems);
   assert.equal(result.events.some((event) => event.type === TEAM_DEVELOPMENT_EVENT.PROJECT_STARTED), false);
-  assert.equal(save.world.development.projects.length, 0);
+  assert.equal(save.world.technical.teams.TEAM1.designProjects.length, 0);
   assert.equal(save.world.carState.TEAM1.components.aero_spec, 50);
 });

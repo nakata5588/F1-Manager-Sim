@@ -1,91 +1,36 @@
 import { createRng } from "../random.js";
 import { SIM_EVENT } from "../timeEngine.js";
 import { responsibilityOwner } from "../../game/management/responsibilities.js";
+import {
+  TECHNICAL_EVENT,
+  advanceTechnicalMonth,
+  ensureTechnicalTeam,
+  fitComponentSpec,
+  initializeTechnicalWorld,
+  startFacilityUpgrade,
+  startManufacturingJob,
+  startTechnicalDesignProject,
+  technicalProjection,
+  releaseNextSeasonSpecifications,
+} from "../../game/management/technical.js";
 import { controlledTeamSet } from "./controlState.js";
 
 export const TEAM_DEVELOPMENT_EVENT = Object.freeze({
-  INITIALIZED: "team.development_initialized",
-  PROJECT_STARTED: "team.development_project_started",
-  PROJECT_COMPLETED: "team.development_project_completed",
+  INITIALIZED: TECHNICAL_EVENT.INITIALIZED,
+  PROJECT_STARTED: TECHNICAL_EVENT.DESIGN_STARTED,
+  PROJECT_COMPLETED: TECHNICAL_EVENT.DESIGN_COMPLETED,
+  MANUFACTURING_STARTED: TECHNICAL_EVENT.MANUFACTURING_STARTED,
+  MANUFACTURING_COMPLETED: TECHNICAL_EVENT.MANUFACTURING_COMPLETED,
+  COMPONENT_FITTED: TECHNICAL_EVENT.COMPONENT_FITTED,
+  FACILITY_UPGRADE_STARTED: TECHNICAL_EVENT.FACILITY_UPGRADE_STARTED,
+  FACILITY_UPGRADE_COMPLETED: TECHNICAL_EVENT.FACILITY_UPGRADE_COMPLETED,
+  NEXT_SEASON_SPEC_RELEASED: TECHNICAL_EVENT.NEXT_SEASON_SPEC_RELEASED,
 });
-
-const COMPONENTS = [
-  "chassis_spec", "aero_spec", "gearbox_spec", "suspension_spec", "brakes_spec", "cooling_spec", "electronics_spec", "turbo_spec", "kers_spec", "ers_mgu_k", "ers_mgu_h", "battery_pack",
-];
 
 function numeric(value, fallback = null) {
   if (value === null || value === undefined || value === "") return fallback;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function clamp(value, minimum, maximum) { return Math.min(maximum, Math.max(minimum, value)); }
-function round(value, digits = 2) { return Number(value.toFixed(digits)); }
-
-function ensureState(saveWorld) {
-  saveWorld.world.carState ??= {};
-  saveWorld.world.development ??= { projects: [] };
-  saveWorld.world.development.projects ??= [];
-  saveWorld.history.development ??= [];
-  return saveWorld.world.development;
-}
-
-function initializeCars(saveWorld, date) {
-  ensureState(saveWorld);
-  let created = 0;
-  for (const team of saveWorld.world?.teams ?? []) {
-    const teamId = team.team_id;
-    if (!teamId || saveWorld.world.carState[teamId]) continue;
-    const source = (saveWorld.world?.carStats ?? []).find((row) => row.team_id === teamId) ?? {};
-    const components = {};
-    for (const field of COMPONENTS) {
-      const value = numeric(source[field]);
-      if (value !== null) components[field] = value;
-    }
-    saveWorld.world.carState[teamId] = { teamId, components, initializedAt: date, lastUpdated: date };
-    created += 1;
-  }
-  return created;
-}
-
-function facilityEfficiency(saveWorld, teamId) {
-  const row = (saveWorld.world?.facilities ?? []).find((item) => item.team_id === teamId) ?? {};
-  const values = [row.wind_tunnel_level, row.simulator_level, row.aero_dept_level, row.chassis_shop_level, row.manufacturing_level, row.manufacturing_leve]
-    .map((value) => numeric(value)).filter((value) => value !== null);
-  if (!values.length) return 0.5;
-  return clamp((values.reduce((sum, value) => sum + value, 0) / values.length) / 10, 0, 1);
-}
-
-function weakestComponent(carState) {
-  return Object.entries(carState?.components ?? {})
-    .filter(([, value]) => Number.isFinite(Number(value)))
-    .sort((a, b) => Number(a[1]) - Number(b[1]) || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
-}
-
-function activeProjectFor(development, teamId) {
-  return development.projects.find((project) => project.teamId === teamId && project.status === "active") ?? null;
-}
-
-function completeProjects(saveWorld, event) {
-  const development = ensureState(saveWorld);
-  const output = [];
-  for (const project of development.projects) {
-    if (project.status !== "active") continue;
-    project.monthsRemaining -= 1;
-    if (project.monthsRemaining > 0) continue;
-    const car = saveWorld.world.carState?.[project.teamId];
-    const before = numeric(car?.components?.[project.component]);
-    if (before !== null) {
-      car.components[project.component] = round(clamp(before + project.targetGain, 1, 100));
-      car.lastUpdated = event.date;
-    }
-    project.status = "completed";
-    project.completedAt = event.date;
-    const record = { date: event.date, teamId: project.teamId, projectId: project.projectId, component: project.component, gain: project.targetGain, result: before === null ? null : car.components[project.component] };
-    saveWorld.history.development.push({ ...record, type: "completed" });
-    output.push({ type: TEAM_DEVELOPMENT_EVENT.PROJECT_COMPLETED, payload: record });
-  }
-  return output;
 }
 
 function controlledTeamMayAutoDevelop(saveWorld, teamId, controlled) {
@@ -94,38 +39,147 @@ function controlledTeamMayAutoDevelop(saveWorld, teamId, controlled) {
   catch { return false; }
 }
 
+function weakestComponent(projection) {
+  return Object.entries(projection?.car?.components ?? {})
+    .filter(([, value]) => Number.isFinite(Number(value)))
+    .sort((a, b) => Number(a[1]) - Number(b[1]) || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
+}
+
+function autoSource(controlled, teamId) {
+  return controlled.has(String(teamId)) ? "delegated" : "ai";
+}
+
+function emitStarted(project) {
+  return {
+    type: TECHNICAL_EVENT.DESIGN_STARTED,
+    payload: {
+      team_id: project.teamId,
+      project_id: project.projectId,
+      component: project.component,
+      target_season: project.targetSeason,
+      duration_months: project.durationMonths,
+      cost: project.cost,
+      source: project.source,
+    },
+  };
+}
+
+function emitManufacturing(job) {
+  return {
+    type: TECHNICAL_EVENT.MANUFACTURING_STARTED,
+    payload: {
+      team_id: job.teamId,
+      job_id: job.jobId,
+      spec_id: job.specId,
+      component: job.component,
+      quantity: job.quantity,
+      duration_months: job.durationMonths,
+      cost: job.cost,
+      source: job.source,
+    },
+  };
+}
+
+function emitFit(record, source) {
+  return { type: TECHNICAL_EVENT.COMPONENT_FITTED, payload: { team_id: record.teamId, car_slot: record.carSlot, component: record.component, spec_id: record.specId, previous_spec_id: record.previousSpecId, source } };
+}
+
+function autoManufactureAndFit(saveWorld, teamId, source) {
+  const output = [];
+  let projection = technicalProjection(saveWorld, teamId);
+  const team = ensureTechnicalTeam(saveWorld, teamId);
+
+  for (const spec of projection.specifications
+    .filter((row) => row.status === "ready_for_manufacture")
+    .sort((a, b) => Number(b.rating) - Number(a.rating))) {
+    const alreadyQueued = team.manufacturingJobs.some((job) => job.status === "active" && job.specId === spec.specId);
+    if (spec.inventory < 2 && !alreadyQueued && projection.manufacturing.active.length < projection.manufacturing.capacity) {
+      try {
+        const job = startManufacturingJob(saveWorld, teamId, { specId: spec.specId, quantity: 2, source });
+        output.push(emitManufacturing(job));
+        projection = technicalProjection(saveWorld, teamId);
+      } catch {
+        // AI/delegated technical departments may legitimately defer production
+        // when finances or manufacturing capacity are insufficient.
+      }
+    }
+  }
+
+  projection = technicalProjection(saveWorld, teamId);
+  for (const spec of projection.specifications
+    .filter((row) => Number(row.inventory) > 0)
+    .sort((a, b) => Number(b.rating) - Number(a.rating))) {
+    for (const carSlot of ["car1", "car2"]) {
+      const currentId = projection.car.fittedCars?.[carSlot]?.components?.[spec.component];
+      const current = team.specs?.[currentId];
+      if (Number(current?.rating ?? -Infinity) >= Number(spec.rating) || Number(team.inventory?.[spec.specId]?.available ?? 0) < 1) continue;
+      try {
+        const fitted = fitComponentSpec(saveWorld, teamId, { carSlot, specId: spec.specId });
+        output.push(emitFit(fitted, source));
+        projection = technicalProjection(saveWorld, teamId);
+      } catch {
+        break;
+      }
+    }
+  }
+  return output;
+}
+
+function maybeStartAiFacilityUpgrade(saveWorld, event, teamId, source) {
+  const finance = saveWorld.world?.teamState?.[teamId];
+  const cash = numeric(finance?.cash, 0);
+  const opening = Math.max(1, numeric(finance?.openingCash, 0));
+  if (cash < Math.max(2_000_000, opening * 1.2)) return null;
+  const projection = technicalProjection(saveWorld, teamId);
+  if (projection.facilityUpgrades.some((row) => row.status === "active")) return null;
+  const candidates = projection.facilities.filter((row) => Number(row.level) < 10).sort((a, b) => Number(a.level) - Number(b.level) || a.id.localeCompare(b.id));
+  if (!candidates.length) return null;
+  const rng = createRng(`${saveWorld.meta.seed}|${event.date}|facility-upgrade|${teamId}`);
+  if (rng.next() > 0.04) return null;
+  try {
+    const upgrade = startFacilityUpgrade(saveWorld, teamId, candidates[0].id);
+    return {
+      type: TECHNICAL_EVENT.FACILITY_UPGRADE_STARTED,
+      payload: { team_id: teamId, upgrade_id: upgrade.upgradeId, facility_id: upgrade.facilityId, from_level: upgrade.fromLevel, to_level: upgrade.toLevel, duration_months: upgrade.durationMonths, cost: upgrade.cost, source },
+    };
+  } catch {
+    return null;
+  }
+}
+
 function startAiProjects(saveWorld, event, options) {
-  const development = ensureState(saveWorld);
   const controlled = controlledTeamSet(saveWorld, options.controlledTeamIds ?? []);
   const output = [];
-  for (const team of saveWorld.world?.teams ?? []) {
-    const teamId = team.team_id;
-    if (!teamId || !controlledTeamMayAutoDevelop(saveWorld, teamId, controlled) || activeProjectFor(development, teamId)) continue;
-    const finances = saveWorld.world?.teamState?.[teamId];
-    const car = saveWorld.world?.carState?.[teamId];
-    const component = weakestComponent(car);
-    if (!finances || !component) continue;
-    const cash = numeric(finances.cash, 0);
-    const reserve = Math.max(numeric(options.minimumCashReserve, 100000), numeric(finances.openingCash, 0) * 0.08);
-    const spendable = cash - reserve;
-    if (spendable <= 50000) continue;
-    const rng = createRng(`${saveWorld.meta.seed}|${event.date}|team-development|${teamId}`);
-    const cost = round(Math.min(spendable * 0.12, Math.max(50000, cash * 0.02)));
-    if (cost <= 0 || cash - cost < reserve) continue;
-    const efficiency = facilityEfficiency(saveWorld, teamId);
-    const targetGain = round(0.35 + efficiency * 0.55 + rng.next() * 0.45);
-    const fixedDuration = numeric(options.projectDurationMonths);
-    const duration = fixedDuration !== null ? Math.max(1, Math.round(fixedDuration)) : efficiency >= 0.75 ? 2 : efficiency >= 0.4 ? 3 : 4;
-    const project = {
-      projectId: `${event.date}:${teamId}:${component}:${event.sequence}`,
-      teamId, component, cost, targetGain, durationMonths: duration, monthsRemaining: duration,
-      startedAt: event.date, status: "active", source: controlled.has(String(teamId)) ? "delegated" : "ai",
-    };
-    finances.cash = round(cash - cost);
-    finances.lastDevelopmentSpend = cost;
-    development.projects.push(project);
-    saveWorld.history.development.push({ date: event.date, type: "started", teamId, projectId: project.projectId, component, cost, targetGain, durationMonths: duration, source: project.source });
-    output.push({ type: TEAM_DEVELOPMENT_EVENT.PROJECT_STARTED, payload: { ...project } });
+  for (const row of saveWorld.world?.teams ?? []) {
+    const teamId = row.team_id;
+    if (!teamId || !controlledTeamMayAutoDevelop(saveWorld, teamId, controlled)) continue;
+    const source = autoSource(controlled, teamId);
+    output.push(...autoManufactureAndFit(saveWorld, teamId, source));
+
+    const projection = technicalProjection(saveWorld, teamId);
+    if (!projection.design.active.length) {
+      const component = weakestComponent(projection);
+      const finance = saveWorld.world?.teamState?.[teamId];
+      const cash = numeric(finance?.cash, 0);
+      const reserve = Math.max(numeric(options.minimumCashReserve, 100000), numeric(finance?.openingCash, 0) * 0.08);
+      if (component && cash > reserve + 50000) {
+        try {
+          const project = startTechnicalDesignProject(saveWorld, teamId, {
+            component,
+            focus: "balanced",
+            targetSeason: "current",
+            durationMonths: options.projectDurationMonths,
+            source,
+          });
+          output.push(emitStarted(project));
+        } catch {
+          // A project may be unaffordable after another monthly transaction.
+        }
+      }
+    }
+
+    const upgrade = maybeStartAiFacilityUpgrade(saveWorld, event, teamId, source);
+    if (upgrade) output.push(upgrade);
   }
   return output;
 }
@@ -133,13 +187,18 @@ function startAiProjects(saveWorld, event, options) {
 export function createTeamDevelopmentSystem(options = {}) {
   return {
     id: "team.development",
-    eventTypes: [SIM_EVENT.CAREER_STARTED, SIM_EVENT.MONTH_STARTED],
+    eventTypes: [SIM_EVENT.CAREER_STARTED, SIM_EVENT.MONTH_STARTED, SIM_EVENT.SEASON_STARTED],
     handle({ saveWorld, event }) {
       if (event.type === SIM_EVENT.CAREER_STARTED) {
-        const teams = initializeCars(saveWorld, event.date);
-        return { type: TEAM_DEVELOPMENT_EVENT.INITIALIZED, payload: { teams } };
+        const teams = initializeTechnicalWorld(saveWorld, event.date);
+        return { type: TECHNICAL_EVENT.INITIALIZED, payload: { teams } };
       }
-      return [...completeProjects(saveWorld, event), ...startAiProjects(saveWorld, event, options)];
+      if (event.type === SIM_EVENT.SEASON_STARTED) {
+        return releaseNextSeasonSpecifications(saveWorld, event.payload?.season ?? saveWorld.clock.season)
+          .map((row) => ({ type: TECHNICAL_EVENT.NEXT_SEASON_SPEC_RELEASED, payload: { team_id: row.teamId, spec_id: row.specId, component: row.component, target_season: row.targetSeason } }));
+      }
+      const progressed = advanceTechnicalMonth(saveWorld, event.date);
+      return [...progressed, ...startAiProjects(saveWorld, event, options)];
     },
   };
 }

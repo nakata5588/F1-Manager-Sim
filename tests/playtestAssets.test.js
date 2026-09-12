@@ -11,13 +11,22 @@ for (const path of [
   "playtest/management.html",
   "playtest/management.js",
   "playtest/management.css",
+  "playtest/technical.html",
+  "playtest/technical.js",
+  "playtest/technical.css",
 ]) {
   test(`developer playtest asset exists: ${path}`, () => {
     assert.equal(existsSync(path), true);
   });
 }
 
-for (const path of ["scripts/playtest-server.js", "playtest/app.js", "playtest/management.js"]) {
+for (const path of [
+  "scripts/playtest-server.js",
+  "src/app/technicalPlaytest.js",
+  "playtest/app.js",
+  "playtest/management.js",
+  "playtest/technical.js",
+]) {
   test(`developer playtest JavaScript parses: ${path}`, () => {
     const result = spawnSync(process.execPath, ["--check", path], { encoding: "utf8" });
     assert.equal(result.status, 0, result.stderr || result.stdout);
