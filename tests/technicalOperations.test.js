@@ -5,6 +5,7 @@ import {
   advanceTechnicalMonth,
   createCareerLifecycleSystem,
   createEmploymentMarketSystem,
+  createRaceStartBaseline,
   createSaveWorld,
   createSeasonSnapshot,
   createTeamDevelopmentSystem,
@@ -80,6 +81,22 @@ function newSave(options = {}) {
   return save;
 }
 
+function technicalWeekend() {
+  return {
+    key: "1980:TEST",
+    grid: [
+      { driverId: "D1", teamId: "T1", grid: 1, qualifyingScore: 75 },
+      { driverId: "D2", teamId: "T1", grid: 2, qualifyingScore: 75 },
+    ],
+    practice: {
+      results: [
+        { driverId: "D1", setupQuality: 50 },
+        { driverId: "D2", setupQuality: 50 },
+      ],
+    },
+  };
+}
+
 test("technical initialization creates physical starting specifications without inventing spare stock", () => {
   const save = newSave();
   const technical = ensureTechnicalTeam(save, "T1");
@@ -123,6 +140,26 @@ test("manufacturing creates stock and fitting can give car 1 a newer component t
   assert.ok(car1.aero_spec > car2.aero_spec);
   assert.equal(team.inventory[spec.specId].available, 0);
   assert.equal(team.inventory["initial:T1:aero_spec"].available, 1);
+});
+
+test("car-specific fitment changes only the upgraded driver's race-start car projection", () => {
+  const save = newSave();
+  const weekend = technicalWeekend();
+  const before = createRaceStartBaseline(save, weekend);
+  startTechnicalDesignProject(save, "T1", { component: "aero_spec", focus: "performance", durationMonths: 1 });
+  advanceTechnicalMonth(save, "1980-02-01");
+  const team = ensureTechnicalTeam(save, "T1");
+  const spec = Object.values(team.specs).find((row) => row.source === "simulation_design");
+  startManufacturingJob(save, "T1", { specId: spec.specId, quantity: 1, durationMonths: 1 });
+  advanceTechnicalMonth(save, "1980-03-01");
+  fitComponentSpec(save, "T1", { carSlot: "car1", specId: spec.specId });
+  const after = createRaceStartBaseline(save, weekend);
+  const beforeD1 = before.find((row) => row.driverId === "D1");
+  const beforeD2 = before.find((row) => row.driverId === "D2");
+  const afterD1 = after.find((row) => row.driverId === "D1");
+  const afterD2 = after.find((row) => row.driverId === "D2");
+  assert.ok(afterD1.performanceIndex > beforeD1.performanceIndex);
+  assert.equal(afterD2.performanceIndex, beforeD2.performanceIndex);
 });
 
 test("next-season research remains unavailable to manufacturing until its target season", () => {
