@@ -1,6 +1,19 @@
+import { materializeDatabaseManagementBlocks } from "../data/databaseManagementMaterializer.js";
+import { deepFreeze } from "./immutable.js";
 import { createSeasonSnapshot } from "./seasonMaterializer.js";
 
 const ACCEPTED = new Set(["READY", "READY_WITH_WARNINGS"]);
+
+function hasManagementDatabaseContext(database) {
+  return Boolean(
+    database?.driverMarketProfileByYear
+    || database?.contractTerms
+    || database?.initialInboxEventsBySeason
+    || database?.peopleDataPolicy
+    || database?.sourceLockedFactRegister
+    || database?.relationshipSourcePack1980,
+  );
+}
 
 export function getSeasonReadiness(database, year) {
   return database?.manifest?.readiness?.[String(Number(year))] ?? null;
@@ -35,5 +48,19 @@ export function loadHistoricalSeason(database, year, options = {}) {
     throw new Error(`Season ${season} has unsupported readiness status ${JSON.stringify(readiness)}.`);
   }
 
-  return createSeasonSnapshot(database, season);
+  const snapshot = createSeasonSnapshot(database, season);
+  if (!hasManagementDatabaseContext(database)) return snapshot;
+
+  const enriched = {
+    ...structuredClone(snapshot),
+    ...materializeDatabaseManagementBlocks(database, season, snapshot),
+  };
+
+  // Candidate rebuilds may publish an explicit top-level release identity while
+  // preserving the immutable source-workbook identity inside manifest.
+  // The Season Definition should identify the candidate release, not silently
+  // fall back to an older embedded manifest release label.
+  if (database.databaseVersion) enriched.databaseVersion = database.databaseVersion;
+
+  return deepFreeze(enriched);
 }
