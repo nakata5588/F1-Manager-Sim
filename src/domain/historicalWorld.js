@@ -1,4 +1,8 @@
 import { materializeDatabaseManagementBlocks } from "../data/databaseManagementMaterializer.js";
+import {
+  hasTechnicalDatabaseContext,
+  materializeDatabaseTechnicalBlocks,
+} from "../data/databaseTechnicalMaterializer.js";
 import { deepFreeze } from "./immutable.js";
 import { createSeasonSnapshot } from "./seasonMaterializer.js";
 
@@ -49,11 +53,14 @@ export function loadHistoricalSeason(database, year, options = {}) {
   }
 
   const snapshot = createSeasonSnapshot(database, season);
-  if (!hasManagementDatabaseContext(database)) return snapshot;
+  const managementContext = hasManagementDatabaseContext(database);
+  const technicalContext = hasTechnicalDatabaseContext(database);
+  if (!managementContext && !technicalContext) return snapshot;
 
   const enriched = {
     ...structuredClone(snapshot),
-    ...materializeDatabaseManagementBlocks(database, season, snapshot),
+    ...(managementContext ? materializeDatabaseManagementBlocks(database, season, snapshot) : {}),
+    ...(technicalContext ? materializeDatabaseTechnicalBlocks(database, season) : {}),
   };
 
   // Candidate rebuilds may publish an explicit top-level release identity while
