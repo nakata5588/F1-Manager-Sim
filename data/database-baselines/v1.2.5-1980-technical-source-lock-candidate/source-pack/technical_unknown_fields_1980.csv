@@ -1,0 +1,8 @@
+gap_id,season,field_or_area,reason,database_action,notes
+TECH-UNK-001,1980,spare_parts_inventory,No source-locked starting spare stock counts by team/component.,DO_NOT_STORE_AS_FACT,initial_inventory_units remains 0 boundary policy.
+TECH-UNK-002,1980,factory_throughput,No externally verified 1980 team manufacturing throughput.,KEEP_AS_INDEX,Use manufacturing_level/nominal_parallel_capacity_index only.
+TECH-UNK-003,1980,facility_construction_dates,No source-locked dates for facility builds/upgrades.,DO_NOT_STORE_AS_FACT,Post-start upgrades belong to Save World.
+TECH-UNK-004,1980,exact_component_specs,No real measured component performance values.,KEEP_RELATIVE_BASELINE,Use carStats candidate values as relative game baseline.
+TECH-UNK-005,1980,crash_spares,No race-by-race spare chassis/component inventory.,DO_NOT_STORE_AS_FACT,Future crash replacement inventory requires separate source pack.
+TECH-UNK-006,1980,preseason_development_queue,No verified opening active R&D projects.,DO_NOT_SEED_DYNAMIC_PROJECTS,Do not create design projects at start.
+TECH-UNK-007,1980,supplier_part_constraints,No verified component supplier constraints beyond engine/tyre sources.,BACKLOG,Future supplier contracts pack.
