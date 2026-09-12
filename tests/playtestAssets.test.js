@@ -17,6 +17,9 @@ for (const path of [
   "playtest/governance.html",
   "playtest/governance.js",
   "playtest/governance.css",
+  "playtest/offseason.html",
+  "playtest/offseason.js",
+  "playtest/offseason.css",
 ]) {
   test(`developer playtest asset exists: ${path}`, () => {
     assert.equal(existsSync(path), true);
@@ -27,10 +30,12 @@ for (const path of [
   "scripts/playtest-server.js",
   "src/app/technicalPlaytest.js",
   "src/app/governancePlaytest.js",
+  "src/app/offseasonPlaytest.js",
   "playtest/app.js",
   "playtest/management.js",
   "playtest/technical.js",
   "playtest/governance.js",
+  "playtest/offseason.js",
 ]) {
   test(`developer playtest JavaScript parses: ${path}`, () => {
     const result = spawnSync(process.execPath, ["--check", path], { encoding: "utf8" });
