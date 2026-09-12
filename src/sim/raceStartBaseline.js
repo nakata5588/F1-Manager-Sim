@@ -49,7 +49,8 @@ function teamCarComponents(saveWorld, teamId) {
 
 function carComponents(saveWorld, teamId, driverId = null) {
   const team = teamCarComponents(saveWorld, teamId);
-  return driverId ? technicalCarComponentsForDriver(saveWorld, teamId, driverId, team) : team;
+  if (!driverId || !saveWorld.world?.technical?.teams?.[teamId]) return team;
+  return technicalCarComponentsForDriver(saveWorld, teamId, driverId, team);
 }
 
 function engineForTeam(saveWorld, teamId) {
