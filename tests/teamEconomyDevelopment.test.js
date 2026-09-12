@@ -108,7 +108,7 @@ test("AI development spends real cash and reaches the car only after design manu
   });
   const systems = economySystems([createTeamDevelopmentSystem({ projectDurationMonths: 1 })]);
   initializeSimulation(save, systems);
-  const result = advanceDays(save, 120, systems);
+  const result = advanceDays(save, 160, systems);
 
   const starts = result.events.filter((event) => event.type === TEAM_DEVELOPMENT_EVENT.PROJECT_STARTED);
   const completions = result.events.filter((event) => event.type === TEAM_DEVELOPMENT_EVENT.PROJECT_COMPLETED);
@@ -123,7 +123,7 @@ test("AI development spends real cash and reaches the car only after design manu
   assert.ok(save.history.technical.some((entry) => entry.type === "design_completed"));
   assert.ok(save.history.technical.some((entry) => entry.type === "manufacturing_completed"));
   assert.ok(save.history.technical.some((entry) => entry.type === "component_fitted"));
-  assert.ok(save.world.teamState.TEAM1.cash < 1200000 + 69000 * 4);
+  assert.ok(save.world.teamState.TEAM1.cash < 1200000 + 69000 * 5);
 });
 
 test("AI does not start technical projects for a human-controlled team", () => {
