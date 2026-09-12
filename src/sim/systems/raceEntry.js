@@ -3,6 +3,7 @@ import { CAREER_EVENT } from "./careerLifecycle.js";
 import { CONTRACT_EVENT } from "./contractMilestones.js";
 import { EMPLOYMENT_EVENT } from "./employmentMarket.js";
 import { RACE_EVENT } from "./raceWeekend.js";
+import { TEAM_EVOLUTION_EVENT } from "../../game/management/teamEvolution.js";
 
 export const RACE_ENTRY_EVENT = Object.freeze({
   INITIALIZED: "race.entries_initialized",
@@ -92,6 +93,21 @@ function removeDriver(saveWorld, driverId, reason, teamId = null) {
   state.current = state.current.filter((row) => row.driverId !== driverId);
   state.revision += 1;
   return { reason, driverId, teamId: entry.teamId };
+}
+
+function removeTeam(saveWorld, teamId, reason = "team_exited") {
+  if (!teamId) return null;
+  const state = ensureState(saveWorld);
+  const removed = state.current.filter((row) => row.teamId === teamId);
+  if (!removed.length) return null;
+  state.current = state.current.filter((row) => row.teamId !== teamId);
+  state.source = "save_world_dynamic";
+  state.revision += 1;
+  return {
+    reason,
+    teamId,
+    removedDrivers: removed.map((row) => row.driverId),
+  };
 }
 
 function upsertSignedDriver(saveWorld, event) {
@@ -191,6 +207,7 @@ export function createRaceEntrySystem() {
       CONTRACT_EVENT.EXPIRED,
       EMPLOYMENT_EVENT.CONTRACT_SIGNED,
       CAREER_EVENT.RETIRED,
+      TEAM_EVOLUTION_EVENT.TEAM_EXITED,
       RACE_EVENT.COMPLETED,
       RACE_EVENT.SKIPPED,
     ],
@@ -223,6 +240,11 @@ export function createRaceEntrySystem() {
       if (event.type === RACE_EVENT.COMPLETED || event.type === RACE_EVENT.SKIPPED) {
         restoreEmployment(saveWorld);
         return null;
+      }
+
+      if (event.type === TEAM_EVOLUTION_EVENT.TEAM_EXITED) {
+        const change = removeTeam(saveWorld, event.payload?.team_id, "team_exited");
+        return change ? updateEvent(ensureState(saveWorld), change) : null;
       }
 
       if (event.type === CONTRACT_EVENT.EXPIRED) {
