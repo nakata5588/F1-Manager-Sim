@@ -17,6 +17,7 @@ import { createStaffAdviceSystem } from "./staffAdvice.js";
 import { createCommercialManagementSystem } from "./commercialManagement.js";
 import { createCommercialInboxSystem } from "./commercialInbox.js";
 import { createTechnicalInboxSystem } from "./technicalInbox.js";
+import { createTechnicalReliabilitySystem } from "./technicalReliability.js";
 import { createManagementInboxSystem } from "./managementInbox.js";
 import { createRaceEntrySystem } from "./raceEntry.js";
 import { createTeamEconomySystem } from "./teamEconomy.js";
@@ -59,7 +60,6 @@ export function createCoreWorldSystems(options = {}) {
       minimumCashReserve: options.minimumCashReserve,
       projectDurationMonths: options.projectDurationMonths,
     }),
-    createTechnicalInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createCommercialManagementSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createCommercialInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createBoardManagementSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
@@ -67,6 +67,8 @@ export function createCoreWorldSystems(options = {}) {
     createStaffAdviceSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createManagementInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createSeasonRolloverSystem(),
+    createTechnicalReliabilitySystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
+    createTechnicalInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createRaceStrategySystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createPerformanceCalibrationSystem(),
     createRaceWeekendSystem(),
