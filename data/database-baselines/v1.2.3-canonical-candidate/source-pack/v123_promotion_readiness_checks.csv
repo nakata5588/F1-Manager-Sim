@@ -1,0 +1,13 @@
+check,status,details
+V122-IDENTITY-001 manifest identity synchronized,PASS,top=v1.2.3-canonical-candidate manifest=v1.2.3-canonical-candidate
+V122-IDENTITY-002 Season sourceChecksum matches Global manifest.sourceSha256,PASS,season=9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097 global_source=9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097
+V122-ID-003 canonical fact IDs repaired before emit,PASS,unrepaired_fact_surfaces=0
+duplicate drivers.driver_id,PASS,duplicates=0
+duplicate teams.team_id,PASS,duplicates=0
+duplicate staff.staff_id,PASS,duplicates=0
+duplicate entityAliases.alias_id,PASS,duplicates=0
+Global SQLite integrity,PASS,ok
+Season SQLite integrity,PASS,ok
+futureStructure has no outcome authority fields,PASS,bad_keys=0
+1980 readiness carried in Global manifest,PASS,READY
+No named historical agents invented,PASS,agentProfiles=0

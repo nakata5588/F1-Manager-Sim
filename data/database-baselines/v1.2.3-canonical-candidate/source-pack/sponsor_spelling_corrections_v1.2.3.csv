@@ -1,0 +1,3 @@
+collection,old_value,new_value,action,confidence,reason
+sponsorCatalog/sponsorContracts,Parlmalat,Parmalat,APPLY,high,Source and known brand spelling; v1.2.1 typo repair.
+sponsorCatalog/sponsorContracts,Magnetti Marelli,Magneti Marelli,APPLY,high,"Known brand spelling; v1.2.1 typo repair, pending row-level 1980 livery source."

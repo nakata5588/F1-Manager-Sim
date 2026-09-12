@@ -1,0 +1,6 @@
+area,v1.2.2,v1.2.3,classification
+release_identity,mixed v1.2.2 top-level / v1.2.0-v1.2.1 manifest,synchronized v1.2.3 top-level + manifest,FIX
+season_source_checksum,82627e7d... not traceable to Global source identity,9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097,FIX
+active_start_source_locked_facts,some pre-repair related_entities remained,all eight canonical corrections applied before emit,FIX
+database_content,relationship/source pack contents,preserved cumulatively; no gameplay/UI data added,KEEP
+canonical_status,VALIDATED_WITH_PROMOTION_BLOCKERS / canonical=false,CANONICAL_CANDIDATE / canonical=true,PROMOTE_CANDIDATE

@@ -28,6 +28,11 @@ export const DATABASE_REFERENCE_ONLY_FIELDS = Object.freeze([
   "historicalResearchBacklog1980V122",
   "relationshipsMaterializerDeltaSpecV122",
   "phase33DatabaseReadinessMatrixV122",
+  "sourceManifestV123",
+  "canonicalIdCorrectionsV123",
+  "historicalResearchBacklog1980V123",
+  "relationshipsMaterializerDeltaSpecV123",
+  "phase33DatabaseReadinessMatrixV123",
   "databaseOnlyScope",
 ]);
 
@@ -79,6 +84,11 @@ export const DATABASE_OWNED_SEASON_FIELDS = Object.freeze([
   "historicalResearchBacklog1980V122",
   "relationshipsMaterializerDeltaSpecV122",
   "phase33DatabaseReadinessMatrixV122",
+  "sourceManifestV123",
+  "canonicalIdCorrectionsV123",
+  "historicalResearchBacklog1980V123",
+  "relationshipsMaterializerDeltaSpecV123",
+  "phase33DatabaseReadinessMatrixV123",
   "databaseOnlyScope",
 ]);
 
@@ -183,6 +193,11 @@ function applyCorrectionString(value, correction) {
   return oldValue && newValue && value === oldValue ? newValue : value;
 }
 
+function canonicalFactCorrections(container) {
+  if (container?.canonicalIdCorrectionsV123?.length) return container.canonicalIdCorrectionsV123;
+  return container?.canonicalIdCorrectionsV122 ?? [];
+}
+
 export function applyCanonicalFactCorrections(rows = [], corrections = []) {
   const byFact = new Map((corrections ?? []).filter((row) => row?.fact_id).map((row) => [row.fact_id, row]));
   return (rows ?? []).map((row) => {
@@ -191,7 +206,9 @@ export function applyCanonicalFactCorrections(rows = [], corrections = []) {
     return {
       ...structuredClone(row),
       related_entities: applyCorrectionString(row.related_entities, correction),
-      source_lock_revision: row.source_lock_revision ?? "v1.2.2_canonical_id_repair",
+      source_lock_revision: row.source_lock_revision
+        ?? correction.applied_in_database_version
+        ?? "canonical_id_repair",
     };
   });
 }
@@ -199,7 +216,7 @@ export function applyCanonicalFactCorrections(rows = [], corrections = []) {
 function sourceLockedFacts(database, season) {
   const corrected = applyCanonicalFactCorrections(
     rowsForSeason(database.sourceLockedFactRegister, season),
-    database.canonicalIdCorrectionsV122,
+    canonicalFactCorrections(database),
   );
   return corrected.filter((row) => !String(row.start_1980_policy ?? "").includes("future_outcome_suppressed")
     && !String(row.start_1980_policy ?? "").includes("future_or_late_1980"));
@@ -266,6 +283,11 @@ export function materializeDatabaseManagementBlocks(database, seasonInput, baseS
     historicalResearchBacklog1980V122: copy(database.historicalResearchBacklog1980V122),
     relationshipsMaterializerDeltaSpecV122: copy(database.relationshipsMaterializerDeltaSpecV122),
     phase33DatabaseReadinessMatrixV122: copy(database.phase33DatabaseReadinessMatrixV122),
+    sourceManifestV123: copy(database.sourceManifestV123),
+    canonicalIdCorrectionsV123: copy(database.canonicalIdCorrectionsV123),
+    historicalResearchBacklog1980V123: copy(database.historicalResearchBacklog1980V123),
+    relationshipsMaterializerDeltaSpecV123: copy(database.relationshipsMaterializerDeltaSpecV123),
+    phase33DatabaseReadinessMatrixV123: copy(database.phase33DatabaseReadinessMatrixV123),
     databaseOnlyScope: copy(database.databaseOnlyScope, null),
   };
 }
@@ -280,10 +302,11 @@ export function mergeDatabaseOwnedSeasonFields(activeSnapshot, globalSnapshot) {
 
 export function normalizeSeasonDatabaseSnapshot(snapshot) {
   const normalized = structuredClone(snapshot);
-  if (normalized.activeStartSourceLockedFacts?.length && normalized.canonicalIdCorrectionsV122?.length) {
+  const corrections = canonicalFactCorrections(normalized);
+  if (normalized.activeStartSourceLockedFacts?.length && corrections.length) {
     normalized.activeStartSourceLockedFacts = applyCanonicalFactCorrections(
       normalized.activeStartSourceLockedFacts,
-      normalized.canonicalIdCorrectionsV122,
+      corrections,
     );
   }
   return normalized;

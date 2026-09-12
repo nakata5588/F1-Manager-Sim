@@ -12,7 +12,7 @@ function usage() {
     "  node scripts/materialize-career-save.js <season-database.json|json.gz> [--global-world <global.json|json.gz>] [--out <save.json>] [--seed <seed>] [--start-date YYYY-MM-DD]",
     "",
     "Example:",
-    "  npm run save:from-season-db -- F1_Manager_Sim_SeasonDefinition_1980_v1.0_candidate.json --global-world F1_Manager_Sim_Global_Database_v1.0_candidate.json --out build/saves/1980.save.json --seed 1980-playtest",
+    "  npm run save:from-season-db -- F1_Manager_Sim_SeasonDefinition_1980_v1.2.3_canonical_candidate.json --global-world F1_Manager_Sim_Global_Database_v1.2.3_canonical_candidate.json --out build/saves/1980.save.json --seed 1980-playtest",
   ].join("\n");
 }
 
