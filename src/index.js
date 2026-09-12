@@ -5,6 +5,7 @@ export { createSeasonDatabasePayload, loadSeasonDatabasePayload, mergeSeasonBoun
 export { createCareerFromSeasonDatabase, validateSeasonDatabaseAgainstGlobal } from "./data/careerBootstrap.js";
 export { DeveloperPlaytestSession, listDeveloperPlaytestTeams } from "./app/developerPlaytest.js";
 export { developerApplyManagerJob, developerArchiveInboxItem, developerBoard, developerCommercial, developerContractNegotiations, developerInbox, developerManagementOverview, developerManagerCareer, developerMarkInboxRead, developerMarket, developerOpenDriverNegotiation, developerOpenSponsorNegotiation, developerOpenStaffNegotiation, developerPeople, developerRecruitment, developerResolveInboxDecision, developerResolveSponsorActivity, developerResponsibilities, developerSetResponsibility, developerSetShortlist, developerStaffContractNegotiations, developerStaffRecruitment, developerStartScouting, developerSubmitBoardRequest, developerSubmitDriverOffer, developerSubmitSponsorOffer, developerSubmitStaffOffer, developerWithdrawDriverNegotiation, developerWithdrawSponsorNegotiation, developerWithdrawStaffNegotiation } from "./app/managementPlaytest.js";
+export { developerCastGovernanceVote, developerGovernance, developerRebrandControlledTeam } from "./app/governancePlaytest.js";
 export { loadSeasonPackPayload, parseSeasonPackPayload, seasonPackSheetRows, SeasonPackValidationError, validateSeasonPackPayload } from "./data/seasonPackLoader.js";
 export { applySeasonPackOverlay, overlaySourceChecksum, SeasonPackOverlayError } from "./data/seasonPackOverlay.js";
 export { loadSeasonPackRuntimePayload, validateSeasonPackRuntimePayload } from "./data/seasonPackRuntime.js";
@@ -24,6 +25,9 @@ export { TECHNICAL_COMPONENTS, TECHNICAL_EVENT, advanceTechnicalMonth, ensureTec
 export { SUPPLIER_EVENT, acceptSupplierCounter, activateSupplierSeason, activeEngineForTeam, activeSupplierContract, engineById, engineCatalog, ensureSupplierTeam, expectedSupplierTerms, initializeSupplierWorld, listSupplierMarket, openSupplierNegotiation, submitSupplierOffer, supplierInterest, supplierProjection, technicalSupplierMonthlyCost, withdrawSupplierNegotiation } from "./game/management/suppliers.js";
 export { RELIABILITY_EVENT, adjustReliabilityForCondition, applyRaceWear, conditionForDriver, conditionPerformanceModifier, ensureReliabilityTeam, fittedComponentReturnable, initializeReliabilityWorld, rebuildFittedComponent, registerFittedComponentUnit, reliabilityProjection, replaceWornComponent, serviceEngineUnit } from "./game/management/reliability.js";
 export { PRESEASON_EVENT, ensurePreseasonTeam, initializePreseasonWorld, isPreseasonWindow, preseasonDevelopmentBonus, preseasonProjection, runPreseasonTest } from "./game/management/preseason.js";
+export { REGULATION_EVENT, applyEnactedRegulations, castRegulationVote, ensureRegulationState, initializeRegulationState, listRegulationProposals, openHistoricalReferenceProposal, openRegulationProposal, regulationEraProfile, regulationPackage, regulationProjection, regulationVoteSummary, resolveRegulationProposal } from "./game/management/regulations.js";
+export { applyTechnicalRegulationTransition } from "./game/management/regulationImpact.js";
+export { TEAM_EVOLUTION_EVENT, activateAcceptedTeamEntry, decideTeamEntryApplication, ensureTeamEvolutionState, exitTeam, initializeTeamEvolutionState, listTeamEntryCandidates, rebrandTeam, submitTeamEntryApplication, teamEvolutionProjection, updateTeamDistress } from "./game/management/teamEvolution.js";
 export { createRng } from "./sim/random.js";
 export { availableTyreCompounds, createRaceStrategyPlan, evaluateRaceStrategy } from "./sim/raceStrategy.js";
 export { currentStrategyStint, reviseRaceStrategy, reviseStartingTyreCompound, selectLiveTyreCompound } from "./sim/liveStrategy.js";
@@ -61,6 +65,9 @@ export { createCommercialManagementSystem } from "./sim/systems/commercialManage
 export { createCommercialInboxSystem } from "./sim/systems/commercialInbox.js";
 export { createTechnicalInboxSystem } from "./sim/systems/technicalInbox.js";
 export { createTechnicalReliabilitySystem } from "./sim/systems/technicalReliability.js";
+export { createGovernanceManagementSystem } from "./sim/systems/governanceManagement.js";
+export { createGovernanceInboxSystem } from "./sim/systems/governanceInbox.js";
+export { archiveExitedTeamOperationalState, createTeamExitCleanupSystem } from "./sim/systems/teamExitCleanup.js";
 export { createManagementInboxSystem } from "./sim/systems/managementInbox.js";
 export { RACE_ENTRY_EVENT, createRaceEntrySystem } from "./sim/systems/raceEntry.js";
 export { TEAM_FINANCE_EVENT, createTeamEconomySystem } from "./sim/systems/teamEconomy.js";
