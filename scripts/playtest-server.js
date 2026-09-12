@@ -38,6 +38,13 @@ import {
   developerWithdrawSponsorNegotiation,
   developerWithdrawStaffNegotiation,
 } from "../src/app/managementPlaytest.js";
+import {
+  developerFitTechnicalSpec,
+  developerStartFacilityUpgrade,
+  developerStartManufacturing,
+  developerStartTechnicalDesign,
+  developerTechnical,
+} from "../src/app/technicalPlaytest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const STATIC_ROOT = resolve(__dirname, "../playtest");
@@ -287,6 +294,24 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/commercial/activity" && request.method === "POST") {
       const input = await body(request);
       return json(response, 200, developerResolveSponsorActivity(session, input.activityId, input.fulfilled !== false));
+    }
+
+    if (url.pathname === "/api/technical" && request.method === "GET") return json(response, 200, developerTechnical(session));
+    if (url.pathname === "/api/technical/design" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerStartTechnicalDesign(session, input));
+    }
+    if (url.pathname === "/api/technical/manufacture" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerStartManufacturing(session, input));
+    }
+    if (url.pathname === "/api/technical/fit" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerFitTechnicalSpec(session, input));
+    }
+    if (url.pathname === "/api/technical/facility" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerStartFacilityUpgrade(session, input.facilityId));
     }
 
     if (request.method === "GET" && serveStatic(request, response)) return;
