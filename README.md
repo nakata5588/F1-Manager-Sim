@@ -26,7 +26,7 @@ A completed design does not improve the car automatically. Physical units must b
 
 The player can choose current-season development or next-season research. Future-car specifications remain unavailable to production until their target season begins. Technical staff, relevant facilities and driver feedback affect development efficiency while project outcomes remain deterministic for a given save seed.
 
-Facilities now have mutable Save World upgrade state. Upgrades cost real team cash, take time and add maintenance cost without rewriting historical database rows. Where a required operational capability is missing from source data, the game uses an explicitly labelled `derived_gameplay_baseline` rather than inventing a historical fact.
+Facilities now have mutable Save World upgrade state. Upgrades cost real team cash, take time and add maintenance cost without rewriting historical database rows. The canonical v1.2.5 database provides explicit 1980 component/facility/manufacturing starting baselines with source-lock provenance; derived values remain explicitly non-source-locked.
 
 AI teams and a player team with **Car Development = Delegated** use the same design, manufacturing, stock and fitment pipeline.
 
@@ -62,13 +62,13 @@ The technical gameplay boundary is:
 
 `Historical starting car -> Design / Research -> Specification -> Manufacture -> Inventory -> Fit to Car -> Race`
 
-See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md`.
+See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
 
 ## Historical data policy
 
-The current promoted canonical source baseline is **v1.2.3-canonical-candidate (2026-09-12)**. Its reproducibility contract is pinned in `data/database-baselines/v1.2.3-canonical-candidate/baseline.json`; the earlier v1.0 and v1.2.2 baseline folders remain audit history only. The first career-ready season remains 1980.
+The current promoted canonical source baseline is **v1.2.5-1980-technical-source-lock-candidate (2026-09-12)**. Its reproducibility contract is pinned in `data/database-baselines/v1.2.5-1980-technical-source-lock-candidate/baseline.json`; earlier baseline folders remain audit history only. The v1.2.5 bundle is cumulative and supersedes v1.2.4, so those releases must not be applied sequentially. The first career-ready season remains 1980.
 
-The canonical v1.2.3 source identity is `9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097`. The promoted Global JSON hash is `e247978c04d3ed88d1ade9e354892666e1f24bbfcc3e39e34fc4444e91c3d95f` and the promoted Season Definition 1980 JSON hash is `136d662040427f9ce1e12597c6b52fd11985c2c34e0e40a4ce2d088103ce75d5`.
+The canonical source identity remains `9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097`. The promoted Global JSON hash is `315fdd58ef24b02bc6aeb073876d8fa1966839c134751979d8800393b83a36cd` and the promoted Season Definition 1980 JSON hash is `e22b89da311991fad300d873973513cba438ebac38b450e8bf5248f61dfc9303`.
 
 Management and technical systems are deliberately tolerant of missing historical fields. Salary, personality, agent, staff-rating, sponsor, contract, facility and technical data are used when the database supplies them. Missing values do not become fabricated historical truth:
 
@@ -79,10 +79,12 @@ Management and technical systems are deliberately tolerant of missing historical
 - sponsor monetary values retain explicit provenance between historical contracts, gameplay-model estimates and simulation negotiations;
 - unknown sponsor industries remain uncategorized rather than receiving invented historical categories;
 - board confidence, manager reputation, marketability and commercial outcomes are dynamic Save World state rather than claimed historical facts;
+- 1980 component values are relative source-locked database starting baselines, not claims about exact measured engineering values;
+- starting technical specifications are fitted to both cars but create zero spare inventory unless a future sourced row explicitly provides stock;
+- the absent 1980 simulator source field remains a `derived_gameplay_baseline` with `derived_not_source_locked` provenance;
 - technical specifications created after career start are simulation state;
-- facility upgrades never overwrite the historical starting facility rows;
-- required missing operational manufacturing capacity uses an explicit `derived_gameplay_baseline` rather than being source-locked;
-- source-lock manifests, canonical ID correction maps and research/readiness audit packs remain reference context rather than mutable Save World state.
+- facility upgrades never overwrite the historical starting facility rows or reference baselines;
+- source-lock manifests, canonical ID correction maps, technical audits and research/readiness packs remain reference context rather than mutable Save World state.
 
 The historical master database can therefore improve in parallel without requiring gameplay architecture rewrites or altering existing saves.
 
@@ -104,8 +106,8 @@ npm run db:audit -- /path/to/f1_db.xlsx --season 1980 --full-world
 Materialize a career from an accepted Season Database:
 
 ```bash
-npm run save:from-season-db -- /path/to/F1_Manager_Sim_SeasonDefinition_1980_v1.2.3_canonical_candidate.json \
-  --global-world /path/to/F1_Manager_Sim_Global_Database_v1.2.3_canonical_candidate.json \
+npm run save:from-season-db -- /path/to/F1_Manager_Sim_SeasonDefinition_1980_v1.2.5_1980_technical_source_lock_candidate.json \
+  --global-world /path/to/F1_Manager_Sim_Global_Database_v1.2.5_1980_technical_source_lock_candidate.json \
   --out build/saves/1980.save.json \
   --seed 1980-playtest
 ```
@@ -113,8 +115,8 @@ npm run save:from-season-db -- /path/to/F1_Manager_Sim_SeasonDefinition_1980_v1.
 Run the local Developer Playtest UI:
 
 ```bash
-npm run playtest -- /path/to/F1_Manager_Sim_SeasonDefinition_1980_v1.2.3_canonical_candidate.json \
-  --global-world /path/to/F1_Manager_Sim_Global_Database_v1.2.3_canonical_candidate.json
+npm run playtest -- /path/to/F1_Manager_Sim_SeasonDefinition_1980_v1.2.5_1980_technical_source_lock_candidate.json \
+  --global-world /path/to/F1_Manager_Sim_Global_Database_v1.2.5_1980_technical_source_lock_candidate.json
 ```
 
 Then open:

@@ -1,0 +1,7 @@
+source_id,source_type,label,sha256,role
+SRC-V123,candidate_database,F1 Manager Sim Global/Season Database v1.2.3 canonical candidate,,base input for v1.2.4
+SRC-PHASE36-DOC,github_doc,docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md at main c967f912,,technical lifecycle/database-boundary contract
+SRC-CARSTATS-1980,database_table,Season Definition 1980 carStats,,starting component baseline source
+SRC-FACILITIES-1980,database_table,Season Definition 1980 facilities,,starting facility/manufacturing baseline source
+SRC-V124,candidate_database,F1 Manager Sim DB v1.2.4 1980 technical source candidate,cb25313c9b9e6180614b13737c1ae7cbc673c5bf63f79178121bba304c28eab0,base input for v1.2.5 source-lock audit
+SRC-PHASE36-BOUNDARY,github_pr_doc,Phase 36 technical development boundary at main c967f912,,database vs Save World technical-state boundary

@@ -12,6 +12,24 @@ The lifecycle is:
 
 A completed design is not a fitted upgrade. The car only changes after a physical unit has been manufactured and fitted.
 
+## Canonical 1980 technical database bootstrap
+
+The promoted `v1.2.5-1980-technical-source-lock-candidate` database now provides the explicit 1980 technical starting contract consumed by Phase 36:
+
+- 90 component baselines (6 per active team);
+- 90 fitted-start specification seeds;
+- 90 facility baselines (6 per active team);
+- 15 manufacturing-capacity baselines;
+- technical source-lock policy/audit/readiness metadata.
+
+At career creation, the database baselines seed mutable `world.technical.teams[teamId]` and `world.carState`. The original technical source rows are then moved to `reference.databaseContext`; they are not a second mutable technical authority.
+
+Starting specification seeds are fitted to both cars and contain zero spare inventory. The game therefore creates the parts already fitted to the cars but does not invent physical stock.
+
+Source provenance is preserved. In particular, the absent 1980 simulator source field is represented by the database as level `0`, `derived_gameplay_baseline_absent_source_field`, `derived_not_source_locked`. It can influence gameplay but must never be presented as a sourced historical facility fact.
+
+Older Season Databases that do not carry the technical baseline blocks retain the Phase 36 raw `carStats`/`facilities` fallback initialization for backward compatibility.
+
 ## Technical Save World state
 
 `world.technical.teams[teamId]` owns the mutable technical operation state:
@@ -29,9 +47,11 @@ A completed design is not a fitted upgrade. The car only changes after a physica
 
 ## Starting specifications
 
-Historical car component values become fitted starting specifications on both cars. They are labelled `historical_start_input`.
+Historical car component values become fitted starting specifications on both cars. With v1.2.5 they are seeded through the explicit `technicalComponentBaselines` / `technicalStartingSpecificationSeeds` database contract and keep their source provenance.
 
 The game does not invent spare stock at career creation. Starting fitment means the component is physically on the car; it does not imply additional units in inventory.
+
+Component baseline values are relative game baselines carried from the historical database. They must not be described as exact measured real-world engineering specifications.
 
 ## Player-controlled R&D
 
@@ -66,6 +86,8 @@ A manufacturing job:
 - has a lead time;
 - may use emergency production at increased cost.
 
+The v1.2.5 database supplies a starting manufacturing-capacity index sourced from each team's starting facility row. It is a gameplay initialization index, not a claim about exact real-world factory throughput, headcount or stock.
+
 Completion adds physical stock to inventory. No car improves merely because manufacturing finishes.
 
 ## Car-specific fitment
@@ -99,7 +121,7 @@ Phase 36 supports the facility concepts already represented by source fields whe
 - Chassis Shop;
 - Manufacturing.
 
-If manufacturing capability is absent, an explicit `derived_gameplay_baseline` is used because physical production requires operational capacity. It is not presented as a sourced historical fact.
+The v1.2.5 database explicitly distinguishes source-locked facility fields from derived gameplay baselines. Missing historical concepts do not silently become historical facts. Older datasets without an operational manufacturing baseline may still use the explicit Phase 36 `derived_gameplay_baseline` fallback required for physical production.
 
 Facility upgrades:
 
@@ -107,7 +129,7 @@ Facility upgrades:
 - take multiple months;
 - improve the mutable Save World facility level;
 - add ongoing maintenance cost;
-- never rewrite the historical `facilities` row.
+- never rewrite the historical `facilities` row or the source baseline stored under `reference.databaseContext`.
 
 ## Finance integration
 

@@ -1,0 +1,10 @@
+metric,value
+technical_source_lock_audit_rows,285
+component_rows_audited,90
+starting_spec_seed_rows_audited,90
+facility_rows_audited,90
+manufacturing_rows_audited,15
+unknown_technical_fields_documented,7
+suppressed_dynamic_state_rules,6
+invented_starting_spare_inventory,0
+dynamic_save_world_state_stored_in_db,False

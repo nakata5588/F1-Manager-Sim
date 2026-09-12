@@ -1,0 +1,6 @@
+delta_id,target,action
+TECH-SL-MAT-001,season.snapshot.technicalSourceLockAudit1980,"copy audit rows into reference/audit context, not mutable world"
+TECH-SL-MAT-002,season.snapshot.technicalUnknownFields1980,preserve as source/research backlog for database UI/tools only
+TECH-SL-MAT-003,season.snapshot.technicalSuppressedDynamicStateRules,assert no starting inventory/design/manufacturing/facility-upgrade dynamic rows are emitted
+TECH-SL-MAT-004,SaveWorld.reference.databaseContext.technical,store source-lock classifications as reference only
+TECH-SL-MAT-005,SaveWorld.world.technical,use only starting baselines/seeds to initialize mutable Save World technical state

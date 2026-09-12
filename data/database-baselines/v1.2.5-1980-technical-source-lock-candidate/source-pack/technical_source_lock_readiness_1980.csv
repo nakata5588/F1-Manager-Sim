@@ -1,0 +1,7 @@
+check_id,check,expected,actual,status
+TECH-SL-READY-001,technical source-lock audit rows generated,285,285,PASS
+TECH-SL-READY-002,active teams with six component baselines,15,15,PASS
+TECH-SL-READY-003,active teams with six facility baselines,15,15,PASS
+TECH-SL-READY-004,invented spare inventory rows,0,0,PASS
+TECH-SL-READY-005,dynamic Save World technical state stored in DB,0,0,PASS
+TECH-SL-READY-006,unknown/suppressed areas documented,1,1,PASS
