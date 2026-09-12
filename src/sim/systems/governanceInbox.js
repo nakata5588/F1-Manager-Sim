@@ -12,7 +12,7 @@ function add(saveWorld, event, input) {
     priority: input.priority ?? "normal",
     title: input.title,
     body: input.body,
-    decision: input.decision ?? null,
+    decision: null,
   });
 }
 
@@ -42,16 +42,7 @@ export function createGovernanceInboxSystem(options = {}) {
             sourceId: `${payload.proposal_id}:${teamId}`,
             priority: "high",
             title: payload.title ?? "Regulation vote required",
-            body: `A ${payload.category ?? "regulation"} proposal for ${payload.target_season} is open. Your team can vote before the governance resolution. Future historical rules are references only and are not automatically imposed.`,
-            decision: {
-              kind: "governance_vote",
-              refId: `${payload.proposal_id}::${teamId}`,
-              options: [
-                { id: "vote_yes", label: "Vote Yes", tone: "positive" },
-                { id: "vote_no", label: "Vote No", tone: "negative" },
-                { id: "vote_abstain", label: "Abstain", tone: "neutral" },
-              ],
-            },
+            body: `A ${payload.category ?? "regulation"} proposal for ${payload.target_season} is open. Vote from the Governance screen before the resolution window closes. Future historical rules are references only and are not automatically imposed.`,
           }));
         }
         return items.map((item) => ({ type: "governance.inbox_created", payload: { inbox_id: item.id, source_id: item.sourceId } }));
