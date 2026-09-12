@@ -1,0 +1,7 @@
+rule_id,area,suppressed_state,reason,allowed_location
+TECH-SUP-001,inventory,starting spare part units > 0,Would invent physical stock without a source.,Save World after manufacturing completion only
+TECH-SUP-002,fitment,car-specific upgraded fitted specs at career start,No source-locked evidence for differential car upgrades at initial save date.,Save World after player/AI fit action only
+TECH-SUP-003,design_projects,active R&D programmes at career start,Would create dynamic project state from historical guess.,Save World only if future source pack has explicit opening project seeds
+TECH-SUP-004,facility_upgrades,facility construction already in progress,No source-locked build timelines.,Save World / future source-locked project seed
+TECH-SUP-005,manufacturing_jobs,manufacturing queue at career start,No source-locked job queue data.,Save World after career start
+TECH-SUP-006,maintenance,dynamic maintenance delta at career start,Post-start operating costs are simulation state.,Save World economy after initialization
