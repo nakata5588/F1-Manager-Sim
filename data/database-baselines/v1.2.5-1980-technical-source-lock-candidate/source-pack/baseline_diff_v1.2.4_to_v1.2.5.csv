@@ -1,0 +1,6 @@
+area,v1.2.4,v1.2.5,change
+release_identity,v1.2.4-1980-technical-source-candidate,v1.2.5-1980-technical-source-lock-candidate,technical source-lock publication/audit layer
+technical_source_lock_audit_rows,0,285,added row-level source-lock classification
+technical_unknown_fields,0,7,documented fields that must not be invented
+technical_suppressed_dynamic_state_rules,0,6,explicitly blocks dynamic technical state in historical DB
+core_counts,unchanged,unchanged,no driver/team/staff/race/sponsor changes
