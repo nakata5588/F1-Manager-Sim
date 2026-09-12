@@ -61,6 +61,39 @@ function initialExpectedPositions(saveWorld) {
     }, {});
 }
 
+function boardObjectives(saveWorld, id, expected, openingCash) {
+  const hasDevelopmentModel = Object.keys(saveWorld.world?.carState?.[id]?.components ?? {}).length > 0;
+  return [
+    {
+      id: "constructors_position",
+      kind: "constructors_position",
+      label: "Constructors' Championship",
+      target: expected,
+      targetText: `Finish P${expected} or better`,
+      current: null,
+      status: "pending",
+    },
+    {
+      id: "financial_stability",
+      kind: "financial_stability",
+      label: "Financial stability",
+      target: openingCash > 0 ? 0.65 : 0,
+      targetText: openingCash > 0 ? "Retain at least 65% of season-opening cash" : "Avoid financial distress",
+      current: null,
+      status: "pending",
+    },
+    {
+      id: "development_delivery",
+      kind: "development_delivery",
+      label: "Car development",
+      target: hasDevelopmentModel ? 1 : 0,
+      targetText: hasDevelopmentModel ? "Complete at least one development project" : "No measurable development target",
+      current: 0,
+      status: hasDevelopmentModel ? "pending" : "not_applicable",
+    },
+  ];
+}
+
 export function ensureBoardState(saveWorld) {
   saveWorld.world.management ??= {};
   saveWorld.world.management.board ??= { teams: {}, nextRequestId: 1 };
@@ -77,10 +110,11 @@ export function initializeBoardTeam(saveWorld, id, date = saveWorld.clock?.date)
   const finances = saveWorld.world?.teamState?.[id] ?? {};
   const expected = initialExpectedPositions(saveWorld)[id] ?? Math.max(1, Math.ceil((saveWorld.world?.teams ?? []).length / 2));
   const openingCash = numeric(finances.openingCash, numeric(finances.cash, 0));
-  const hasDevelopmentModel = Object.keys(saveWorld.world?.carState?.[id]?.components ?? {}).length > 0;
   const row = {
     teamId: id,
     teamName: teamName(team),
+    season: Number(saveWorld.clock?.season),
+    seasonHistory: [],
     confidence: 65,
     status: "stable",
     reviewCount: 0,
@@ -88,39 +122,46 @@ export function initializeBoardTeam(saveWorld, id, date = saveWorld.clock?.date)
     lastReviewAt: null,
     lastWarningAt: null,
     dismissalRecommended: false,
-    objectives: [
-      {
-        id: "constructors_position",
-        kind: "constructors_position",
-        label: "Constructors' Championship",
-        target: expected,
-        targetText: `Finish P${expected} or better`,
-        current: null,
-        status: "pending",
-      },
-      {
-        id: "financial_stability",
-        kind: "financial_stability",
-        label: "Financial stability",
-        target: openingCash > 0 ? 0.65 : 0,
-        targetText: openingCash > 0 ? "Retain at least 65% of opening cash" : "Avoid financial distress",
-        current: null,
-        status: "pending",
-      },
-      {
-        id: "development_delivery",
-        kind: "development_delivery",
-        label: "Car development",
-        target: hasDevelopmentModel ? 1 : 0,
-        targetText: hasDevelopmentModel ? "Complete at least one development project" : "No measurable development target",
-        current: 0,
-        status: hasDevelopmentModel ? "pending" : "not_applicable",
-      },
-    ],
+    objectives: boardObjectives(saveWorld, id, expected, openingCash),
     requests: [],
   };
   state.teams[id] = row;
   return row;
+}
+
+export function renewBoardSeason(saveWorld, id, seasonInput = saveWorld.clock?.season, date = saveWorld.clock?.date) {
+  const season = Number(seasonInput);
+  if (!Number.isInteger(season)) throw new TypeError("Board season must be an integer.");
+  const board = initializeBoardTeam(saveWorld, id, date);
+  if (Number(board.season) === season) return board;
+
+  const previousPosition = constructorPosition(saveWorld, id);
+  board.seasonHistory ??= [];
+  board.seasonHistory.push({
+    season: Number(board.season ?? season - 1),
+    closedAt: date,
+    confidence: board.confidence,
+    status: board.status,
+    objectives: structuredClone(board.objectives ?? []),
+    finalConstructorPosition: previousPosition,
+  });
+
+  const fieldSize = Math.max(1, (saveWorld.world?.teams ?? []).length);
+  const fallback = initialExpectedPositions(saveWorld)[id] ?? Math.max(1, Math.ceil(fieldSize / 2));
+  const prior = previousPosition ?? fallback;
+  const ambitionDelta = board.confidence >= 78 ? -1 : board.confidence < 42 ? 1 : 0;
+  const expected = Math.min(fieldSize, Math.max(1, prior + ambitionDelta));
+  const finances = saveWorld.world?.teamState?.[id] ?? {};
+  const openingCash = numeric(finances.cash, numeric(finances.openingCash, 0));
+
+  board.season = season;
+  board.reviewCount = 0;
+  board.lastReviewAt = null;
+  board.lastWarningAt = null;
+  board.dismissalRecommended = false;
+  board.dismissedAt = null;
+  board.objectives = boardObjectives(saveWorld, id, expected, openingCash);
+  return board;
 }
 
 export function boardStatus(confidence) {
@@ -253,6 +294,7 @@ export function boardProjection(saveWorld, id) {
   return {
     teamId: board.teamId,
     teamName: board.teamName,
+    season: board.season ?? Number(saveWorld.clock?.season),
     confidence: board.confidence,
     status: board.status,
     reviewCount: board.reviewCount,
@@ -260,5 +302,6 @@ export function boardProjection(saveWorld, id) {
     objectives: structuredClone(board.objectives),
     requests: structuredClone(board.requests),
     staffCapacityBonus: numeric(board.staffCapacityBonus, 0),
+    seasonHistory: structuredClone(board.seasonHistory ?? []),
   };
 }
