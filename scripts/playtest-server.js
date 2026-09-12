@@ -53,6 +53,11 @@ import {
   developerTechnical,
   developerWithdrawSupplierNegotiation,
 } from "../src/app/technicalPlaytest.js";
+import {
+  developerCastGovernanceVote,
+  developerGovernance,
+  developerRebrandControlledTeam,
+} from "../src/app/governancePlaytest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const STATIC_ROOT = resolve(__dirname, "../playtest");
@@ -302,6 +307,16 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/commercial/activity" && request.method === "POST") {
       const input = await body(request);
       return json(response, 200, developerResolveSponsorActivity(session, input.activityId, input.fulfilled !== false));
+    }
+
+    if (url.pathname === "/api/governance" && request.method === "GET") return json(response, 200, developerGovernance(session));
+    if (url.pathname === "/api/governance/vote" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerCastGovernanceVote(session, input.proposalId, input.choice));
+    }
+    if (url.pathname === "/api/governance/rebrand" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerRebrandControlledTeam(session, input.displayName));
     }
 
     if (url.pathname === "/api/technical" && request.method === "GET") return json(response, 200, developerTechnical(session));
