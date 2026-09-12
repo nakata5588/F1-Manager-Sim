@@ -266,6 +266,9 @@ test("controlled team is protected from automatic financial exit candidate list"
 
 test("annual governance cycle opens future-reference proposals without scripting acceptance", () => {
   const save = saveFixture();
+  // Live player control is authoritative. Cached system options are only a
+  // bootstrap fallback when the Save World has no player control state yet.
+  save.player.controlledTeamIds = ["T1"];
   const system = createGovernanceManagementSystem({ controlledTeamIds: ["T1"] });
   system.handle({ saveWorld: save, event: { type: SIM_EVENT.CAREER_STARTED, date: "1980-01-01", payload: {} } });
   save.clock.date = "1980-07-01";
