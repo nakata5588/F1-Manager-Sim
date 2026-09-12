@@ -1,4 +1,14 @@
 import { createRng } from "../../sim/random.js";
+import { preseasonDevelopmentBonus } from "./preseason.js";
+
+export const TECHNICAL_COMPONENTS = Object.freeze([
+  "chassis_spec",
+  "aero_spec",
+  "gearbox_spec",
+  "suspension_spec",
+  "brakes_spec",
+  "cooling_spec",
+]);
 
 export const TECHNICAL_EVENT = Object.freeze({
   INITIALIZED: "technical.initialized",
@@ -12,27 +22,20 @@ export const TECHNICAL_EVENT = Object.freeze({
   NEXT_SEASON_SPEC_RELEASED: "technical.next_season_spec_released",
 });
 
-export const TECHNICAL_COMPONENTS = Object.freeze([
-  "chassis_spec",
-  "aero_spec",
-  "gearbox_spec",
-  "suspension_spec",
-  "brakes_spec",
-  "cooling_spec",
-  "electronics_spec",
-  "turbo_spec",
-  "kers_spec",
-  "ers_mgu_k",
-  "ers_mgu_h",
-  "battery_pack",
-]);
+const FACILITY_SOURCE_FIELDS = Object.freeze({
+  windTunnel: ["wind_tunnel_level", "wind_tunnel", "windTunnel"],
+  simulator: ["simulator_level", "simulator"],
+  aeroDepartment: ["aero_dept_level", "aero_department_level", "aeroDepartment"],
+  chassisShop: ["chassis_shop_level", "chassis_department_level", "chassisShop"],
+  manufacturing: ["manufacturing_level", "factory_level", "manufacturing"],
+});
 
-const FACILITIES = Object.freeze({
-  windTunnel: { label: "Wind Tunnel", field: "wind_tunnel_level", discipline: "aero", baseCost: 180000 },
-  simulator: { label: "Simulator", field: "simulator_level", discipline: "general", baseCost: 150000 },
-  aeroDepartment: { label: "Aero Department", field: "aero_dept_level", discipline: "aero", baseCost: 165000 },
-  chassisShop: { label: "Chassis Shop", field: "chassis_shop_level", discipline: "chassis", baseCost: 150000 },
-  manufacturing: { label: "Manufacturing", field: "manufacturing_level", legacyField: "manufacturing_leve", discipline: "manufacturing", baseCost: 170000 },
+const FACILITY_LABELS = Object.freeze({
+  windTunnel: "Wind Tunnel",
+  simulator: "Simulator",
+  aeroDepartment: "Aero Department",
+  chassisShop: "Chassis Shop",
+  manufacturing: "Manufacturing",
 });
 
 function numeric(value, fallback = null) {
@@ -41,133 +44,101 @@ function numeric(value, fallback = null) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function clamp(value, minimum = 0, maximum = 100) {
-  return Math.min(maximum, Math.max(minimum, value));
+function clamp(value, min = 0, max = 100) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function round(value, digits = 2) {
   return Number(Number(value).toFixed(digits));
 }
 
-function teamSourceFacility(saveWorld, teamId) {
-  return (saveWorld.world?.facilities ?? []).find((row) => row.team_id === teamId) ?? {};
-}
-
 function sourceCar(saveWorld, teamId) {
-  return (saveWorld.world?.carStats ?? []).find((row) => row.team_id === teamId) ?? {};
+  const season = Number(saveWorld.clock?.season);
+  return (saveWorld.world?.carStats ?? []).find((row) => row.team_id === teamId && (!Number(row.year) || Number(row.year) === season))
+    ?? (saveWorld.world?.carStats ?? []).find((row) => row.team_id === teamId)
+    ?? {};
 }
 
-function ensureFinance(saveWorld, teamId) {
-  const finance = saveWorld.world?.teamState?.[teamId];
-  if (!finance) throw new Error(`Team '${teamId}' does not have initialized finances.`);
-  return finance;
+function sourceFacility(saveWorld, teamId) {
+  const season = Number(saveWorld.clock?.season);
+  return (saveWorld.world?.facilities ?? []).find((row) => row.team_id === teamId && (!Number(row.year) || Number(row.year) === season))
+    ?? (saveWorld.world?.facilities ?? []).find((row) => row.team_id === teamId)
+    ?? {};
 }
 
-function spend(saveWorld, teamId, amount, reason) {
-  const finance = ensureFinance(saveWorld, teamId);
-  const cost = Math.max(0, round(amount));
-  if (numeric(finance.cash, 0) < cost) throw new Error(`Team '${teamId}' does not have enough cash for ${reason}.`);
-  finance.cash = round(numeric(finance.cash, 0) - cost);
-  return cost;
+function sourceLevel(row, fields) {
+  for (const field of fields) {
+    const value = numeric(row?.[field]);
+    if (value !== null) return { value: clamp(value, 0, 10), sourceField: field };
+  }
+  return null;
 }
 
-function ensureHistory(saveWorld) {
-  saveWorld.history.technical ??= [];
-  return saveWorld.history.technical;
+function initialComponents(car) {
+  const result = {};
+  for (const component of TECHNICAL_COMPONENTS) {
+    const value = numeric(car?.[component]);
+    if (value !== null) result[component] = clamp(value, 1, 100);
+  }
+  return result;
 }
 
-function nextId(team, prefix, date) {
-  team.sequence = Number(team.sequence ?? 0) + 1;
-  return `${prefix}:${team.teamId}:${date}:${team.sequence}`;
-}
-
-function normalizeLevel(value, fallback = null) {
-  const parsed = numeric(value, fallback);
-  if (parsed === null) return null;
-  if (parsed > 0 && parsed <= 1) return clamp(parsed * 10, 1, 10);
-  return clamp(parsed, 1, 10);
-}
-
-function initializeFacilities(saveWorld, teamId) {
-  const source = teamSourceFacility(saveWorld, teamId);
+function facilityState(saveWorld, teamId) {
+  const row = sourceFacility(saveWorld, teamId);
   const facilities = {};
-  for (const [id, definition] of Object.entries(FACILITIES)) {
-    const raw = source[definition.field] ?? (definition.legacyField ? source[definition.legacyField] : null);
-    const level = normalizeLevel(raw);
-    if (level === null) continue;
+  for (const [id, fields] of Object.entries(FACILITY_SOURCE_FIELDS)) {
+    const sourced = sourceLevel(row, fields);
+    const fallback = id === "manufacturing" ? 5 : id === "simulator" ? 5 : 4;
     facilities[id] = {
       id,
-      label: definition.label,
-      level: round(level, 1),
-      source: "historical_start_input",
-      sourceField: definition.field,
-      maintenanceDeltaAnnual: 0,
-    };
-  }
-  if (!facilities.manufacturing) {
-    facilities.manufacturing = {
-      id: "manufacturing",
-      label: FACILITIES.manufacturing.label,
-      level: 5,
-      source: "derived_gameplay_baseline",
-      sourceField: null,
+      label: FACILITY_LABELS[id],
+      level: sourced?.value ?? fallback,
+      source: sourced ? "historical_start_input" : "derived_gameplay_baseline",
+      sourceField: sourced?.sourceField ?? null,
       maintenanceDeltaAnnual: 0,
     };
   }
   return facilities;
 }
 
-function initialComponents(saveWorld, teamId) {
-  const source = sourceCar(saveWorld, teamId);
-  const components = {};
-  for (const component of TECHNICAL_COMPONENTS) {
-    const value = numeric(source[component]);
-    if (value !== null) components[component] = clamp(value, 1, 100);
-  }
-  return components;
+function ensureHistory(saveWorld) {
+  saveWorld.history.development ??= [];
+  saveWorld.history.technical ??= [];
 }
 
-function ensureCarState(saveWorld, teamId, components, date) {
-  saveWorld.world.carState ??= {};
-  saveWorld.world.carState[teamId] ??= {
+function initialSpec(teamId, component, rating, season, date) {
+  return {
+    specId: `initial:${teamId}:${component}`,
     teamId,
-    components: structuredClone(components),
-    initializedAt: date,
-    lastUpdated: date,
+    component,
+    rating: round(rating),
+    gain: 0,
+    targetSeason: season,
+    status: "active",
+    source: "historical_starting_car",
+    createdAt: date,
   };
-  saveWorld.world.carState[teamId].components ??= structuredClone(components);
-  return saveWorld.world.carState[teamId];
 }
 
 export function ensureTechnicalWorld(saveWorld) {
   saveWorld.world.technical ??= { teams: {} };
   saveWorld.world.technical.teams ??= {};
+  saveWorld.world.carState ??= {};
   ensureHistory(saveWorld);
   return saveWorld.world.technical;
 }
 
-export function ensureTechnicalTeam(saveWorld, teamId, date = saveWorld.clock?.date ?? null) {
+export function ensureTechnicalTeam(saveWorld, teamId, date = saveWorld.clock?.date) {
   const world = ensureTechnicalWorld(saveWorld);
   if (world.teams[teamId]) return world.teams[teamId];
-  const components = initialComponents(saveWorld, teamId);
-  ensureCarState(saveWorld, teamId, components, date);
+  const components = initialComponents(sourceCar(saveWorld, teamId));
   const specs = {};
   const fittedCars = { car1: { components: {} }, car2: { components: {} } };
   for (const [component, rating] of Object.entries(components)) {
-    const specId = `initial:${teamId}:${component}`;
-    specs[specId] = {
-      specId,
-      teamId,
-      component,
-      rating: round(rating),
-      gain: 0,
-      targetSeason: Number(saveWorld.clock?.season),
-      status: "active",
-      source: "historical_start_input",
-      createdAt: date,
-    };
-    fittedCars.car1.components[component] = specId;
-    fittedCars.car2.components[component] = specId;
+    const spec = initialSpec(teamId, component, rating, Number(saveWorld.clock?.season), date);
+    specs[spec.specId] = spec;
+    fittedCars.car1.components[component] = spec.specId;
+    fittedCars.car2.components[component] = spec.specId;
   }
   const team = {
     teamId,
@@ -179,69 +150,245 @@ export function ensureTechnicalTeam(saveWorld, teamId, date = saveWorld.clock?.d
     fittedCars,
     designProjects: [],
     manufacturingJobs: [],
-    facilities: initializeFacilities(saveWorld, teamId),
+    facilities: facilityState(saveWorld, teamId),
     facilityUpgrades: [],
   };
   world.teams[teamId] = team;
+  saveWorld.world.carState[teamId] = {
+    teamId,
+    components: structuredClone(components),
+    initializedAt: date,
+    lastUpdated: date,
+    source: "historical_starting_car",
+  };
   return team;
 }
 
-export function initializeTechnicalWorld(saveWorld, date = saveWorld.clock?.date ?? null) {
-  let teams = 0;
+export function initializeTechnicalWorld(saveWorld, date = saveWorld.clock?.date) {
+  let created = 0;
   for (const row of saveWorld.world?.teams ?? []) {
-    if (!row.team_id) continue;
+    if (!row?.team_id) continue;
+    const before = Boolean(saveWorld.world?.technical?.teams?.[row.team_id]);
     ensureTechnicalTeam(saveWorld, row.team_id, date);
-    teams += 1;
+    if (!before) created += 1;
   }
-  return teams;
+  return created;
 }
 
-function staffRowsForTeam(saveWorld, teamId) {
-  const employment = saveWorld.world?.employment?.staff ?? {};
-  const ids = new Set(Object.entries(employment)
+function designEfficiency(saveWorld, teamId, component) {
+  const staffAssignments = saveWorld.world?.employment?.staff ?? {};
+  const staffIds = Object.entries(staffAssignments)
     .filter(([, assignment]) => assignment?.teamId === teamId && assignment?.status === "employed")
-    .map(([id]) => id));
-  return (saveWorld.world?.staffRatings ?? []).filter((row) => ids.has(row.staff_id));
-}
-
-function ratingAverage(rows, fields, fallback = 50) {
-  const values = [];
-  for (const row of rows) {
-    for (const field of fields) {
-      const value = numeric(row?.[field]);
-      if (value !== null) values.push(value <= 10 ? value * 10 : value);
+    .map(([id]) => id);
+  const staffValues = [];
+  for (const staffId of staffIds) {
+    const row = (saveWorld.world?.staffRatings ?? []).find((candidate) => candidate.staff_id === staffId) ?? {};
+    for (const field of component === "aero_spec" ? ["aerodynamics", "design", "technical"] : ["technical", "engineering", "design"]) {
+      const value = numeric(row[field]);
+      if (value !== null) staffValues.push(value <= 10 ? value * 10 : value);
     }
   }
-  if (!values.length) return fallback;
-  return clamp(values.reduce((sum, value) => sum + value, 0) / values.length);
+  const staff = staffValues.length ? staffValues.reduce((sum, value) => sum + value, 0) / staffValues.length : 50;
+  const team = ensureTechnicalTeam(saveWorld, teamId);
+  const facilityIds = component === "aero_spec" ? ["windTunnel", "aeroDepartment"] : ["chassisShop", "simulator"];
+  const facilities = facilityIds.map((id) => numeric(team.facilities[id]?.level, 5) * 10).reduce((sum, value) => sum + value, 0) / facilityIds.length;
+  const driverValues = [];
+  for (const [driverId, assignment] of Object.entries(saveWorld.world?.employment?.drivers ?? {})) {
+    if (assignment?.teamId !== teamId || assignment?.status !== "employed") continue;
+    const row = (saveWorld.world?.driverRatings ?? []).find((candidate) => candidate.driver_id === driverId) ?? {};
+    for (const field of ["technical_feedback", "car_development_impact"]) {
+      const value = numeric(row[field]);
+      if (value !== null) driverValues.push(value <= 10 ? value * 10 : value);
+    }
+  }
+  const drivers = driverValues.length ? driverValues.reduce((sum, value) => sum + value, 0) / driverValues.length : 50;
+  return clamp(staff * 0.45 + facilities * 0.35 + drivers * 0.2, 20, 100);
 }
 
-function driverFeedback(saveWorld, teamId) {
-  const employment = saveWorld.world?.employment?.drivers ?? {};
-  const ids = new Set(Object.entries(employment)
-    .filter(([, assignment]) => assignment?.teamId === teamId && assignment?.status === "employed")
-    .map(([id]) => id));
-  const rows = (saveWorld.world?.driverRatings ?? []).filter((row) => ids.has(row.driver_id));
-  return ratingAverage(rows, ["technical_feedback", "car_development_impact", "adaptability"], 50);
+function activeComponentRating(team, component) {
+  const ratings = ["car1", "car2"]
+    .map((slot) => team.specs[team.fittedCars?.[slot]?.components?.[component]]?.rating)
+    .map((value) => numeric(value))
+    .filter((value) => value !== null);
+  if (!ratings.length) return numeric(team.baseComponents?.[component], 50);
+  return ratings.reduce((sum, value) => sum + value, 0) / ratings.length;
 }
 
-function staffEfficiency(saveWorld, teamId, component) {
-  const rows = staffRowsForTeam(saveWorld, teamId);
-  const fields = component === "aero_spec"
-    ? ["aero", "aerodynamics", "design", "technical"]
-    : ["technical", "design", "engineering", "mechanics", "reliability"];
-  return ratingAverage(rows, fields, 50) / 100;
+function currentComponentRating(team, component) {
+  return activeComponentRating(team, component);
 }
 
-function facilityLevel(team, id, fallback = 5) {
-  return numeric(team.facilities?.[id]?.level, fallback);
+function updateCarProjection(saveWorld, teamId) {
+  const team = ensureTechnicalTeam(saveWorld, teamId);
+  const components = {};
+  for (const component of Object.keys(team.baseComponents)) components[component] = round(currentComponentRating(team, component));
+  saveWorld.world.carState[teamId] ??= { teamId, components: {}, source: "technical_save_world" };
+  saveWorld.world.carState[teamId].components = components;
+  saveWorld.world.carState[teamId].lastUpdated = saveWorld.clock?.date ?? null;
+  saveWorld.world.carState[teamId].source = "technical_save_world";
+  return components;
 }
 
-function designFacilityEfficiency(team, component) {
-  const levels = component === "aero_spec"
-    ? [facilityLevel(team, "windTunnel"), facilityLevel(team, "aeroDepartment")]
-    : [facilityLevel(team, "chassisShop"), facilityLevel(team, "simulator")];
-  return clamp(levels.reduce((sum, level) => sum + level, 0) / levels.length / 10, 0.2, 1);
+function spend(saveWorld, teamId, amount, label) {
+  const finance = saveWorld.world?.teamState?.[teamId];
+  if (!finance) throw new Error(`Team '${teamId}' does not have initialized finances.`);
+  const cost = Math.max(0, round(amount));
+  if (numeric(finance.cash, 0) < cost) throw new Error(`The team does not have enough cash for ${label}.`);
+  finance.cash = round(numeric(finance.cash, 0) - cost);
+  return cost;
+}
+
+function designCost(currentRating, efficiency, focus, targetSeason) {
+  const ratingFactor = Math.max(0.7, currentRating / 65);
+  const focusFactor = focus === "performance" ? 1.24 : focus === "reliability" ? 1.12 : 1;
+  const futureFactor = targetSeason > 0 ? 1.18 : 1;
+  return round((65000 + ratingFactor * 45000 + efficiency * 900) * focusFactor * futureFactor);
+}
+
+function designDuration(efficiency, focus) {
+  const base = efficiency >= 78 ? 1 : efficiency >= 55 ? 2 : 3;
+  return Math.max(1, base + (focus === "performance" ? 1 : 0));
+}
+
+function normalizeTargetSeason(saveWorld, value) {
+  const current = Number(saveWorld.clock?.season);
+  if (value === undefined || value === null || value === "current") return current;
+  if (value === "next") return current + 1;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < current || parsed > current + 1) throw new Error("Technical projects may currently target only the current or next season.");
+  return parsed;
+}
+
+function normalizeFocus(value) {
+  return ["balanced", "performance", "reliability"].includes(value) ? value : "balanced";
+}
+
+export function startTechnicalDesignProject(saveWorld, teamId, input = {}) {
+  const team = ensureTechnicalTeam(saveWorld, teamId);
+  const component = input.component;
+  if (!component || !Object.hasOwn(team.baseComponents, component)) throw new Error(`Component '${component}' is not available on this car.`);
+  if (team.designProjects.some((row) => row.status === "active")) throw new Error("This team already has an active design project.");
+  const targetSeason = normalizeTargetSeason(saveWorld, input.targetSeason);
+  const focus = normalizeFocus(input.focus);
+  const efficiency = designEfficiency(saveWorld, teamId, component);
+  const currentRating = currentComponentRating(team, component);
+  const cost = spend(saveWorld, teamId, designCost(currentRating, efficiency, focus, targetSeason > Number(saveWorld.clock.season) ? 1 : 0), "design work");
+  const durationMonths = Math.max(1, Math.round(numeric(input.durationMonths, designDuration(efficiency, focus))));
+  const project = {
+    projectId: `design:${teamId}:${String(++team.sequence).padStart(4, "0")}`,
+    teamId,
+    component,
+    focus,
+    targetSeason,
+    status: "active",
+    source: input.source ?? "player",
+    startedAt: saveWorld.clock?.date ?? null,
+    durationMonths,
+    progressMonths: 0,
+    efficiency: round(efficiency),
+    baseRating: round(currentRating),
+    cost,
+  };
+  team.designProjects.push(project);
+  ensureHistory(saveWorld);
+  saveWorld.history.development.push({ date: saveWorld.clock?.date ?? null, type: "started", teamId, projectId: project.projectId, component, targetSeason, cost });
+  return structuredClone(project);
+}
+
+function developmentGain(saveWorld, project) {
+  const rng = createRng(`${saveWorld.meta.seed}|${project.projectId}|gain`);
+  const quality = project.efficiency / 100;
+  const uncertainty = 0.72 + rng.next() * 0.56;
+  const focus = project.focus === "performance" ? 1.28 : project.focus === "reliability" ? 0.84 : 1;
+  const preseason = preseasonDevelopmentBonus(saveWorld, project.teamId, project.targetSeason);
+  return round(clamp((1.1 + quality * 3.2) * uncertainty * focus * (1 + preseason), 0.4, 6.5));
+}
+
+function reliabilityGain(saveWorld, project) {
+  const rng = createRng(`${saveWorld.meta.seed}|${project.projectId}|reliability`);
+  const quality = project.efficiency / 100;
+  const focus = project.focus === "reliability" ? 1.4 : project.focus === "performance" ? 0.82 : 1;
+  return round(clamp((0.8 + quality * 3.1) * (0.84 + rng.next() * 0.32) * focus, 0.3, 6));
+}
+
+function completeDesign(saveWorld, team, project, date) {
+  const gain = developmentGain(saveWorld, project);
+  const reliability = reliabilityGain(saveWorld, project);
+  project.status = "completed";
+  project.completedAt = date;
+  project.gain = gain;
+  project.reliabilityGain = reliability;
+  const specId = `spec:${project.teamId}:${project.component}:${String(++team.sequence).padStart(4, "0")}`;
+  const currentSeason = Number(saveWorld.clock?.season);
+  const baseReliability = numeric(team.specs?.[team.fittedCars?.car1?.components?.[project.component]]?.reliabilityRating, 75);
+  const spec = {
+    specId,
+    teamId: project.teamId,
+    component: project.component,
+    rating: round(clamp(project.baseRating + gain, 1, 100)),
+    gain,
+    reliabilityRating: round(clamp(baseReliability + reliability, 1, 100)),
+    reliabilityGain: reliability,
+    focus: project.focus,
+    targetSeason: project.targetSeason,
+    status: project.targetSeason > currentSeason ? "future" : "ready_for_manufacture",
+    source: "simulation_design",
+    projectId: project.projectId,
+    createdAt: date,
+  };
+  team.specs[specId] = spec;
+  saveWorld.history.development.push({ date, type: "completed", teamId: project.teamId, projectId: project.projectId, component: project.component, targetSeason: project.targetSeason, gain, reliabilityGain: reliability, specId });
+  return { type: TECHNICAL_EVENT.DESIGN_COMPLETED, payload: { team_id: project.teamId, project_id: project.projectId, component: project.component, spec_id: specId, target_season: project.targetSeason, gain, reliability_gain: reliability, rating: spec.rating } };
+}
+
+function manufacturingCapacity(team) {
+  const level = numeric(team.facilities?.manufacturing?.level, 5);
+  return Math.max(1, Math.floor(level / 3) + 1);
+}
+
+function manufacturingDuration(team, quantity, emergency) {
+  const level = numeric(team.facilities?.manufacturing?.level, 5);
+  const normal = Math.max(1, Math.ceil(quantity / Math.max(1, Math.floor(level / 3) + 1)));
+  return emergency ? 1 : normal;
+}
+
+export function startManufacturingJob(saveWorld, teamId, input = {}) {
+  const team = ensureTechnicalTeam(saveWorld, teamId);
+  const spec = team.specs?.[input.specId];
+  if (!spec) throw new Error(`Specification '${input.specId}' does not exist.`);
+  if (spec.status === "future") throw new Error("A future-season specification cannot be manufactured before its target season.");
+  if (Number(spec.targetSeason) > Number(saveWorld.clock?.season)) throw new Error("A future-season specification cannot be manufactured before its target season.");
+  const active = team.manufacturingJobs.filter((row) => row.status === "active");
+  if (active.length >= manufacturingCapacity(team)) throw new Error("Manufacturing capacity is fully allocated.");
+  const quantity = Math.max(1, Math.min(6, Math.round(numeric(input.quantity, 1))));
+  const emergency = Boolean(input.emergency);
+  const unitCost = round(18000 + numeric(spec.rating, 50) * 620);
+  const cost = spend(saveWorld, teamId, unitCost * quantity * (emergency ? 1.55 : 1), "manufacturing");
+  const job = {
+    jobId: `mfg:${teamId}:${String(++team.sequence).padStart(4, "0")}`,
+    teamId,
+    specId: spec.specId,
+    component: spec.component,
+    quantity,
+    emergency,
+    source: input.source ?? "player",
+    status: "active",
+    startedAt: saveWorld.clock?.date ?? null,
+    durationMonths: manufacturingDuration(team, quantity, emergency),
+    progressMonths: 0,
+    cost,
+  };
+  team.manufacturingJobs.push(job);
+  return structuredClone(job);
+}
+
+function completeManufacturing(saveWorld, team, job, date) {
+  job.status = "completed";
+  job.completedAt = date;
+  team.inventory[job.specId] ??= { specId: job.specId, available: 0, source: "simulation_manufacturing" };
+  team.inventory[job.specId].available += job.quantity;
+  saveWorld.history.technical.push({ date, type: "manufacturing_completed", teamId: job.teamId, jobId: job.jobId, specId: job.specId, quantity: job.quantity, available: team.inventory[job.specId].available });
+  return { type: TECHNICAL_EVENT.MANUFACTURING_COMPLETED, payload: { team_id: job.teamId, job_id: job.jobId, spec_id: job.specId, component: job.component, quantity: job.quantity, available: team.inventory[job.specId].available } };
 }
 
 function fittedRating(team, carSlot, component) {
@@ -249,254 +396,97 @@ function fittedRating(team, carSlot, component) {
   return numeric(team.specs?.[specId]?.rating);
 }
 
-function currentComponentRating(team, component) {
-  const values = [fittedRating(team, "car1", component), fittedRating(team, "car2", component)].filter((value) => value !== null);
-  if (!values.length) return numeric(team.baseComponents?.[component], 50);
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function activeDesign(team) {
-  return team.designProjects.find((project) => project.status === "active") ?? null;
-}
-
-function componentLabel(component) {
-  return String(component).replace(/_spec$/, "").replaceAll("_", " ");
-}
-
-export function startTechnicalDesignProject(saveWorld, teamId, input = {}) {
-  const team = ensureTechnicalTeam(saveWorld, teamId);
-  const component = String(input.component ?? "");
-  if (!TECHNICAL_COMPONENTS.includes(component) || numeric(team.baseComponents?.[component]) === null) {
-    throw new Error(`Component '${component}' is not available for this team's current-era car.`);
-  }
-  if (activeDesign(team)) throw new Error("Only one active design project is supported per team in Phase 36.");
-  const season = Number(saveWorld.clock?.season);
-  const targetSeason = input.targetSeason === "next" || Number(input.targetSeason) > season ? season + 1 : season;
-  const focus = ["balanced", "performance", "reliability"].includes(input.focus) ? input.focus : "balanced";
-  const baseRating = currentComponentRating(team, component);
-  const staff = staffEfficiency(saveWorld, teamId, component);
-  const facility = designFacilityEfficiency(team, component);
-  const feedback = driverFeedback(saveWorld, teamId) / 100;
-  const complexity = focus === "performance" ? 1.15 : focus === "reliability" ? 0.9 : 1;
-  const cost = Math.max(35000, round((45000 + baseRating * 1800) * complexity * (targetSeason > season ? 1.12 : 1)));
-  spend(saveWorld, teamId, cost, `${componentLabel(component)} design`);
-  const id = nextId(team, "design", saveWorld.clock.date);
-  const rng = createRng(`${saveWorld.meta.seed}|${id}|${component}|${focus}`);
-  const potential = 0.45 + staff * 0.55 + facility * 0.45 + feedback * 0.22;
-  const focusGain = focus === "performance" ? 0.35 : focus === "reliability" ? -0.08 : 0.12;
-  const targetGain = round(clamp(potential + focusGain + (rng.next() - 0.5) * 0.34, 0.25, 2.6));
-  const risk = round(clamp(0.32 - staff * 0.12 - facility * 0.10 + (focus === "performance" ? 0.16 : 0), 0.03, 0.55), 3);
-  const computedDuration = clamp(Math.round(5 - staff * 1.3 - facility * 1.2 + complexity), 1, 6);
-  const durationMonths = Math.max(1, Math.round(numeric(input.durationMonths, computedDuration)));
-  const project = {
-    projectId: id,
-    teamId,
-    component,
-    focus,
-    targetSeason,
-    cost,
-    source: input.source ?? "player",
-    status: "active",
-    startedAt: saveWorld.clock.date,
-    durationMonths,
-    monthsRemaining: durationMonths,
-    targetGain,
-    risk,
-    staffEfficiency: round(staff, 3),
-    facilityEfficiency: round(facility, 3),
-    driverFeedback: round(feedback, 3),
-  };
-  team.designProjects.push(project);
-  ensureHistory(saveWorld).push({ date: saveWorld.clock.date, type: "design_started", ...structuredClone(project) });
-  return structuredClone(project);
-}
-
-function completeDesign(saveWorld, team, project, date) {
-  const baseRating = currentComponentRating(team, project.component);
-  const rng = createRng(`${saveWorld.meta.seed}|${project.projectId}|complete`);
-  const penalty = rng.next() < project.risk ? 0.35 + rng.next() * 0.35 : 1;
-  const realizedGain = round(project.targetGain * penalty);
-  const specId = nextId(team, "spec", date);
-  const spec = {
-    specId,
-    teamId: team.teamId,
-    component: project.component,
-    rating: round(clamp(baseRating + realizedGain, 1, 100)),
-    gain: realizedGain,
-    targetSeason: project.targetSeason,
-    status: project.targetSeason > Number(saveWorld.clock.season) ? "future" : "ready_for_manufacture",
-    source: "simulation_design",
-    createdAt: date,
-    projectId: project.projectId,
-  };
-  team.specs[specId] = spec;
-  project.status = "completed";
-  project.completedAt = date;
-  project.specId = specId;
-  project.realizedGain = realizedGain;
-  ensureHistory(saveWorld).push({ date, type: "design_completed", teamId: team.teamId, projectId: project.projectId, specId, component: project.component, gain: realizedGain, targetSeason: project.targetSeason });
-  return spec;
-}
-
-function manufacturingCapacity(team) {
-  return Math.max(1, 1 + Math.floor(facilityLevel(team, "manufacturing") / 4));
-}
-
-function activeManufacturing(team) {
-  return team.manufacturingJobs.filter((job) => job.status === "active");
-}
-
-export function startManufacturingJob(saveWorld, teamId, input = {}) {
-  const team = ensureTechnicalTeam(saveWorld, teamId);
-  const spec = team.specs?.[input.specId];
-  if (!spec) throw new Error(`Technical specification '${input.specId}' does not exist.`);
-  if (spec.status === "future" || Number(spec.targetSeason) > Number(saveWorld.clock.season)) {
-    throw new Error("This specification belongs to a future-season car and cannot be manufactured yet.");
-  }
-  if (activeManufacturing(team).length >= manufacturingCapacity(team)) throw new Error("Manufacturing capacity is fully allocated.");
-  const quantity = clamp(Math.round(numeric(input.quantity, 1)), 1, 4);
-  const emergency = Boolean(input.emergency);
-  const level = facilityLevel(team, "manufacturing");
-  const unitCost = Math.max(9000, round((12000 + spec.rating * 420) * (emergency ? 1.45 : 1)));
-  const cost = spend(saveWorld, teamId, unitCost * quantity, `${componentLabel(spec.component)} manufacturing`);
-  const computedDuration = emergency ? 1 : level >= 8 ? 1 : level >= 5 ? 2 : 3;
-  const durationMonths = Math.max(1, Math.round(numeric(input.durationMonths, computedDuration)));
-  const job = {
-    jobId: nextId(team, "manufacture", saveWorld.clock.date),
-    teamId,
-    specId: spec.specId,
-    component: spec.component,
-    quantity,
-    unitCost,
-    cost,
-    emergency,
-    source: input.source ?? "player",
-    status: "active",
-    startedAt: saveWorld.clock.date,
-    durationMonths,
-    monthsRemaining: durationMonths,
-  };
-  team.manufacturingJobs.push(job);
-  ensureHistory(saveWorld).push({ date: saveWorld.clock.date, type: "manufacturing_started", ...structuredClone(job) });
-  return structuredClone(job);
-}
-
-function completeManufacturing(saveWorld, team, job, date) {
-  const inventory = team.inventory[job.specId] ??= { specId: job.specId, available: 0 };
-  inventory.available += job.quantity;
-  job.status = "completed";
-  job.completedAt = date;
-  ensureHistory(saveWorld).push({ date, type: "manufacturing_completed", teamId: team.teamId, jobId: job.jobId, specId: job.specId, quantity: job.quantity, available: inventory.available });
-  return inventory.available;
-}
-
-function refreshCarStateFromFitment(saveWorld, team, date) {
-  const car = ensureCarState(saveWorld, team.teamId, team.baseComponents, date);
-  const components = {};
-  for (const component of Object.keys(team.baseComponents)) {
-    components[component] = round(currentComponentRating(team, component));
-  }
-  car.components = components;
-  car.lastUpdated = date;
-}
-
 export function fitComponentSpec(saveWorld, teamId, input = {}) {
   const team = ensureTechnicalTeam(saveWorld, teamId);
-  const carSlot = input.carSlot === "car2" ? "car2" : "car1";
+  const carSlot = ["car1", "car2"].includes(input.carSlot) ? input.carSlot : null;
+  if (!carSlot) throw new Error("carSlot must be 'car1' or 'car2'.");
   const spec = team.specs?.[input.specId];
-  if (!spec || spec.status === "future") throw new Error("The selected specification is not available for fitting.");
-  const inventory = team.inventory?.[spec.specId];
-  if (!inventory || inventory.available < 1) throw new Error("No manufactured unit of this specification is available.");
-  const component = spec.component;
-  const previousSpecId = team.fittedCars[carSlot].components[component] ?? null;
-  inventory.available -= 1;
-  if (previousSpecId) {
-    const returned = team.inventory[previousSpecId] ??= { specId: previousSpecId, available: 0 };
-    returned.available += 1;
+  if (!spec) throw new Error(`Specification '${input.specId}' does not exist.`);
+  if (Number(spec.targetSeason) > Number(saveWorld.clock?.season) || spec.status === "future") throw new Error("A future-season specification cannot be fitted before its target season.");
+  const stock = team.inventory?.[spec.specId];
+  if (!stock || numeric(stock.available, 0) < 1) throw new Error("No manufactured unit is available for this specification.");
+  const previousSpecId = team.fittedCars[carSlot].components?.[spec.component] ?? null;
+  stock.available -= 1;
+  if (previousSpecId && previousSpecId !== spec.specId) {
+    const previousReturnable = saveWorld.world?.reliability?.teams?.[teamId]?.cars?.[carSlot]?.components?.[spec.component]?.returnable !== false;
+    team.inventory[previousSpecId] ??= { specId: previousSpecId, available: 0, source: "returned_from_car" };
+    if (previousReturnable) team.inventory[previousSpecId].available += 1;
   }
-  team.fittedCars[carSlot].components[component] = spec.specId;
+  team.fittedCars[carSlot].components[spec.component] = spec.specId;
   spec.status = "active";
-  refreshCarStateFromFitment(saveWorld, team, saveWorld.clock.date);
-  const record = { date: saveWorld.clock.date, teamId, carSlot, component, specId: spec.specId, previousSpecId };
-  ensureHistory(saveWorld).push({ ...record, type: "component_fitted" });
-  return record;
+  updateCarProjection(saveWorld, teamId);
+  const result = { teamId, carSlot, component: spec.component, specId: spec.specId, previousSpecId, date: saveWorld.clock?.date ?? null };
+  saveWorld.history.technical.push({ type: "component_fitted", ...structuredClone(result) });
+  return result;
 }
 
-export function startFacilityUpgrade(saveWorld, teamId, facilityId) {
+function normalizeFacilityId(id) {
+  if (!FACILITY_SOURCE_FIELDS[id]) throw new Error(`Facility '${id}' is not supported by the technical system.`);
+  return id;
+}
+
+export function startFacilityUpgrade(saveWorld, teamId, facilityIdInput) {
   const team = ensureTechnicalTeam(saveWorld, teamId);
-  const facility = team.facilities?.[facilityId];
-  const definition = FACILITIES[facilityId];
-  if (!facility || !definition) throw new Error(`Facility '${facilityId}' is not available for this team/era.`);
-  if (team.facilityUpgrades.some((row) => row.facilityId === facilityId && row.status === "active")) throw new Error("This facility already has an active upgrade.");
-  if (facility.level >= 10) throw new Error("This facility is already at the maximum supported level.");
-  const fromLevel = facility.level;
-  const toLevel = Math.min(10, fromLevel + 1);
-  const cost = spend(saveWorld, teamId, definition.baseCost * (0.65 + fromLevel * 0.22), `${facility.label} upgrade`);
-  const durationMonths = Math.max(2, Math.round(2 + fromLevel * 0.65));
+  const facilityId = normalizeFacilityId(facilityIdInput);
+  const facility = team.facilities[facilityId];
+  if (team.facilityUpgrades.some((row) => row.facilityId === facilityId && row.status === "active")) throw new Error(`${facility.label} already has an active upgrade.`);
+  if (facility.level >= 10) throw new Error(`${facility.label} is already at the supported maximum.`);
+  const toLevel = facility.level + 1;
+  const cost = spend(saveWorld, teamId, 120000 + toLevel * toLevel * 38000, `${facility.label} upgrade`);
+  const durationMonths = Math.max(2, Math.ceil(toLevel / 3));
   const upgrade = {
-    upgradeId: nextId(team, "facility", saveWorld.clock.date),
+    upgradeId: `facility:${teamId}:${String(++team.sequence).padStart(4, "0")}`,
     teamId,
     facilityId,
-    fromLevel,
+    fromLevel: facility.level,
     toLevel,
-    cost,
     status: "active",
-    startedAt: saveWorld.clock.date,
+    startedAt: saveWorld.clock?.date ?? null,
     durationMonths,
-    monthsRemaining: durationMonths,
-    source: "simulation_upgrade",
+    progressMonths: 0,
+    cost,
   };
   team.facilityUpgrades.push(upgrade);
-  ensureHistory(saveWorld).push({ date: saveWorld.clock.date, type: "facility_upgrade_started", ...structuredClone(upgrade) });
   return structuredClone(upgrade);
 }
 
 function completeFacilityUpgrade(saveWorld, team, upgrade, date) {
-  const facility = team.facilities[upgrade.facilityId];
-  facility.level = upgrade.toLevel;
-  facility.source = "save_world_upgraded";
-  facility.maintenanceDeltaAnnual = round(numeric(facility.maintenanceDeltaAnnual, 0) + upgrade.cost * 0.035);
   upgrade.status = "completed";
   upgrade.completedAt = date;
-  ensureHistory(saveWorld).push({ date, type: "facility_upgrade_completed", teamId: team.teamId, upgradeId: upgrade.upgradeId, facilityId: upgrade.facilityId, level: facility.level });
-  return facility.level;
+  const facility = team.facilities[upgrade.facilityId];
+  facility.level = upgrade.toLevel;
+  facility.maintenanceDeltaAnnual = round(numeric(facility.maintenanceDeltaAnnual, 0) + 18000 * upgrade.toLevel);
+  saveWorld.history.technical.push({ date, type: "facility_upgrade_completed", teamId: team.teamId, facilityId: facility.id, toLevel: facility.level, maintenanceDeltaAnnual: facility.maintenanceDeltaAnnual });
+  return { type: TECHNICAL_EVENT.FACILITY_UPGRADE_COMPLETED, payload: { team_id: team.teamId, upgrade_id: upgrade.upgradeId, facility_id: facility.id, to_level: facility.level, maintenance_delta_annual: facility.maintenanceDeltaAnnual } };
 }
 
 export function releaseNextSeasonSpecifications(saveWorld, season = Number(saveWorld.clock.season)) {
   const released = [];
   for (const team of Object.values(ensureTechnicalWorld(saveWorld).teams)) {
     for (const spec of Object.values(team.specs)) {
-      if (spec.status !== "future" || Number(spec.targetSeason) > Number(season)) continue;
+      if (spec.status !== "future" || Number(spec.targetSeason) !== Number(season)) continue;
       spec.status = "ready_for_manufacture";
-      released.push({ teamId: team.teamId, specId: spec.specId, component: spec.component, targetSeason: spec.targetSeason });
+      spec.releasedAt = saveWorld.clock?.date ?? null;
+      released.push(structuredClone(spec));
     }
   }
   return released;
 }
 
-export function advanceTechnicalMonth(saveWorld, date = saveWorld.clock.date) {
+export function advanceTechnicalMonth(saveWorld, date = saveWorld.clock?.date) {
   const events = [];
   for (const team of Object.values(ensureTechnicalWorld(saveWorld).teams)) {
-    for (const project of team.designProjects) {
-      if (project.status !== "active") continue;
-      project.monthsRemaining -= 1;
-      if (project.monthsRemaining > 0) continue;
-      const spec = completeDesign(saveWorld, team, project, date);
-      events.push({ type: TECHNICAL_EVENT.DESIGN_COMPLETED, payload: { team_id: team.teamId, project_id: project.projectId, spec_id: spec.specId, component: spec.component, rating: spec.rating, gain: spec.gain, target_season: spec.targetSeason } });
+    for (const project of team.designProjects.filter((row) => row.status === "active")) {
+      project.progressMonths += 1;
+      if (project.progressMonths >= project.durationMonths) events.push(completeDesign(saveWorld, team, project, date));
     }
-    for (const job of team.manufacturingJobs) {
-      if (job.status !== "active") continue;
-      job.monthsRemaining -= 1;
-      if (job.monthsRemaining > 0) continue;
-      const available = completeManufacturing(saveWorld, team, job, date);
-      events.push({ type: TECHNICAL_EVENT.MANUFACTURING_COMPLETED, payload: { team_id: team.teamId, job_id: job.jobId, spec_id: job.specId, component: job.component, quantity: job.quantity, available } });
+    for (const job of team.manufacturingJobs.filter((row) => row.status === "active")) {
+      job.progressMonths += 1;
+      if (job.progressMonths >= job.durationMonths) events.push(completeManufacturing(saveWorld, team, job, date));
     }
-    for (const upgrade of team.facilityUpgrades) {
-      if (upgrade.status !== "active") continue;
-      upgrade.monthsRemaining -= 1;
-      if (upgrade.monthsRemaining > 0) continue;
-      const level = completeFacilityUpgrade(saveWorld, team, upgrade, date);
-      events.push({ type: TECHNICAL_EVENT.FACILITY_UPGRADE_COMPLETED, payload: { team_id: team.teamId, upgrade_id: upgrade.upgradeId, facility_id: upgrade.facilityId, level } });
+    for (const upgrade of team.facilityUpgrades.filter((row) => row.status === "active")) {
+      upgrade.progressMonths += 1;
+      if (upgrade.progressMonths >= upgrade.durationMonths) events.push(completeFacilityUpgrade(saveWorld, team, upgrade, date));
     }
   }
   return events;
@@ -537,7 +527,10 @@ export function technicalProjection(saveWorld, teamId) {
   const team = ensureTechnicalTeam(saveWorld, teamId);
   const activeDesigns = team.designProjects.filter((row) => row.status === "active");
   const activeManufacturing = team.manufacturingJobs.filter((row) => row.status === "active");
-  const readySpecs = Object.values(team.specs).filter((row) => row.status === "ready_for_manufacture" || row.status === "active");
+  // Player-owned future specifications are safe to expose here: they are Save World
+  // research outcomes, not hidden historical future data. Manufacturing/fitment still
+  // reject them until their target season is active.
+  const visibleSpecs = Object.values(team.specs).filter((row) => ["ready_for_manufacture", "active", "future"].includes(row.status));
   return {
     teamId,
     car: {
@@ -549,7 +542,7 @@ export function technicalProjection(saveWorld, teamId) {
       completed: structuredClone(team.designProjects.filter((row) => row.status === "completed").slice(-12)),
       availableComponents: Object.keys(team.baseComponents),
     },
-    specifications: readySpecs.map((spec) => ({ ...structuredClone(spec), inventory: numeric(team.inventory?.[spec.specId]?.available, 0) })),
+    specifications: visibleSpecs.map((spec) => ({ ...structuredClone(spec), inventory: numeric(team.inventory?.[spec.specId]?.available, 0) })),
     manufacturing: {
       capacity: manufacturingCapacity(team),
       active: structuredClone(activeManufacturing),
