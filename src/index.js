@@ -21,6 +21,9 @@ export { ensureResponsibilities, responsibilityAreas, responsibilityOwner, respo
 export { acceptStaffCounterEvent, buildStaffCounterTerms, evaluateStaffInterest, evaluateStaffOffer, listStaffContractNegotiations, listStaffRecruitmentCandidates, openStaffContractNegotiation, STAFF_NEGOTIATION_EVENT, staffRecruitmentSummary, submitStaffContractOfferEvent, withdrawStaffNegotiationEvent } from "./game/management/staffRecruitment.js";
 export { acceptSponsorCounterEvent, activateSponsorDeal, calculateTeamMarketability, COMMERCIAL_EVENT, commercialEraProfile, commercialMonthlySponsorIncome, commercialProjection, commercialSummary, createSponsorActivity, driverMarketability, ensureCommercialState, evaluateSponsorInterest, expectedSponsorTerms, expireCommercialDeals, initializeCommercialTeam, initializeCommercialWorld, listSponsorMarket, listSponsorNegotiations, openSponsorNegotiation, raceCommercialConsequences, resolveSponsorActivity, submitSponsorOfferEvent, updateCommercialMarketability, withdrawSponsorNegotiationEvent } from "./game/management/commercial.js";
 export { TECHNICAL_COMPONENTS, TECHNICAL_EVENT, advanceTechnicalMonth, ensureTechnicalTeam, ensureTechnicalWorld, fitComponentSpec, initializeTechnicalWorld, releaseNextSeasonSpecifications, startFacilityUpgrade, startManufacturingJob, startTechnicalDesignProject, technicalCarComponentsForDriver, technicalFacilityMaintenanceAnnual, technicalProjection, technicalSummary } from "./game/management/technical.js";
+export { SUPPLIER_EVENT, acceptSupplierCounter, activateSupplierSeason, activeEngineForTeam, activeSupplierContract, engineById, engineCatalog, ensureSupplierTeam, expectedSupplierTerms, initializeSupplierWorld, listSupplierMarket, openSupplierNegotiation, submitSupplierOffer, supplierInterest, supplierProjection, technicalSupplierMonthlyCost, withdrawSupplierNegotiation } from "./game/management/suppliers.js";
+export { RELIABILITY_EVENT, adjustReliabilityForCondition, applyRaceWear, conditionForDriver, conditionPerformanceModifier, ensureReliabilityTeam, fittedComponentReturnable, initializeReliabilityWorld, rebuildFittedComponent, registerFittedComponentUnit, reliabilityProjection, replaceWornComponent, serviceEngineUnit } from "./game/management/reliability.js";
+export { PRESEASON_EVENT, ensurePreseasonTeam, initializePreseasonWorld, isPreseasonWindow, preseasonDevelopmentBonus, preseasonProjection, runPreseasonTest } from "./game/management/preseason.js";
 export { createRng } from "./sim/random.js";
 export { availableTyreCompounds, createRaceStrategyPlan, evaluateRaceStrategy } from "./sim/raceStrategy.js";
 export { currentStrategyStint, reviseRaceStrategy, reviseStartingTyreCompound, selectLiveTyreCompound } from "./sim/liveStrategy.js";
@@ -57,6 +60,7 @@ export { STAFF_ADVICE_EVENT, createStaffAdviceSystem } from "./sim/systems/staff
 export { createCommercialManagementSystem } from "./sim/systems/commercialManagement.js";
 export { createCommercialInboxSystem } from "./sim/systems/commercialInbox.js";
 export { createTechnicalInboxSystem } from "./sim/systems/technicalInbox.js";
+export { createTechnicalReliabilitySystem } from "./sim/systems/technicalReliability.js";
 export { createManagementInboxSystem } from "./sim/systems/managementInbox.js";
 export { RACE_ENTRY_EVENT, createRaceEntrySystem } from "./sim/systems/raceEntry.js";
 export { TEAM_FINANCE_EVENT, createTeamEconomySystem } from "./sim/systems/teamEconomy.js";

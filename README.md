@@ -6,9 +6,9 @@ F1 Manager Sim is a long-form Formula One management and world simulation game. 
 
 ## Current development phase
 
-**Phase 36 — Technical Development & Operations**
+**Phase 37 — Suppliers, Reliability & Preseason**
 
-The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market and a physical technical-development lifecycle.
+The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market and a persistent physical technical lifecycle.
 
 Current race path:
 
@@ -18,23 +18,25 @@ Current management loop:
 
 `Continue -> Board / Inbox / People / Staff / Recruitment / Commercial / Technical -> Decision -> Save World consequence -> Continue`
 
-Phase 36 replaces direct monthly car-rating gains with:
+The technical lifecycle now extends through:
 
-`Design / Research -> Specification -> Manufacture -> Inventory -> Fit to Car -> Race`
+`Supplier -> Preseason Test -> Design / Research -> Specification -> Manufacture -> Inventory -> Fit -> Wear / Failure -> Replace / Rebuild -> Race`
 
-A completed design does not improve the car automatically. Physical units must be manufactured and fitted. Car 1 and Car 2 may therefore race with different specification levels when stock is limited.
+Phase 36 established physical specifications, manufacturing, stock, per-car fitment and facility development. Phase 37 adds mutable engine-supplier contracts, per-car engine/component condition, deterministic race wear, persistent mechanical failures, spare consumption, component rebuilds, engine service and preseason testing.
 
-The player can choose current-season development or next-season research. Future-car specifications remain unavailable to production until their target season begins. Technical staff, relevant facilities and driver feedback affect development efficiency while project outcomes remain deterministic for a given save seed.
+Historical `teamEngines` seeds the opening supplier only. Future supplier negotiations belong to Save World and activate at the agreed future season rather than changing the current car early. Unknown historical engine-contract money remains unknown/abstract instead of receiving fabricated cash terms; negotiated future contracts become real Team Economy expenses after activation.
 
-Facilities now have mutable Save World upgrade state. Upgrades cost real team cash, take time and add maintenance cost without rewriting historical database rows. The canonical v1.2.5 database provides explicit 1980 component/facility/manufacturing starting baselines with source-lock provenance; derived values remain explicitly non-source-locked.
+Physical condition now carries across races and affects both effective reliability and, when sufficiently poor, performance. A mechanical DNF can mark a persistent physical subsystem failed. Replacing a component consumes a matching manufactured spare, while a worn or failed removed component does not magically return to inventory as a fresh part.
 
-AI teams and a player team with **Car Development = Delegated** use the same design, manufacturing, stock and fitment pipeline.
+Preseason testing creates persistent development knowledge, reliability preparation and setup knowledge. Testing costs real cash, closes at the first race date and uses technical staff, driver feedback, facilities and deterministic seeded uncertainty. AI teams and a player team with **Car Development = Delegated** use the same supplier, testing, wear and maintenance systems.
 
-The local Developer Playtest now exposes:
+Facilities remain mutable Save World upgrade state. Upgrades cost real team cash, take time and add maintenance cost without rewriting historical database rows. The canonical v1.2.5 database provides explicit 1980 component/facility/manufacturing starting baselines with source-lock provenance; derived values remain explicitly non-source-locked.
+
+The local Developer Playtest exposes:
 
 - Career / Race Weekend
 - Management Hub
-- Technical Operations
+- Technical Operations, including suppliers, preseason, reliability, R&D, manufacturing and facilities
 
 ## Architecture rule
 
@@ -60,9 +62,9 @@ The management gameplay boundary is:
 
 The technical gameplay boundary is:
 
-`Historical starting car -> Design / Research -> Specification -> Manufacture -> Inventory -> Fit to Car -> Race`
+`Historical starting car/supplier -> Preseason -> Design / Research -> Specification -> Manufacture -> Inventory -> Fit -> Wear / Failure -> Maintain -> Race`
 
-See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
+See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
 
 ## Historical data policy
 
@@ -82,7 +84,10 @@ Management and technical systems are deliberately tolerant of missing historical
 - 1980 component values are relative source-locked database starting baselines, not claims about exact measured engineering values;
 - starting technical specifications are fitted to both cars but create zero spare inventory unless a future sourced row explicitly provides stock;
 - the absent 1980 simulator source field remains a `derived_gameplay_baseline` with `derived_not_source_locked` provenance;
-- technical specifications created after career start are simulation state;
+- starting component/engine condition of `100` is a derived serviceable gameplay baseline, not a historical measurement of wear;
+- historical `teamEngines` provides the opening supplier assignment only; future supplier contracts are Save World state;
+- unknown historical supplier monetary values remain abstract rather than becoming invented costs;
+- technical specifications, reliability ratings, wear, failures, maintenance, preseason preparation and supplier agreements created after career start are simulation state;
 - facility upgrades never overwrite the historical starting facility rows or reference baselines;
 - source-lock manifests, canonical ID correction maps, technical audits and research/readiness packs remain reference context rather than mutable Save World state.
 

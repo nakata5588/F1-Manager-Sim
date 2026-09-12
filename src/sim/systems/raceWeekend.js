@@ -1,3 +1,5 @@
+import { activeEngineForTeam } from "../../game/management/suppliers.js";
+import { adjustReliabilityForCondition, conditionPerformanceModifier } from "../../game/management/reliability.js";
 import { createRng } from "../random.js";
 import { SIM_EVENT } from "../timeEngine.js";
 
@@ -116,8 +118,7 @@ function carComponents(saveWorld, teamId) {
 }
 
 function engineForTeam(saveWorld, teamId) {
-  const supply = (saveWorld.world?.teamEngines ?? []).find((row) => row.team_id === teamId) ?? {};
-  return (saveWorld.world?.engines ?? []).find((row) => row.engine_id === supply.engine_id) ?? {};
+  return activeEngineForTeam(saveWorld, teamId) ?? {};
 }
 
 function average(source, fields, fallback = 50) {
@@ -126,7 +127,7 @@ function average(source, fields, fallback = 50) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function carPerformance(saveWorld, teamId, track) {
+function carPerformance(saveWorld, teamId, track, driverId = null) {
   const car = carComponents(saveWorld, teamId);
   const engine = engineForTeam(saveWorld, teamId);
   const powerDependency = dependency(track, ["power_dependency", "engine_dependency", "power_sensitivity"], 0.45);
@@ -139,15 +140,17 @@ function carPerformance(saveWorld, teamId, track) {
   const power = average(engine, ["power"], 50);
   const baseCar = chassis * (0.28 + technicality * 0.08) + aero * (0.24 + aeroDependency * 0.1) + mechanical * 0.26 + power * (0.12 + powerDependency * 0.12);
   const denominator = (0.28 + technicality * 0.08) + (0.24 + aeroDependency * 0.1) + 0.26 + (0.12 + powerDependency * 0.12);
-  return clamp(baseCar / denominator, 0, 100);
+  const condition = driverId ? conditionPerformanceModifier(saveWorld, teamId, driverId) : 0;
+  return clamp(baseCar / denominator + condition, 0, 100);
 }
 
-function reliability(saveWorld, teamId) {
+function reliability(saveWorld, teamId, driverId = null) {
   const car = carComponents(saveWorld, teamId);
   const engine = engineForTeam(saveWorld, teamId);
   const engineReliability = average(engine, ["reliability"], 65);
   const carReliability = average(car, ["gearbox_spec", "cooling_spec", "electronics_spec", "brakes_spec"], 65);
-  return clamp(engineReliability * 0.58 + carReliability * 0.42, 0, 100);
+  const base = clamp(engineReliability * 0.58 + carReliability * 0.42, 0, 100);
+  return driverId ? adjustReliabilityForCondition(saveWorld, teamId, driverId, base) : base;
 }
 
 function wetRace(race, track) {
@@ -215,6 +218,12 @@ function setupQuality(actual, ideal) {
   return round(clamp(100 - meanError * 2.35, 25, 100), 2);
 }
 
+function preseasonSetupKnowledge(saveWorld, teamId) {
+  const state = saveWorld.world?.technical?.teams?.[teamId]?.preseason;
+  if (!state || Number(state.season) !== Number(saveWorld.clock?.season)) return 0;
+  return clamp(numeric(state.setupKnowledge, 0), 0, 20);
+}
+
 function simulatePractice(saveWorld, weekend, event) {
   const track = trackById(saveWorld, weekend.trackId);
   const ideal = idealSetup(track);
@@ -227,7 +236,8 @@ function simulatePractice(saveWorld, weekend, event) {
     const adaptability = driverAttribute(saveWorld, entry.driverId, DRIVER_FIELDS.adaptability, 50);
     const consistency = driverAttribute(saveWorld, entry.driverId, DRIVER_FIELDS.consistency, 50);
     const engineering = engineeringSupport(saveWorld, entry.teamId);
-    const learningRate = clamp((feedback * 0.34 + adaptability * 0.22 + consistency * 0.14 + engineering * 0.3) / 100, 0.2, 0.95);
+    const preseason = preseasonSetupKnowledge(saveWorld, entry.teamId);
+    const learningRate = clamp((feedback * 0.34 + adaptability * 0.22 + consistency * 0.14 + engineering * 0.3) / 100 + preseason * 0.003, 0.2, 0.97);
     const baseRng = createRng(`${saveWorld.meta.seed}|${weekend.key}|practice-base|${entry.driverId}`);
     const actual = {};
     for (const [field, target] of Object.entries(ideal)) {
@@ -236,7 +246,7 @@ function simulatePractice(saveWorld, weekend, event) {
       actual[field] = round(clamp(target + retainedError, 0, 100), 2);
     }
     const knowledgeNoise = createRng(`${saveWorld.meta.seed}|${weekend.key}|practice-knowledge|${entry.driverId}`).next() * 4 - 2;
-    const knowledge = clamp(25 + learningRate * 58 + windows * 4 + knowledgeNoise, 20, 100);
+    const knowledge = clamp(25 + learningRate * 58 + windows * 4 + preseason * 0.45 + knowledgeNoise, 20, 100);
     return {
       driverId: entry.driverId,
       teamId: entry.teamId,
@@ -260,7 +270,7 @@ function setupFor(weekend, driverId) {
 function qualifyingScore(saveWorld, entrant, weekend, event, track, session) {
   const qualifying = driverAttribute(saveWorld, entrant.driverId, DRIVER_FIELDS.qualifying);
   const pace = driverAttribute(saveWorld, entrant.driverId, DRIVER_FIELDS.pace);
-  const car = carPerformance(saveWorld, entrant.teamId, track);
+  const car = carPerformance(saveWorld, entrant.teamId, track, entrant.driverId);
   const enginePower = average(engineForTeam(saveWorld, entrant.teamId), ["power"], 50);
   const form = formScore(saveWorld, entrant.driverId);
   const setup = setupFor(weekend, entrant.driverId);
@@ -328,7 +338,7 @@ function raceScore(saveWorld, entrant, gridPosition, weekend, event, track, isWe
   const intelligence = driverAttribute(saveWorld, entrant.driverId, DRIVER_FIELDS.intelligence);
   const wet = driverAttribute(saveWorld, entrant.driverId, DRIVER_FIELDS.wet);
   const start = driverAttribute(saveWorld, entrant.driverId, DRIVER_FIELDS.start);
-  const car = carPerformance(saveWorld, entrant.teamId, track);
+  const car = carPerformance(saveWorld, entrant.teamId, track, entrant.driverId);
   const form = formScore(saveWorld, entrant.driverId);
   const setup = setupFor(weekend, entrant.driverId);
   const overtakingDifficulty = dependency(track, ["overtaking_difficulty", "passing_difficulty"], 0.5);
@@ -345,7 +355,7 @@ function raceScore(saveWorld, entrant, gridPosition, weekend, event, track, isWe
 }
 
 function retirementOutcome(saveWorld, entrant, weekend, event) {
-  const reliabilityScore = reliability(saveWorld, entrant.teamId);
+  const reliabilityScore = reliability(saveWorld, entrant.teamId, entrant.driverId);
   const crashLikelihood = driverAttribute(saveWorld, entrant.driverId, DRIVER_FIELDS.crash, 20);
   const setup = setupFor(weekend, entrant.driverId);
   const setupStress = Math.max(0, 60 - setup.setupQuality) * 0.00035;

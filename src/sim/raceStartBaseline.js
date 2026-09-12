@@ -1,4 +1,6 @@
 import { technicalCarComponentsForDriver } from "../game/management/technical.js";
+import { activeEngineForTeam } from "../game/management/suppliers.js";
+import { adjustReliabilityForCondition, conditionPerformanceModifier } from "../game/management/reliability.js";
 
 function numeric(value, fallback = null) {
   const parsed = Number(value);
@@ -54,8 +56,7 @@ function carComponents(saveWorld, teamId, driverId = null) {
 }
 
 function engineForTeam(saveWorld, teamId) {
-  const supply = (saveWorld.world?.teamEngines ?? []).find((row) => row.team_id === teamId) ?? {};
-  return (saveWorld.world?.engines ?? []).find((row) => row.engine_id === supply.engine_id) ?? {};
+  return activeEngineForTeam(saveWorld, teamId) ?? {};
 }
 
 function average(values, fallback = 50) {
@@ -87,7 +88,8 @@ function reliabilityScore(saveWorld, teamId, driverId = null) {
     car.cooling_spec,
     car.electronics_spec,
   ], 65);
-  return clamp(engineReliability * 0.58 + carReliability * 0.42);
+  const base = clamp(engineReliability * 0.58 + carReliability * 0.42);
+  return driverId ? adjustReliabilityForCondition(saveWorld, teamId, driverId, base) : base;
 }
 
 function setupQuality(weekend, driverId) {
@@ -109,13 +111,15 @@ function baselinePerformance(saveWorld, weekend, gridRow) {
   const setup = setupQuality(weekend, driverId);
   const qualifying = normalizeRating(gridRow.qualifyingScore, driver);
   const gridContext = clamp(100 - Math.max(0, Number(gridRow.grid ?? 1) - 1) * 1.4, 35, 100);
+  const conditionModifier = conditionPerformanceModifier(saveWorld, teamId, driverId);
   return clamp(
     driver * 0.55
       + car * 0.27
       + enginePower * 0.08
       + setup * 0.05
       + qualifying * 0.03
-      + gridContext * 0.02,
+      + gridContext * 0.02
+      + conditionModifier,
   );
 }
 
