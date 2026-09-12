@@ -1,0 +1,3 @@
+database,path,integrity_check
+global,/mnt/data/F1_Manager_Sim_Global_Database_v1.2.2_relationships_source_pack_candidate.sqlite,ok
+season_1980,/mnt/data/F1_Manager_Sim_SeasonDefinition_1980_v1.2.2_relationships_source_pack_candidate.sqlite,ok

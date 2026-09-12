@@ -1,0 +1,7 @@
+delta_id,target,priority,action,classification
+v122_source_lock_relationship_claims,Season Database materializer,P0,Include relationshipSourcePack1980 as audit/reference data; do not convert structural relationships into morale/trust values.,ADD
+v122_sponsor_source_lock_status,Season sponsor materialization,P0,Carry source_lock_status/source_lock_action for 1980 sponsor rows. Suppressed rows may remain in auditOnly but should not seed active sponsor confidence.,ADAPT
+v122_staff_source_lock_status,Season staff materialization,P1,Carry staffSourceLock1980; treat role context separately from salary/contract-date truth.,ADAPT
+v122_correct_fact_register_ids,Global sourceLockedFactRegister,P0,Apply canonical ID repairs before downstream Save materialization and tests.,KEEP
+v122_future_reference_staff,Historical/future reference boundary,P1,Add Ron Dennis/John Barnard source-locked identities as reference/future/eligible profiles but not active start McLaren staff.,ADD
+v122_do_not_script_late_1980_transitions,Season/Save boundary,P0,Keep Project Four/McLaren transition and Scheckter retirement as historical references only for a 1980 start.,DO_NOT_STORE_AS_ACTIVE_OUTCOME
