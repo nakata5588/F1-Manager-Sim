@@ -1,0 +1,3 @@
+artifact,check,result
+F1_Manager_Sim_Global_Database_v1.2.11_1980_calendar_circuits_weather_recovery_candidate.sqlite,PRAGMA integrity_check,ok
+F1_Manager_Sim_SeasonDefinition_1980_v1.2.11_1980_calendar_circuits_weather_recovery_candidate.sqlite,PRAGMA integrity_check,ok

@@ -1,0 +1,117 @@
+{
+  "releaseName": "F1_Manager_Sim_Database_Rebuild_v1.2.11_1980_calendar_circuits_weather_recovery_candidate",
+  "databaseVersion": "v1.2.11-1980-calendar-circuits-weather-recovery-candidate",
+  "generatedAt": "2026-09-13T15:45:00+01:00",
+  "bundle": {
+    "filename": "F1_Manager_Sim_Database_Rebuild_v1.2.11_1980_calendar_circuits_weather_recovery_candidate_Bundle.zip",
+    "sha256": "8f3fbaaa980228d514d8df88d179c27788c18d0f6f9d1b9509715e5b168c44c0",
+    "bytes": 3177349
+  },
+  "checksums": [
+    {
+      "filename": "F1_Manager_Sim_Global_Database_v1.2.11_1980_calendar_circuits_weather_recovery_candidate.json",
+      "sha256": "843befe2dc4a0be7684ca3b3a9d84d3241746c315165837ee6d953869500c352",
+      "bytes": 24997386
+    },
+    {
+      "filename": "F1_Manager_Sim_SeasonDefinition_1980_v1.2.11_1980_calendar_circuits_weather_recovery_candidate.json",
+      "sha256": "ce2af269291a9c3e150a5773362deba472d67b2f9f626346b5744b147a4ea9d3",
+      "bytes": 13599325
+    },
+    {
+      "filename": "F1_Manager_Sim_Global_Database_v1.2.11_1980_calendar_circuits_weather_recovery_candidate.sqlite",
+      "sha256": "f8d79b3a0908252d41a8bb5fca038740328a5626b2f309f78a7f6b56004bd9ea",
+      "bytes": 7069696
+    },
+    {
+      "filename": "F1_Manager_Sim_SeasonDefinition_1980_v1.2.11_1980_calendar_circuits_weather_recovery_candidate.sqlite",
+      "sha256": "ef5f12c87b414d18a13b27ae5e15ec9dc7a4008587e11a492fc43749dfbda9cc",
+      "bytes": 3272704
+    },
+    {
+      "filename": "F1_Manager_Sim_Database_Rebuild_v1.2.11_1980_calendar_circuits_weather_recovery_candidate_EDITOR.xlsx",
+      "sha256": "63d5e2a3a9736d535455768f1f64cc596882c7f9c78232051a96e523baaf59fb",
+      "bytes": 34746
+    },
+    {
+      "filename": "F1_Manager_Sim_Database_Rebuild_v1.2.11_1980_calendar_circuits_weather_recovery_candidate_REPORT.md",
+      "sha256": "aded86a389a45aac1a71d2bf4ed8fd8a0eeef2c4d6e20095e094fba26ac55066",
+      "bytes": 4974
+    },
+    {
+      "filename": "F1_Manager_Sim_Database_Rebuild_v1.2.11_1980_calendar_circuits_weather_recovery_candidate_baseline.json",
+      "sha256": "30584b0e8bd40c6ebf8261d644425e6c05dc501a425f2ba01f0bc51f2ab14392",
+      "bytes": 4249
+    },
+    {
+      "filename": "baseline_diff_v1.2.10_to_v1.2.11.csv",
+      "sha256": "5b7196d877b627d03497948d6892e701c8cd364f9398da062dac909f8e59f17a",
+      "bytes": 663
+    },
+    {
+      "filename": "calendar_circuit_weather_data_policy.csv",
+      "sha256": "3ead95622ff3f2fc0f3bb0f0db5fc495574704f731ac05e35c725dc53d259cdf",
+      "bytes": 1103
+    },
+    {
+      "filename": "calendar_circuit_weather_materializer_delta_spec_v1.2.11.csv",
+      "sha256": "18db2e55a725647b943fd05f8650954b053921bbc2f75f57282ab969901212aa",
+      "bytes": 819
+    },
+    {
+      "filename": "calendar_circuit_weather_readiness_1980.csv",
+      "sha256": "52e69bd4723923ba2c5526f93024d5a3a49f54b4cc7fd4211e74c6833427704e",
+      "bytes": 576
+    },
+    {
+      "filename": "calendar_circuit_weather_source_manifest_v1.2.11.csv",
+      "sha256": "ddd7b4f34f827be4dd5405c889b8ccd6a9dc7bb11ac8e04001b320e8a47b28c9",
+      "bytes": 1745
+    },
+    {
+      "filename": "calendar_circuit_weather_unknown_fields_1980.csv",
+      "sha256": "7622da0187459b297775ec8b779e6a2c3cc35c0db89a59f7957e3de507c77147",
+      "bytes": 1169
+    },
+    {
+      "filename": "calendar_source_lock_audit_1980.csv",
+      "sha256": "37869172227d139e6a2e9bca027349ca34dab00b03226170737a32f758b62936",
+      "bytes": 6612
+    },
+    {
+      "filename": "circuit_layout_baseline_1980.csv",
+      "sha256": "042598e0b10c19f16375301e81c3682ba315e50bdd0da1cf486d554b930bcad2",
+      "bytes": 5088
+    },
+    {
+      "filename": "circuit_source_lock_audit_1980.csv",
+      "sha256": "b92c078995349af92fcedaa9991e4f5e8521c3bf8a973425c04e0323d2dbc67e",
+      "bytes": 5833
+    },
+    {
+      "filename": "sqlite_integrity_checks.csv",
+      "sha256": "16ef0ce14ef0eb938c8d53a02e9508c7b8afed033989a84bfe936e7882961de7",
+      "bytes": 275
+    },
+    {
+      "filename": "summary_cards.csv",
+      "sha256": "32ab63716dc234817822dfe0d3edd0b5a54a287933f8511990f3a3adbd75cf42",
+      "bytes": 383
+    },
+    {
+      "filename": "track_evolution_baseline_1980.csv",
+      "sha256": "a3df9e83fe3a6a0d5717adeb5fb36645220edfaf1db35a18f4d6e1b8602b66c8",
+      "bytes": 4265
+    },
+    {
+      "filename": "v1211_cumulative_integrity_checks.csv",
+      "sha256": "a174fb4240feed0693a214c205e9e7b543a492a4db58bb4f2669243aafe982f2",
+      "bytes": 784
+    },
+    {
+      "filename": "weather_profile_baseline_1980.csv",
+      "sha256": "c9d806a7f40f6848462e3f3d462118b500b7eed0f419fd89edc2e7d2a4a38842",
+      "bytes": 4568
+    }
+  ]
+}

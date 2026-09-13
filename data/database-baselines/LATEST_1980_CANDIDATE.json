@@ -1,0 +1,11 @@
+{
+  "format": "f1-manager-sim-database-candidate-pointer",
+  "schemaVersion": 1,
+  "season": 1980,
+  "latestCandidate": "v1.2.11-1980-calendar-circuits-weather-recovery-candidate",
+  "baselinePath": "data/database-baselines/v1.2.11-1980-calendar-circuits-weather-recovery-candidate/baseline.json",
+  "canonical": false,
+  "currentPromotedCanonical": "v1.2.5-1980-technical-source-lock-candidate",
+  "integrationPolicy": "latest cumulative candidate only; do not integrate v1.2.8 separately",
+  "updatedAt": "2026-09-13"
+}

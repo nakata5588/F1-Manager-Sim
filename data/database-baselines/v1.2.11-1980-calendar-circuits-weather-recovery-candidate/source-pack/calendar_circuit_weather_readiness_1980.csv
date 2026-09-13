@@ -1,0 +1,9 @@
+check_id,check,expected,actual,status
+CCW-READY-001,1980 championship calendar count,14,14,PASS
+CCW-READY-002,1980 circuit audit coverage,14,14,PASS
+CCW-READY-003,1980 layout baseline coverage,14,14,PASS
+CCW-READY-004,1980 weather baseline coverage,14,14,PASS
+CCW-READY-005,1980 track evolution baseline coverage,14,14,PASS
+CCW-READY-006,Dynamic weather stored as historical fact,0,0,PASS
+CCW-READY-007,Known period display-name corrections flagged,>=3,10,PASS
+CCW-READY-008,Spanish GP 1980 championship inclusion,excluded/reference-only,excluded/reference-only,PASS

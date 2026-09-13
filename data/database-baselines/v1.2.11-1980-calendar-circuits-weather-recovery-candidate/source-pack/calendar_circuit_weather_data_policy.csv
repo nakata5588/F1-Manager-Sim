@@ -1,0 +1,8 @@
+policy_id,area,rule,database_action,save_world_action
+CCW-POL-001,calendar,Championship calendar order/date/event identity is static starting data.,source_lock,do_not_modify_source
+CCW-POL-002,calendar,Race results after career start are not authoritative for a new 1980 career.,reference_only_hidden,simulate_results
+CCW-POL-003,circuit,Use period-correct display names for selected season while preserving stable track IDs.,add_period_display_name,none
+CCW-POL-004,layout,Lap length and scheduled laps are starting-layout references; trait indexes are derived calibration.,split_source_status,consume_as_input
+CCW-POL-005,weather,"Weather profiles are probability baselines, not real session weather.",derived_gameplay_baseline,generate_actual_weather
+CCW-POL-006,track_evolution,Track grip/rubbering starts from a model seed and evolves inside each session.,derived_gameplay_baseline,own_live_track_state
+CCW-POL-007,multi_season,Same Calendar/Circuit/Weather layer can be produced for any supported Season Database without replacing Main DB.,materializer_contract,selected_season_start_only

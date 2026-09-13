@@ -1,0 +1,6 @@
+change_id,area,from_version,to_version,change,row_delta
+V1211-001,calendar,v1.2.10,v1.2.11,Recovered planned v1.2.8 calendar/circuit/weather layer on top of v1.2.10.,14
+V1211-002,circuits,v1.2.10,v1.2.11,Added period-correct track display-name audit without changing stable track IDs.,14
+V1211-003,weather,v1.2.10,v1.2.11,Added derived weather probability baselines for all 14 championship rounds.,14
+V1211-004,track_evolution,v1.2.10,v1.2.11,Added derived track evolution baseline seeds for all 14 rounds.,14
+V1211-005,publication,v1.2.10,v1.2.11,"Latest cumulative 1980 candidate now includes v1.2.4-v1.2.7, v1.2.9, v1.2.10 and recovered v1.2.8 scope.",0
