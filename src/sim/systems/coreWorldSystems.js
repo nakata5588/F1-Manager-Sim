@@ -1,4 +1,5 @@
 import { createContractMilestoneSystem } from "./contractMilestones.js";
+import { createTalentPipelineSystem } from "./talentPipeline.js";
 import { createEntityAvailabilitySystem } from "./entityAvailability.js";
 import { createCareerLifecycleSystem } from "./careerLifecycle.js";
 import { createCareerDevelopmentSystem } from "./careerDevelopment.js";
@@ -37,6 +38,11 @@ import { createChampionshipSystem } from "./championship.js";
 
 export function createCoreWorldSystems(options = {}) {
   return [
+    // Generated talent is Save World state and must exist before the visibility
+    // boundary checks whether a junior has reached F1 eligibility this season.
+    createTalentPipelineSystem({
+      cohortSize: options.generatedTalentCohortSize,
+    }),
     createEntityAvailabilitySystem(),
     // Governance deliberately runs immediately after visibility/eligibility.
     // Future teams and historical future rules may therefore become candidates
