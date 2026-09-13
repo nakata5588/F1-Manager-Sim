@@ -1,0 +1,131 @@
+{
+  "format": "f1-manager-sim-database-baseline",
+  "schemaVersion": 1,
+  "baselineId": "v1.2.11-1980-calendar-circuits-weather-recovery-candidate-2026-09-13",
+  "candidateStatus": "DATABASE_ONLY_LATEST_CUMULATIVE_1980_RECOVERY_CANDIDATE",
+  "integrationStatus": "INTEGRATED_AS_LATEST_1980_CANDIDATE",
+  "canonical": false,
+  "bundle": {
+    "filename": "F1_Manager_Sim_Database_Rebuild_v1.2.11_1980_calendar_circuits_weather_recovery_candidate_Bundle.zip",
+    "sha256": "8f3fbaaa980228d514d8df88d179c27788c18d0f6f9d1b9509715e5b168c44c0",
+    "bytes": 3177349,
+    "cumulative": true,
+    "baseArtifact": "v1.2.10-1980-driver-availability-free-driver-candidate",
+    "recoversMissingPlannedArtifact": "v1.2.8-calendar-circuits-weather-source-lock",
+    "doNotIntegrateSeparately": [
+      "v1.2.8"
+    ],
+    "appliedSequentially": false,
+    "supersedes": [
+      "v1.2.3-canonical-candidate",
+      "v1.2.4-1980-technical-source-candidate",
+      "v1.2.5-1980-technical-source-lock-candidate",
+      "v1.2.6-1980-finance-contracts-source-lock-candidate",
+      "v1.2.7-1980-regulations-tyres-source-lock-candidate",
+      "v1.2.9-1980-drivers-ratings-career-source-lock-candidate",
+      "v1.2.10-1980-driver-availability-free-driver-candidate"
+    ],
+    "files": 22,
+    "checksumEntries": 21
+  },
+  "globalDatabase": {
+    "releaseName": "F1_Manager_Sim_Database_Rebuild_v1.2.11_1980_calendar_circuits_weather_recovery_candidate",
+    "databaseVersion": "v1.2.11-1980-calendar-circuits-weather-recovery-candidate",
+    "previousDatabaseVersion": "v1.2.10-1980-driver-availability-free-driver-candidate",
+    "jsonFilename": "F1_Manager_Sim_Global_Database_v1.2.11_1980_calendar_circuits_weather_recovery_candidate.json",
+    "jsonSha256": "843befe2dc4a0be7684ca3b3a9d84d3241746c315165837ee6d953869500c352",
+    "jsonBytes": 24997386,
+    "sqliteFilename": "F1_Manager_Sim_Global_Database_v1.2.11_1980_calendar_circuits_weather_recovery_candidate.sqlite",
+    "sqliteSha256": "f8d79b3a0908252d41a8bb5fca038740328a5626b2f309f78a7f6b56004bd9ea",
+    "sourceFilename": "f1_db(2).xlsx",
+    "sourceSha256": "9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097",
+    "supportedSeasons": [
+      1980
+    ],
+    "drivers": 863,
+    "staff": 59,
+    "teams": 212,
+    "calendarRows": 1125
+  },
+  "seasonDatabases": {
+    "1980": {
+      "releaseName": "F1_Manager_Sim_SeasonDefinition_1980_v1.2.11_1980_calendar_circuits_weather_recovery_candidate",
+      "format": "f1-manager-sim-season-database",
+      "schemaVersion": 1,
+      "databaseVersion": "v1.2.11-1980-calendar-circuits-weather-recovery-candidate",
+      "sourceChecksum": "9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097",
+      "jsonFilename": "F1_Manager_Sim_SeasonDefinition_1980_v1.2.11_1980_calendar_circuits_weather_recovery_candidate.json",
+      "jsonSha256": "ce2af269291a9c3e150a5773362deba472d67b2f9f626346b5744b147a4ea9d3",
+      "jsonBytes": 13599325,
+      "sqliteFilename": "F1_Manager_Sim_SeasonDefinition_1980_v1.2.11_1980_calendar_circuits_weather_recovery_candidate.sqlite",
+      "sqliteSha256": "ef5f12c87b414d18a13b27ae5e15ec9dc7a4008587e11a492fc43749dfbda9cc",
+      "activeTeams": 15,
+      "activeDrivers": 50,
+      "activeStaff": 55,
+      "calendarRaces": 14,
+      "seasonRecruitmentPool": 66,
+      "freeDrivers1980": 34,
+      "technicalComponentBaselines": 90,
+      "technicalSourceLockAudit1980": 285,
+      "teamFinanceBaseline1980": 15,
+      "tyreSupplierSourceLock1980": 15,
+      "driverIdentitySourceLock1980": 66,
+      "driverAvailabilitySnapshot1980": 66,
+      "calendarSourceLockAudit1980": 14,
+      "circuitSourceLockAudit1980": 14,
+      "circuitLayoutBaseline1980": 14,
+      "weatherProfileBaseline1980": 14,
+      "trackEvolutionBaseline1980": 14
+    }
+  },
+  "cumulativePreservation": {
+    "v1.2.4Technical": "PASS",
+    "v1.2.5TechnicalSourceLock": "PASS",
+    "v1.2.6FinanceContractsSponsors": "PASS",
+    "v1.2.7RegulationsTyres": "PASS",
+    "v1.2.8PlannedScopeRecoveredInsideV1211": "PASS",
+    "v1.2.9DriversRatingsCareer": "PASS",
+    "v1.2.10DriverAvailabilityFreeDriver": "PASS"
+  },
+  "calendarCircuitsWeather": {
+    "calendarRounds": 14,
+    "circuitAuditRows": 14,
+    "layoutBaselineRows": 14,
+    "weatherBaselineRows": 14,
+    "trackEvolutionBaselineRows": 14,
+    "periodDisplayNameCorrectionsFlagged": 10,
+    "spanishGrandPrix1980ChampionshipStatus": "excluded_reference_only",
+    "weatherSourceLockStatus": "derived_gameplay_baseline",
+    "trackEvolutionSourceLockStatus": "derived_gameplay_baseline"
+  },
+  "validation": {
+    "bundleChecksums": "PASS_21_OF_21",
+    "globalSqliteIntegrity": "PASS",
+    "seasonSqliteIntegrity": "PASS",
+    "globalSeasonCompatibility": "PASS",
+    "calendarAuditCoverage": "PASS_14_OF_14",
+    "circuitAuditCoverage": "PASS_14_OF_14",
+    "layoutBaselineCoverage": "PASS_14_OF_14",
+    "weatherBaselineCoverage": "PASS_14_OF_14",
+    "trackEvolutionBaselineCoverage": "PASS_14_OF_14",
+    "dynamicWeatherRaceOutcomeStoredAsHistoricalFact": "PASS_0",
+    "v128ScopeRecovered": "PASS",
+    "cumulativeChainPreserved": "PASS"
+  },
+  "promotion": {
+    "promotedCanonicalInThisPr": false,
+    "currentCanonicalBeforeThisPr": "v1.2.5-1980-technical-source-lock-candidate",
+    "decision": "LATEST_CANDIDATE_ONLY",
+    "reason": "Product request is to integrate v1.2.11 as the latest cumulative 1980 database candidate in a data-only PR."
+  },
+  "policies": {
+    "databaseBoundary": "Global Database -> Season Database -> Save World -> Simulation Engine",
+    "largeEditorialArtifacts": "JSON/SQLite/XLSX remain external; source repo pins hashes and small source/audit packs only.",
+    "cumulativeIntegration": "Integrate v1.2.11 directly. Do not integrate v1.2.8 separately and do not replay intermediate candidates sequentially.",
+    "calendarBoundary": "Calendar order/date/event identity is historical starting data only. Race outcomes after career start are simulated.",
+    "weatherBoundary": "Weather profiles are derived gameplay baselines for probability only. Actual session weather is Save World/simulation state.",
+    "trackEvolutionBoundary": "Track evolution is a derived gameplay baseline. Live grip/rubbering/track state belongs to Save World/simulation state.",
+    "outcomeBoundary": "Weather, qualifying, live track state, incidents and race results must never become scripted post-start outcomes."
+  },
+  "promotionBlockers": []
+}

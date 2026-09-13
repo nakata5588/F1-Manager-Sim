@@ -1,0 +1,11 @@
+check,status,count,detail
+v1.2.4 technical data present in Global,PASS,90,Global uses ByYear tables; Season materializes 1980 technicalComponentBaselines.
+v1.2.4 technical data present in Season 1980,PASS,90,
+v1.2.5 technical source-lock present,PASS,285,
+v1.2.6 finance/contracts/sponsors present,PASS,79,
+v1.2.7 regulations/tyres present,PASS,15,
+v1.2.8 planned scope recovered in v1.2.11,PASS,14,
+v1.2.9 drivers/ratings/career present,PASS,66,
+v1.2.10 free-driver availability present,PASS,66,
+Global/Season sourceChecksum compatible,PASS,,9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097
+Dynamic weather/race outcome authority not stored as starting fact,PASS,0,Weather/track evolution are derived baselines; qualifying/race outcomes remain Save World.

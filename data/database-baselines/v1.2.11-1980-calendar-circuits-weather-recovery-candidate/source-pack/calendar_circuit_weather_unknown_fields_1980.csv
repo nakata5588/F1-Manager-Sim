@@ -1,0 +1,9 @@
+field_group,field,status,reason
+weather,actual_session_weather_1980,do_not_source_lock,No row-level session weather source in current database bundle; Save World must generate actual weather.
+weather,track_temperature_by_session,do_not_source_lock,Not present in master data and highly variable.
+circuit,exact_1980_geometry_coordinates,deferred_research,Not required for current race model; avoid inventing layout geometry.
+circuit,pit_lane_loss_exact_seconds,derived_gameplay_baseline,"Existing pit_lane_loss is a simulation calibration index/time proxy, not source-locked historical stopwatch data."
+track_evolution,support_series_rubbering,do_not_source_lock,Support activity varies by event and is not represented in source bundle.
+track_evolution,surface_resurfacing_state_1980,deferred_research,Needs circuit-by-circuit source pack before being used as historical fact.
+race_control,actual_flags_and_interruptions,reference_only_if_results_archive,Must not script career-start race incidents.
+calendar,non_championship_spanish_gp_1980,reference_only_excluded_from_championship,Can exist as historical context but not in championship calendar by default.

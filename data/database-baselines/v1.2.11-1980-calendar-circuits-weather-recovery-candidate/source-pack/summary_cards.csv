@@ -1,0 +1,10 @@
+metric,value,status
+base_version,v1.2.10,input
+candidate_version,v1.2.11-1980-calendar-circuits-weather-recovery-candidate,output
+calendar_rounds_1980,14,PASS
+circuit_audit_rows_1980,14,PASS
+layout_baseline_rows_1980,14,PASS
+weather_baseline_rows_1980,14,PASS
+track_evolution_rows_1980,14,PASS
+dynamic_weather_or_results_in_db,0,PASS
+recovered_missing_v128_scope,True,PASS

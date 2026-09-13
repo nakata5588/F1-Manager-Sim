@@ -1,0 +1,7 @@
+delta_id,target,action,runtime_authority
+CCW-MAT-001,SeasonDefinition.snapshot.calendar,retain_14_championship_rounds_and_add_calendarSourceLockAudit1980,starting_fixture_only
+CCW-MAT-002,SeasonDefinition.snapshot.tracks,preserve_track_id_and_use_period_correct_track_name_when_available,display/reference
+CCW-MAT-003,SaveWorld.reference.databaseContext,place calendar/circuit/weather source-lock packs under reference context,non_mutable_reference
+CCW-MAT-004,SaveWorld.world.raceWeekend,do_not_copy actual weather/results/track-state from database,simulation_generated
+CCW-MAT-005,Weather model,consume weatherProfileBaseline1980 as probability seed only,save_world_session_state
+CCW-MAT-006,Track evolution model,consume trackEvolutionBaseline1980 as opening grip/rubbering seed only,save_world_session_state
