@@ -6,31 +6,31 @@ F1 Manager Sim is a long-form Formula One management and world simulation game. 
 
 ## Current development phase
 
-**Phase 38 — Regulations, Governance & Team Evolution**
+**Phase 39 — Offseason & New Season Preparation**
 
-The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market, a persistent physical technical lifecycle and a dynamic governance/grid layer.
+The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market, a persistent physical technical lifecycle, dynamic governance/grid evolution and a playable season-to-season transition.
 
-Current race path:
+Current career path:
 
-`New Career -> Choose Team -> Create Manager -> Career Home -> Continue -> Practice -> Setup -> Qualifying -> Pre-Race -> Live Race / Pit Wall -> Results -> Standings`
+`New Career -> Choose Team -> Create Manager -> Career Home -> Continue -> Race Weekends -> Championship Finale -> Season Review -> Offseason Planning -> New Season -> Preseason -> Race Weekend`
 
 Current management/world loop:
 
-`Continue -> Board / Inbox / People / Staff / Recruitment / Commercial / Technical / Governance / F1 World -> Decision -> Save World consequence -> Continue`
+`Continue -> Board / Inbox / People / Staff / Recruitment / Commercial / Technical / Governance / Offseason -> Decision -> Save World consequence -> Continue`
 
 The technical lifecycle extends through:
 
 `Supplier -> Preseason Test -> Design / Research -> Specification -> Manufacture -> Inventory -> Fit -> Wear / Failure -> Replace / Rebuild -> Race`
 
-Phase 38 adds a dynamic annual governance layer. Future historical rules are hidden references that may become proposals; they are never automatically imposed. Active teams vote Yes / No / Abstain, approved packages take effect only in their target season, and technical resets alter carry-over without overwriting historical database data or destroying physical specification history.
+Phase 39 closes the gap that previously left the interactive Developer Playtest parked after the final race. A completed championship now opens a persistent offseason cycle with a final season review, Board review, contracts/supplier/sponsor/governance/next-car readiness, a strategic season plan, January season preparation and a handoff into preseason testing.
 
-The Formula One grid can now evolve. Eligible future team identities may apply to enter, governance may approve or reject them, and accepted entrants receive explicitly generated Save World resources before using the same recruitment, supplier, technical, reliability, commercial and race systems as existing teams. Financially distressed uncontrolled teams may leave the championship after sustained trouble, while their stable identity and completed history remain preserved.
+The offseason is a coordinator rather than a duplicate management system. Contracts remain authoritative in Employment/Contracts, engine agreements in Suppliers, sponsors in Commercial, regulations/grid changes in Governance, and the next car in Technical. The offseason only projects readiness, records the team's plan and advances the world through the transition.
 
-Team rebrands change presentation identity without replacing the stable `team_id`, preserving coherent results, records, contracts and histories across long careers.
+Central `Continue` is now season-aware. During the racing season it still moves to the next Grand Prix. After the final race it advances through monthly offseason boundaries so normal systems continue to run; January creates the next season/calendar, and the normal race path resumes afterwards.
 
-Phase 36 established physical specifications, manufacturing, stock, per-car fitment and facility development. Phase 37 added mutable engine-supplier contracts, per-car engine/component condition, deterministic race wear, persistent mechanical failures, spare consumption, component rebuilds, engine service and preseason testing. Phase 38 connects the annual technical/offseason loop to dynamic regulation and grid evolution.
+At season start, actual team cash remains authoritative. Phase 39 records the current cash as the new season-opening finance baseline, archives the previous baseline, renews Board objectives and applies the confirmed season strategy to existing delegated/AI technical planning. It never creates a second budget currency or free offseason money.
 
-Facilities remain mutable Save World upgrade state. Upgrades cost real team cash, take time and add maintenance cost without rewriting historical database rows. The canonical v1.2.5 database provides explicit 1980 component/facility/manufacturing starting baselines with source-lock provenance; derived values remain explicitly non-source-locked.
+Phase 38 remains responsible for regulation votes and team entry/exit/rebrand evolution. Phase 37 remains responsible for suppliers, component wear and preseason testing. Phase 36 remains responsible for physical specifications, manufacturing, inventory and fitment.
 
 The local Developer Playtest exposes:
 
@@ -38,6 +38,7 @@ The local Developer Playtest exposes:
 - Management Hub
 - Technical Operations, including suppliers, preseason, reliability, R&D, manufacturing and facilities
 - Governance & F1 World, including regulation votes, grid evolution and team identity changes
+- Offseason & New Season, including season review, readiness, planning and calendar transition
 
 ## Architecture rule
 
@@ -46,7 +47,7 @@ The project keeps five concerns separate:
 - **Historical World Database** — immutable source data.
 - **Save World** — evolving career state.
 - **Simulation Engine** — systems that advance and change the world.
-- **Game Systems** — contracts, development, finances, staff, sponsors, technical operations and governance mechanics.
+- **Game Systems** — contracts, development, finances, staff, sponsors, technical operations, governance and season preparation mechanics.
 - **UI** — presentation and player interaction; never the authoritative simulation state.
 
 The database packaging boundary is:
@@ -59,7 +60,7 @@ The race-weekend gameplay boundary is:
 
 The management gameplay boundary is:
 
-`World Event -> Board / People / Market / Commercial / Technical / Governance / Career State -> Inbox / Advice -> Player Decision -> Simulation Event -> Updated Save World`
+`World Event -> Board / People / Market / Commercial / Technical / Governance / Offseason / Career State -> Inbox / Advice -> Player Decision -> Simulation Event -> Updated Save World`
 
 The technical gameplay boundary is:
 
@@ -69,7 +70,11 @@ The governance boundary is:
 
 `Historical future reference / Dynamic pressure -> Proposal / Application -> Vote / Review -> Enacted decision -> Save World consequence -> News / History`
 
-See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/REGULATIONS_GOVERNANCE_TEAM_EVOLUTION.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
+The season-transition boundary is:
+
+`Championship Complete -> Season Review -> Planning / Existing Management Systems -> Season Rollover -> Board & Finance Renewal -> Preseason -> First Race`
+
+See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/REGULATIONS_GOVERNANCE_TEAM_EVOLUTION.md`, `docs/OFFSEASON_NEW_SEASON_PREPARATION.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
 
 ## Historical data policy
 
@@ -97,6 +102,7 @@ Management, technical and governance systems are deliberately tolerant of missin
 - future team identities are eligibility candidates, not scripted future grid members;
 - generated resources for newly admitted teams are explicit simulation baselines, not historical facts;
 - rebrands preserve stable team IDs;
+- offseason strategy, future Board objectives and season-opening financial baselines are Save World state, not historical source data;
 - facility upgrades never overwrite the historical starting facility rows or reference baselines;
 - source-lock manifests, canonical ID correction maps, technical audits and research/readiness packs remain reference context rather than mutable Save World state.
 
@@ -139,6 +145,7 @@ Then open:
 - Management Hub: `http://127.0.0.1:3000/management.html`
 - Technical Operations: `http://127.0.0.1:3000/technical.html`
 - Governance & F1 World: `http://127.0.0.1:3000/governance.html`
+- Offseason & New Season: `http://127.0.0.1:3000/offseason.html`
 
 Both database inputs may be plain `.json` or `.json.gz`. The browser receives only player-facing projections; hidden future identity pools and reference data remain server-side in the Save World.
 
