@@ -49,6 +49,24 @@ function autoSource(controlled, teamId) {
   return controlled.has(String(teamId)) ? "delegated" : "ai";
 }
 
+function seasonStrategy(saveWorld, teamId) {
+  const row = saveWorld.world?.technical?.teams?.[teamId]?.seasonStrategy;
+  if (!row || Number(row.season) !== Number(saveWorld.clock?.season)) return null;
+  return row;
+}
+
+function developmentFocus(saveWorld, teamId) {
+  const focus = seasonStrategy(saveWorld, teamId)?.technicalFocus;
+  return ["balanced", "performance", "reliability"].includes(focus) ? focus : "balanced";
+}
+
+function reserveRatio(saveWorld, teamId) {
+  const risk = seasonStrategy(saveWorld, teamId)?.financialRisk;
+  if (risk === "conservative") return 0.12;
+  if (risk === "aggressive") return 0.05;
+  return 0.08;
+}
+
 function emitStarted(project) {
   return {
     type: TECHNICAL_EVENT.DESIGN_STARTED,
@@ -161,12 +179,12 @@ function startAiProjects(saveWorld, event, options) {
       const component = weakestComponent(projection);
       const finance = saveWorld.world?.teamState?.[teamId];
       const cash = numeric(finance?.cash, 0);
-      const reserve = Math.max(numeric(options.minimumCashReserve, 100000), numeric(finance?.openingCash, 0) * 0.08);
+      const reserve = Math.max(numeric(options.minimumCashReserve, 100000), numeric(finance?.openingCash, 0) * reserveRatio(saveWorld, teamId));
       if (component && cash > reserve + 50000) {
         try {
           const project = startTechnicalDesignProject(saveWorld, teamId, {
             component,
-            focus: "balanced",
+            focus: developmentFocus(saveWorld, teamId),
             targetSeason: "current",
             durationMonths: options.projectDurationMonths,
             source,
