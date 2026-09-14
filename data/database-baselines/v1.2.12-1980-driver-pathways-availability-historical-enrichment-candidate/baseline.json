@@ -1,0 +1,79 @@
+{
+  "format": "f1-manager-sim-database-baseline",
+  "schemaVersion": 1,
+  "baselineId": "v1.2.12-1980-driver-pathways-availability-historical-enrichment-candidate-2026-09-14",
+  "candidateStatus": "DATABASE_ONLY_LATEST_CUMULATIVE_1980_DRIVER_PATHWAYS_CANDIDATE",
+  "integrationStatus": "INTEGRATED_AS_LATEST_1980_CANDIDATE",
+  "canonical": false,
+  "bundle": {
+    "filename": "F1_Manager_Sim_Database_Rebuild_v1.2.12_1980_driver_pathways_availability_historical_enrichment_candidate_Bundle.zip",
+    "receivedSha256": "d8cd3c8ebd4fafcdcd6d820e7c17e4c340d3977dba5b0ae5e5a27b11be5ac080",
+    "embeddedBundleSha256": "9f84d4f3c5235c6b6994652c7a1d191bea2f2514b322dcb44a9845b71af669a7",
+    "embeddedBundleHashMatchesReceived": false,
+    "files": 27,
+    "checksumEntries": 25,
+    "cumulative": true,
+    "baseArtifact": "v1.2.11-1980-calendar-circuits-weather-recovery-candidate",
+    "appliedSequentially": false
+  },
+  "globalDatabase": {
+    "releaseName": "F1_Manager_Sim_Database_Rebuild_v1.2.12_1980_driver_pathways_availability_historical_enrichment_candidate",
+    "databaseVersion": "v1.2.12-1980-driver-pathways-availability-historical-enrichment-candidate",
+    "previousDatabaseVersion": "v1.2.11-1980-calendar-circuits-weather-recovery-candidate",
+    "jsonSha256": "02815382c515549b6de3769666b2eded83728324c5c09e59b85d5718b5d56a23",
+    "sqliteSha256": "dadb774efd22905dac4bb43adbd75f1f9e04c4764bb20bcdc8497762b8d95e13",
+    "sourceSha256": "9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097",
+    "drivers": 863,
+    "driverRatings": 86,
+    "driverCareerIntervalsV1212": 67
+  },
+  "seasonDatabases": {
+    "1980": {
+      "releaseName": "F1_Manager_Sim_SeasonDefinition_1980_v1.2.12_1980_driver_pathways_availability_historical_enrichment_candidate",
+      "databaseVersion": "v1.2.12-1980-driver-pathways-availability-historical-enrichment-candidate",
+      "previousDatabaseVersion": "v1.2.11-1980-calendar-circuits-weather-recovery-candidate",
+      "sourceChecksum": "9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097",
+      "jsonSha256": "cea3fb53936b031d96febc3f2938bbab0e5be83c0eae9f18bed9190804d5789c",
+      "sqliteSha256": "9dc9e508413f20bd23cc9ee8624369b0eb88630ff8b8aea681df0ee596aaffe7",
+      "activeTeams": 15,
+      "activeDrivers": 50,
+      "calendarRaces": 14,
+      "seasonRecruitmentPool": 66,
+      "freeDrivers": 32,
+      "talentVisibleNotFree": 5,
+      "inactiveReturnableNotSeeking": 1,
+      "externalAvailabilityRows": 38,
+      "externalDerivedRatingProfiles": 37,
+      "careerIntervalRows": 67,
+      "pathwayMilestones": 41
+    }
+  },
+  "validation": {
+    "contentChecksums": "PASS_25_OF_25",
+    "globalSqliteIntegrity": "PASS",
+    "seasonSqliteIntegrity": "PASS",
+    "globalSeasonCompatibility": "PASS",
+    "cumulativeV1211Preserved": "PASS",
+    "senna1980": "PASS_TALENT_VISIBLE_NOT_FREE",
+    "lauda1980": "PASS_RETURNABLE_RETIRED_INACTIVE_NOT_SEEKING",
+    "externalRatings": "PASS_DERIVED_GAMEPLAY_BASELINE",
+    "futureOutcomeAuthority": "PASS_0",
+    "embeddedBundleHash": "WARN_REPACKAGED_HASH_NOT_AUTHORITATIVE"
+  },
+  "policies": {
+    "driverAvailabilityBoundary": "Historical starting availability may use sourced/qualified activity intervals. Post-start availability, retirement, return and transfer state belongs to Save World.",
+    "ratingsBoundary": "External 1980 ratings are derived_gameplay_baseline with uncertainty metadata, not historical facts.",
+    "futureOutcomeBoundary": "Future debut, future contracts, future retirements and future results are reference-only and never authority for a 1980 career.",
+    "largeArtifacts": "Global/Season JSON, SQLite and editor XLSX remain external; repository pins audited hashes and compact source/audit packs."
+  },
+  "promotion": {
+    "promotedCanonicalInThisPr": false,
+    "currentPromotedCanonical": "v1.2.5-1980-technical-source-lock-candidate",
+    "decision": "LATEST_CANDIDATE_ONLY"
+  },
+  "knownLimits": [
+    "Staff/sponsor row-level source review remains open.",
+    "Most external driver junior careers still require granular source enrichment.",
+    "Money/agents/human relationships not invented."
+  ]
+}

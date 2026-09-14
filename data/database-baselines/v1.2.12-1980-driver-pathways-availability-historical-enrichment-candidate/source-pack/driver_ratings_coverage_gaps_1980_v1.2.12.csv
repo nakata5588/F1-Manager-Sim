@@ -1,0 +1,2 @@
+season,area,previous_missing_full_rating_rows,current_missing_full_rating_rows,remaining_issue,status
+1980,external_driver_ratings,37,0,"ratings are derived gameplay baselines with uncertainty, not source-locked historical measurements",RESOLVED_AS_DERIVED_BASELINE_WITH_UNCERTAINTY

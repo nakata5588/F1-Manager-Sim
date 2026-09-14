@@ -1,0 +1,8 @@
+policy_id,rule,database_action
+DRVPATH-001,Do not derive free_driver from career_start/career_end alone.,Use active intervals + visibility + F1 eligibility + availability status.
+DRVPATH-002,Do not use later F1 debut to prove 1980 F1 eligibility.,Future debut is hidden/reference after career start.
+DRVPATH-003,Temporary retirement/hiatus prevents ordinary free-driver classification.,Use returnable_retired_inactive_not_seeking unless reliable 1980 seeking evidence exists.
+DRVPATH-004,"External ratings are derived calibration, not source-locked facts.","Store uncertainty, source evidence and derived_gameplay_baseline status."
+DRVPATH-005,Junior/feeder milestones support visibility/readiness only when before career start.,Post-start milestones hidden/reference only.
+DRVPATH-006,No modern academies in 1980.,Use informal_talent_network context only.
+DRVPATH-007,"After career start, driver availability becomes Save World state.",DB supplies initial condition only.

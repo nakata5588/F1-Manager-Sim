@@ -1,0 +1,8 @@
+status,meaning,free_driver_allowed,save_world_boundary
+active_f1_contract,has current F1 team assignment/contract at selected season start,False,post-start employment changes are Save World state
+active_non_f1_available,active in racing outside F1 and available/seekable for F1 negotiations,True,post-start availability and negotiations are Save World state
+active_non_f1_not_ready,visible junior/talent but not yet F1-eligible at selected season start,False,visibility/readiness progression after start is simulated or gated by season data
+temporary_retirement_hiatus,historically inactive between career stints; can be visible but not a free driver by default,False,unretirement/approach after start requires simulation event or explicit later season data
+returnable_retired_inactive_not_seeking,formerly F1-eligible driver known to the world but not currently seeking F1 seat,False,manager cannot treat as ordinary free-agent pool at start
+free_driver,visible + F1-eligible + active/available + no current F1 contract,True,free agency after start becomes Save World state
+hidden_future_reference,future achievements/debuts/results exist only as hidden reference,False,future outcome is never scripted

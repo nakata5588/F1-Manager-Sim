@@ -1,0 +1,8 @@
+check,status,detail
+cumulative_v1.2.11_preserved,PASS,v1.2.12 built on v1.2.11 JSON and retains all prior cumulative blocks.
+senna_1980_not_free_driver,PASS,Ayrton Senna changed from f1_eligible/free_driver to talent_visible/scoutable_talent_not_free_driver.
+lauda_1980_not_free_driver,PASS,Niki Lauda changed from free_driver to returnable_retired_inactive_not_seeking.
+external_driver_full_rating_rows,PASS,37 derived profiles added; missing full external rating rows now 0.
+free_driver_count_corrected,PASS,Free drivers reduced to 32; talent-only 5; inactive/not-seeking 1.
+no_future_outcome_authority,PASS,Future debuts/results/retirements remain hidden/reference and do not script Save World.
+staff_sponsor_remaining_source_review,WARN,Staff and sponsor review rows are audited; unresolved row-level source work remains P1.
