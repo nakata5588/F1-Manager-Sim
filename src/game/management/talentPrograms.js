@@ -105,6 +105,8 @@ function candidate(saveWorld, id) {
   const age = saveWorld.world?.careerState?.drivers?.[id]?.age ?? ageOnDate(row, saveWorld.clock?.date);
   if (age !== null && (age < 14 || age > 23)) return null;
   if (saveWorld.world?.employment?.drivers?.[id]?.status === "employed") return null;
+  const f1Eligible = listVisibleDrivers(saveWorld, { requireF1Eligible: true }).some((entry) => String(driverId(entry)) === String(id));
+  if (f1Eligible) return null;
   return row;
 }
 
@@ -184,13 +186,14 @@ export function applyTalentProgramSupport(saveWorld, season = saveWorld.clock?.s
     if (row.status !== "active" || row.startSeason > year || row.endSeason < year) continue;
     if (saveWorld.world?.employment?.drivers?.[row.driverId]?.status === "employed") continue;
     const career = drivers[row.driverId];
-    if (!career || career.status === "retired") continue;
+    if (!career || career.status === "retired" || Number(career.lastTalentProgramSupportSeason) === year) continue;
     const program = ensureTalentProgramState(saveWorld).programs[row.teamId];
     const factor = clamp(number(program?.developmentFactor ?? row.developmentFactor, 1), 1, 1.25);
     career.morale = round(clamp(number(career.morale, 50) + (factor - 1) * 18, 0, 100));
     career.form = round(clamp(number(career.form, 0) + (factor - 1) * 24, -25, 25));
     career.talentProgramTeamId = row.teamId;
     career.talentProgramAgreementId = row.id;
+    career.lastTalentProgramSupportSeason = year;
     supported.push(row.driverId);
   }
   return supported;
