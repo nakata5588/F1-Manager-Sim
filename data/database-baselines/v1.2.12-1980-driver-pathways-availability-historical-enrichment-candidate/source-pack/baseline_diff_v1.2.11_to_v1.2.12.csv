@@ -1,0 +1,8 @@
+area,change
+release_identity,databaseVersion/releaseName bumped from v1.2.11 to v1.2.12; sourceChecksum remains compatible with Global source identity.
+driver_availability,Adds interval-based availability model; Senna and Lauda corrected out of ordinary free-driver pool.
+external_driver_audit,Adds individual audit for all 38 non-current-F1 recruitment pool drivers.
+ratings,Adds 37 derived multidimensional external driver rating profiles with uncertainty metadata.
+pathway_milestones,Adds junior/feeder/pathway milestone table; post-start data is hidden/reference only.
+staff_sponsors_regulations,"Adds P1/P2 review surfaces without inventing salary, contract dates, sponsor values, relationships or outcomes."
+migration_backlog,Reclassifies DB-001..DB-010 as DONE/SUPERSEDED/PARTIALLY_COMPLETE/STILL_OPEN.
