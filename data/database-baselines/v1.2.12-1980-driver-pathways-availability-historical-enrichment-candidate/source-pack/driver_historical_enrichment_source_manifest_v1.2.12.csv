@@ -1,0 +1,8 @@
+source_id,title,url,use,source_confidence
+src_f1_official_1980_results_drivers,Formula1.com 1980 drivers standings/race results archive,https://www.formula1.com/en/results/1980/drivers,1980 active/reference archive only,high
+src_f1_official_lauda_retirement_return,Formula1.com retired and returned drivers / Lauda retirement-return reference,https://www.formula1.com/en/latest/article/massa-and-the-four-other-race-winners-who-came-out-of-retirement.39KeLqc4RiICA8QGmQcmWM,Lauda 1979 retirement and 1982 return boundary,high
+src_mclaren_lauda_1982_comeback,McLaren Racing Lauda 1982 comeback article,https://www.mclaren.com/racing/heritage/formula-1/drivers/niki-lauda/niki-laudas-1982-comeback-2155556/,Lauda comeback pathway/reference-only; no 1980 availability,high
+src_senna_institute_1980_kart,Senna Institute 1980 karting profile,https://www.senna.com/anos-de-corrida/kart/temporada-1980/,Senna 1980 karting/talent visibility; not F1 employment,high
+src_honda_senna_junior_career,Honda Global Senna career — karting 1979/1980 and Formula Ford 1981,https://global.honda/en/senna/career/vol1/,Senna 1980 talent visibility and 1981 single-seater transition,high
+src_ford_senna_formula_ford,Ford Formula Ford remembers Ayrton Senna,https://media.ford.com/content/fordmedia/feu/gb/en/news/2014/04/30/formula-ford-remembers-ayrton-senna.html,Senna Formula Ford debut in March 1981; prevents retroactive 1980 F1 eligibility,high
+src_mclaren_andrea_de_cesaris,McLaren Racing Andrea de Cesaris heritage profile,https://www.mclaren.com/racing/heritage/formula-1/drivers/andrea-de-cesaris/,de Cesaris 1980 Alfa Romeo debut/backing context,high
