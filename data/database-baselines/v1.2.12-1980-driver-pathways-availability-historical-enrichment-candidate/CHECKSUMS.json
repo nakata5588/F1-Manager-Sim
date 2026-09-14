@@ -1,0 +1,49 @@
+{
+  "releaseName": "F1_Manager_Sim_Database_Rebuild_v1.2.12_1980_driver_pathways_availability_historical_enrichment_candidate",
+  "databaseVersion": "v1.2.12-1980-driver-pathways-availability-historical-enrichment-candidate",
+  "generatedAt": "2026-09-14T15:40:00+01:00",
+  "receivedBundle": {
+    "sha256": "d8cd3c8ebd4fafcdcd6d820e7c17e4c340d3977dba5b0ae5e5a27b11be5ac080",
+    "embeddedBundleSha256": "9f84d4f3c5235c6b6994652c7a1d191bea2f2514b322dcb44a9845b71af669a7",
+    "embeddedBundleHashMatchesReceived": false,
+    "hashNote": "Received ZIP hash is authoritative. Embedded self-hash is retained as a non-authoritative repackaging/pre-finalization artifact."
+  },
+  "verification": {
+    "declaredArtifactChecksums": 25,
+    "verifiedArtifactChecksums": 25,
+    "status": "PASS_25_OF_25",
+    "suppliedChecksumManifestSha256": "cd8213f2cb95eacc7ed6f513d1f09f73b2914e8b3dda68c86d14a8541e43dfd4"
+  },
+  "majorArtifacts": {
+    "globalJson": {
+      "sha256": "02815382c515549b6de3769666b2eded83728324c5c09e59b85d5718b5d56a23",
+      "bytes": 25223435
+    },
+    "season1980Json": {
+      "sha256": "cea3fb53936b031d96febc3f2938bbab0e5be83c0eae9f18bed9190804d5789c",
+      "bytes": 13836158
+    },
+    "globalSqlite": {
+      "sha256": "dadb774efd22905dac4bb43adbd75f1f9e04c4764bb20bcdc8497762b8d95e13",
+      "bytes": 22450176,
+      "integrity": "ok"
+    },
+    "season1980Sqlite": {
+      "sha256": "9dc9e508413f20bd23cc9ee8624369b0eb88630ff8b8aea681df0ee596aaffe7",
+      "bytes": 10276864,
+      "integrity": "ok"
+    },
+    "editorXlsx": {
+      "sha256": "47845e8f380f94c95c43dc1447746f88272b5658363a07dda866c22d57933997",
+      "bytes": 47299
+    },
+    "suppliedReport": {
+      "sha256": "565962131c2a16abb78524b7455f5c9098dd385c3fb51e9b5cc595370212e012",
+      "bytes": 2254
+    },
+    "suppliedBaseline": {
+      "sha256": "0b4670c050c611c9c114f7efecbd6ae71ec46acc0185bdb8860ece9ce28e4d1e",
+      "bytes": 2003
+    }
+  }
+}
