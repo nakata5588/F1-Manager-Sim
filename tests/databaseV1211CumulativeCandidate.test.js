@@ -20,7 +20,7 @@ function dataLines(csvText) {
   return csvText.trim().split(/\r?\n/).slice(1).filter(Boolean);
 }
 
-test("v1.2.11 is pinned as latest cumulative 1980 candidate without being auto-promoted", async () => {
+test("v1.2.11 remains a pinned cumulative 1980 candidate after a newer candidate is integrated", async () => {
   const baseline = await json("baseline.json");
   const latest = JSON.parse(await readFile(LATEST_URL, "utf8"));
 
@@ -31,7 +31,8 @@ test("v1.2.11 is pinned as latest cumulative 1980 candidate without being auto-p
   assert.equal(baseline.bundle.baseArtifact, "v1.2.10-1980-driver-availability-free-driver-candidate");
   assert.deepEqual(baseline.bundle.doNotIntegrateSeparately, ["v1.2.8"]);
   assert.equal(baseline.bundle.appliedSequentially, false);
-  assert.equal(latest.latestCandidate, baseline.globalDatabase.databaseVersion);
+  assert.notEqual(latest.latestCandidate, baseline.globalDatabase.databaseVersion);
+  assert.equal(latest.latestCandidate, "v1.2.12-1980-driver-pathways-availability-historical-enrichment-candidate");
   assert.equal(latest.currentPromotedCanonical, "v1.2.5-1980-technical-source-lock-candidate");
   assert.equal(latest.canonical, false);
 });
