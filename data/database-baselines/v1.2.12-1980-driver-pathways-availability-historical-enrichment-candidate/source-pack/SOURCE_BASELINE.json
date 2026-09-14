@@ -1,0 +1,46 @@
+{
+  "format": "f1-manager-sim-database-baseline",
+  "schemaVersion": 1,
+  "baselineId": "v1.2.12-1980-driver-pathways-availability-historical-enrichment-candidate-2026-09-14",
+  "candidateStatus": "CUMULATIVE_CANDIDATE_WITH_DRIVER_PATHWAY_CORRECTIONS",
+  "canonical": false,
+  "bundle": {
+    "filename": "F1_Manager_Sim_Database_Rebuild_v1.2.12_1980_driver_pathways_availability_historical_enrichment_candidate_Bundle.zip",
+    "cumulative": true,
+    "supersedes": ["v1.2.3", "v1.2.5", "v1.2.11"]
+  },
+  "globalDatabase": {
+    "releaseName": "F1_Manager_Sim_Database_Rebuild_v1.2.12_1980_driver_pathways_availability_historical_enrichment_candidate",
+    "databaseVersion": "v1.2.12-1980-driver-pathways-availability-historical-enrichment-candidate",
+    "sourceSha256": "9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097",
+    "drivers": 863,
+    "driverRatings": 86,
+    "driverCareerIntervalsV1212": 67
+  },
+  "seasonDatabases": {
+    "1980": {
+      "releaseName": "F1_Manager_Sim_SeasonDefinition_1980_v1.2.12_1980_driver_pathways_availability_historical_enrichment_candidate",
+      "databaseVersion": "v1.2.12-1980-driver-pathways-availability-historical-enrichment-candidate",
+      "sourceChecksum": "9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097",
+      "activeTeams": 15,
+      "activeDrivers": 50,
+      "calendarRaces": 14,
+      "seasonRecruitmentPool": 66,
+      "freeDrivers": 32,
+      "talentVisibleNotFree": 5,
+      "inactiveReturnableNotSeeking": 1
+    }
+  },
+  "validation": {
+    "sqliteIntegrity": "PASS",
+    "globalSeasonCompatibility": "PASS",
+    "sennaLaudaAvailabilityCorrections": "PASS",
+    "externalRatingsCoverage": "PASS_AS_DERIVED_BASELINE",
+    "futureOutcomeAuthority": "PASS"
+  },
+  "knownLimits": [
+    "Staff/sponsor row-level source review remains open.",
+    "Most external driver junior careers still require granular source enrichment.",
+    "Money/agents/human relationships not invented."
+  ]
+}
