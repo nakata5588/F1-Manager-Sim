@@ -69,6 +69,21 @@ function ensureCareerState(saveWorld) {
   return saveWorld.world.careerState;
 }
 
+export function registerCareerProfile(saveWorld, type, profile, options = {}) {
+  if (!["driver", "staff"].includes(type)) throw new TypeError(`Unsupported career profile type '${type}'.`);
+  const id = profileId(type, profile);
+  if (!id) throw new TypeError(`A ${type} profile requires a stable id.`);
+  const date = options.date ?? saveWorld.clock?.date ?? null;
+  const status = options.status ?? "active";
+  const state = ensureCareerState(saveWorld);
+  const target = type === "driver" ? state.drivers : state.staff;
+  target[id] ??= buildState(saveWorld, type, profile, status, date);
+  if (options.status && target[id].status !== "retired") target[id].status = status;
+  if (target[id].activeSince == null) target[id].activeSince = date;
+  target[id].lastUpdated = date;
+  return target[id];
+}
+
 function initializeCollection(saveWorld, type, profiles, date) {
   const state = ensureCareerState(saveWorld);
   const target = type === "driver" ? state.drivers : state.staff;
@@ -76,7 +91,7 @@ function initializeCollection(saveWorld, type, profiles, date) {
   for (const profile of profiles ?? []) {
     const id = profileId(type, profile);
     if (!id || target[id]) continue;
-    target[id] = buildState(saveWorld, type, profile, "active", date);
+    registerCareerProfile(saveWorld, type, profile, { status: "active", date });
     created += 1;
   }
   return created;
@@ -97,18 +112,19 @@ function activateFutureProfile(saveWorld, type, id, date) {
     live.push(structuredClone(profile));
   }
 
-  const state = ensureCareerState(saveWorld);
-  const target = type === "driver" ? state.drivers : state.staff;
-  target[id] ??= buildState(saveWorld, type, profile, "available", date);
-  target[id].status = "available";
-  target[id].lastUpdated = date;
-  if (target[id].activeSince == null) target[id].activeSince = date;
+  const career = registerCareerProfile(saveWorld, type, profile, { status: "available", date });
+  career.status = "available";
+  career.lastUpdated = date;
+  if (career.activeSince == null) career.activeSince = date;
   return profile;
 }
 
 function refreshAges(saveWorld, date) {
   const state = ensureCareerState(saveWorld);
-  for (const [type, profiles] of [["driver", saveWorld.world?.drivers], ["staff", saveWorld.world?.staff]]) {
+  for (const [type, profiles] of [
+    ["driver", [...(saveWorld.world?.drivers ?? []), ...(saveWorld.world?.futureDrivers ?? [])]],
+    ["staff", [...(saveWorld.world?.staff ?? []), ...(saveWorld.world?.futureStaff ?? [])]],
+  ]) {
     const target = type === "driver" ? state.drivers : state.staff;
     for (const profile of profiles ?? []) {
       const id = profileId(type, profile);
