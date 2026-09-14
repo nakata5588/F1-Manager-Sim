@@ -1,5 +1,6 @@
 import { createContractMilestoneSystem } from "./contractMilestones.js";
 import { createTalentPipelineSystem } from "./talentPipeline.js";
+import { createTalentRecruitmentSystem } from "./talentRecruitment.js";
 import { createEntityAvailabilitySystem } from "./entityAvailability.js";
 import { createCareerLifecycleSystem } from "./careerLifecycle.js";
 import { createCareerDevelopmentSystem } from "./careerDevelopment.js";
@@ -51,6 +52,13 @@ export function createCoreWorldSystems(options = {}) {
     createTeamExitCleanupSystem(),
     createGovernanceInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createCareerLifecycleSystem(),
+    // Era-aware talent programmes sit between lifecycle/visibility and annual
+    // development. They can support juniors and AI recruitment without creating
+    // a second employment or development authority.
+    createTalentRecruitmentSystem({
+      minimumScore: options.talentRecruitmentMinimumScore,
+      durationSeasons: options.talentProgrammeDurationSeasons,
+    }),
     createCareerDevelopmentSystem(),
     createRetirementSystem(),
     createContractMilestoneSystem(),
