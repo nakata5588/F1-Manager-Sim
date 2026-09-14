@@ -70,4 +70,33 @@ test("talent affiliation never becomes an F1 contract and support never edits CA
   assert.equal(career.currentAbility, before);
   assert.ok(career.morale > 50);
   assert.ok(career.form > 0);
+
+  const moraleAfterFirstSupport = career.morale;
+  const formAfterFirstSupport = career.form;
+  assert.deepEqual(applyTalentProgramSupport(save, 1982), []);
+  assert.equal(career.morale, moraleAfterFirstSupport);
+  assert.equal(career.form, formAfterFirstSupport);
+});
+
+test("an F1-eligible driver cannot enter a new junior talent programme", () => {
+  const save = fixture("eligibility-boundary");
+  initializeSimulation(save, [createTalentPipelineSystem({ cohortSize: 3 }), createCareerLifecycleSystem()]);
+  const driver = save.world.futureDrivers.find((row) => row.generated === true);
+  const entity = save.world.futureEntities.find((row) => row.entity_id === driver.driver_id);
+
+  driver.world_visible_from = 1981;
+  driver.talent_visible_from = 1981;
+  driver.f1_eligible_from = 1982;
+  entity.world_visible_from = 1981;
+  entity.talent_visible_from = 1981;
+  entity.f1_eligible_from = 1982;
+  save.clock.season = 1982;
+  save.clock.date = "1982-01-01";
+  save.world.season = 1982;
+
+  assert.throws(
+    () => signTalentProgramDriver(save, "T1", driver.driver_id, { season: 1982 }),
+    /not available to talent recruitment/,
+  );
+  assert.equal(activeTalentAgreement(save, driver.driver_id, 1982), null);
 });
