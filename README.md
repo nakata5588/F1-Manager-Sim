@@ -2,13 +2,13 @@
 
 **Historical starting conditions. Dynamic alternative future.**
 
-F1 Manager Sim is a long-form Formula One management and world simulation game. A new career begins from an authentic historical season where reliable data exists, then the simulation is free to diverge: drivers move teams, staff careers evolve, competitive order changes, regulations shift and new champions emerge.
+F1 Manager Sim is a long-form Formula One management and world simulation game. A new career begins from an authentic historical season where reliable data exists, then the simulation is free to diverge: drivers move teams, staff careers evolve, competitive order changes, regulations shift, new talent emerges and new champions are created by the simulation.
 
 ## Current development phase
 
-**Phase 39 — Offseason & New Season Preparation**
+**Phase 40 — Talent Pipeline & Generated Drivers**
 
-The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market, a persistent physical technical lifecycle, dynamic governance/grid evolution and a playable season-to-season transition.
+The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market, a persistent physical technical lifecycle, dynamic governance/grid evolution, a playable season-to-season transition and a renewable driver population for long careers.
 
 Current career path:
 
@@ -22,15 +22,15 @@ The technical lifecycle extends through:
 
 `Supplier -> Preseason Test -> Design / Research -> Specification -> Manufacture -> Inventory -> Fit -> Wear / Failure -> Replace / Rebuild -> Race`
 
-Phase 39 closes the gap that previously left the interactive Developer Playtest parked after the final race. A completed championship now opens a persistent offseason cycle with a final season review, Board review, contracts/supplier/sponsor/governance/next-car readiness, a strategic season plan, January season preparation and a handoff into preseason testing.
+The talent lifecycle now extends through:
 
-The offseason is a coordinator rather than a duplicate management system. Contracts remain authoritative in Employment/Contracts, engine agreements in Suppliers, sponsors in Commercial, regulations/grid changes in Governance, and the next car in Technical. The offseason only projects readiness, records the team's plan and advances the world through the transition.
+`Generated Junior -> World Visible -> Talent Visible -> F1 Eligible -> Free Driver / Contract -> F1 Career`
 
-Central `Continue` is now season-aware. During the racing season it still moves to the next Grand Prix. After the final race it advances through monthly offseason boundaries so normal systems continue to run; January creates the next season/calendar, and the normal race path resumes afterwards.
+Phase 40 closes the long-career population gap. Each career season can create a deterministic, save-specific cohort of generated junior drivers. Generated drivers are Save World entities only: they do not alter the historical database and they never receive historical debut, retirement or future-result authority. They use the same visibility boundary, career development, scouting, contract, employment and race systems as historical drivers once they reach the relevant stage.
 
-At season start, actual team cash remains authoritative. Phase 39 records the current cash as the new season-opening finance baseline, archives the previous baseline, renews Board objectives and applies the confirmed season strategy to existing delegated/AI technical planning. It never creates a second budget currency or free offseason money.
+Generated drivers have separate Current Ability and Potential Ability plus multidimensional attributes for pace, qualifying, starts, racecraft, wet ability, consistency, tyre management, race intelligence, technical feedback, adaptability, mentality, aggression, pressure handling, teamwork and car-development impact. Their pre-F1 progression is represented through explicitly simulated feeder tiers rather than invented historical lower-series facts.
 
-Phase 38 remains responsible for regulation votes and team entry/exit/rebrand evolution. Phase 37 remains responsible for suppliers, component wear and preseason testing. Phase 36 remains responsible for physical specifications, manufacturing, inventory and fitment.
+Phase 39 remains responsible for the persistent offseason cycle, final season review, Board renewal, strategic planning and handoff into the next season. Phase 38 remains responsible for regulation votes and team entry/exit/rebrand evolution. Phase 37 remains responsible for suppliers, component wear and preseason testing. Phase 36 remains responsible for physical specifications, manufacturing, inventory and fitment.
 
 The local Developer Playtest exposes:
 
@@ -45,7 +45,7 @@ The local Developer Playtest exposes:
 The project keeps five concerns separate:
 
 - **Historical World Database** — immutable source data.
-- **Save World** — evolving career state.
+- **Save World** — evolving career state, including generated talent.
 - **Simulation Engine** — systems that advance and change the world.
 - **Game Systems** — contracts, development, finances, staff, sponsors, technical operations, governance and season preparation mechanics.
 - **UI** — presentation and player interaction; never the authoritative simulation state.
@@ -74,15 +74,21 @@ The season-transition boundary is:
 
 `Championship Complete -> Season Review -> Planning / Existing Management Systems -> Season Rollover -> Board & Finance Renewal -> Preseason -> First Race`
 
-See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/REGULATIONS_GOVERNANCE_TEAM_EVOLUTION.md`, `docs/OFFSEASON_NEW_SEASON_PREPARATION.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
+The generated-talent boundary is:
+
+`Save World Generation -> Visibility Progression -> Scouting -> F1 Eligibility -> Existing Employment Market -> Dynamic Career`
+
+See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/REGULATIONS_GOVERNANCE_TEAM_EVOLUTION.md`, `docs/OFFSEASON_NEW_SEASON_PREPARATION.md`, `docs/TALENT_PIPELINE_GENERATED_DRIVERS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
 
 ## Historical data policy
 
-The current promoted canonical source baseline is **v1.2.5-1980-technical-source-lock-candidate (2026-09-12)**. Its reproducibility contract is pinned in `data/database-baselines/v1.2.5-1980-technical-source-lock-candidate/baseline.json`; earlier baseline folders remain audit history only. The v1.2.5 bundle is cumulative and supersedes v1.2.4, so those releases must not be applied sequentially. The first career-ready season remains 1980.
+The current promoted canonical source baseline remains **v1.2.5-1980-technical-source-lock-candidate (2026-09-12)**. Its reproducibility contract is pinned in `data/database-baselines/v1.2.5-1980-technical-source-lock-candidate/baseline.json`; earlier baseline folders remain audit history only.
+
+The latest cumulative 1980 database candidate is **v1.2.11-1980-calendar-circuits-weather-recovery-candidate**. It is pinned separately as the latest candidate and is **not** silently promoted over v1.2.5. Its recovered Calendar/Circuits/Weather scope keeps weather and track evolution as derived gameplay baselines; actual session weather, qualifying, live track state and race results remain simulation-owned.
 
 The canonical source identity remains `9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097`. The promoted Global JSON hash is `315fdd58ef24b02bc6aeb073876d8fa1966839c134751979d8800393b83a36cd` and the promoted Season Definition 1980 JSON hash is `e22b89da311991fad300d873973513cba438ebac38b450e8bf5248f61dfc9303`.
 
-Management, technical and governance systems are deliberately tolerant of missing historical fields. Missing values do not become fabricated historical truth:
+Management, technical, governance and career systems are deliberately tolerant of missing historical fields. Missing values do not become fabricated historical truth:
 
 - personality falls back to neutral gameplay values with explicit fallback provenance;
 - representatives may receive deterministic behavioral profiles but no invented real-world name;
@@ -103,6 +109,9 @@ Management, technical and governance systems are deliberately tolerant of missin
 - generated resources for newly admitted teams are explicit simulation baselines, not historical facts;
 - rebrands preserve stable team IDs;
 - offseason strategy, future Board objectives and season-opening financial baselines are Save World state, not historical source data;
+- generated drivers are Save World simulation entities with explicit provenance and visibility gates, never historical source rows;
+- generated feeder performances are simulated career outcomes and never claims about real junior-series history;
+- generated drivers can become free drivers through the normal F1 eligibility and employment-market pipeline, but are never assigned a scripted F1 debut or team;
 - facility upgrades never overwrite the historical starting facility rows or reference baselines;
 - source-lock manifests, canonical ID correction maps, technical audits and research/readiness packs remain reference context rather than mutable Save World state.
 
@@ -123,7 +132,7 @@ Audit a master workbook without modifying it:
 npm run db:audit -- /path/to/f1_db.xlsx --season 1980 --full-world
 ```
 
-Materialize a career from an accepted Season Database:
+Materialize a career from the currently promoted database baseline:
 
 ```bash
 npm run save:from-season-db -- /path/to/F1_Manager_Sim_SeasonDefinition_1980_v1.2.5_1980_technical_source_lock_candidate.json \
