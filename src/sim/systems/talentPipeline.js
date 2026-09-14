@@ -5,6 +5,7 @@ import { ageOnDate, registerCareerProfile } from "./careerLifecycle.js";
 
 export const TALENT_EVENT = Object.freeze({
   PIPELINE_INITIALIZED: "talent.pipeline_initialized",
+  COHORT_GENERATION_REQUESTED: "talent.cohort_generation_requested",
   COHORT_GENERATED: "talent.cohort_generated",
   FEEDER_SEASON_COMPLETED: "talent.feeder_season_completed",
 });
@@ -385,7 +386,7 @@ export function talentPipelineSummary(saveWorld, options = {}) {
 export function createTalentPipelineSystem(options = {}) {
   return {
     id: "career.talent-pipeline",
-    eventTypes: [SIM_EVENT.CAREER_STARTED, SIM_EVENT.SEASON_STARTED],
+    eventTypes: [SIM_EVENT.CAREER_STARTED, SIM_EVENT.SEASON_STARTED, TALENT_EVENT.COHORT_GENERATION_REQUESTED],
     handle({ saveWorld, event }) {
       const season = Number(event.payload?.season ?? saveWorld.clock?.season);
       ensureTalentPipelineState(saveWorld);
@@ -401,8 +402,14 @@ export function createTalentPipelineSystem(options = {}) {
         ];
       }
 
+      if (event.type === TALENT_EVENT.COHORT_GENERATION_REQUESTED) {
+        const cohort = generateTalentCohort(saveWorld, season, options);
+        return cohort?.count
+          ? { type: TALENT_EVENT.COHORT_GENERATED, payload: { season, count: cohort.count, driver_ids: cohort.driverIds } }
+          : null;
+      }
+
       const feeder = advanceGeneratedTalent(saveWorld, season, event.date);
-      const cohort = generateTalentCohort(saveWorld, season, options);
       const output = [];
       if (feeder.length) {
         output.push({
@@ -410,12 +417,10 @@ export function createTalentPipelineSystem(options = {}) {
           payload: { season, drivers: feeder.length },
         });
       }
-      if (cohort?.count) {
-        output.push({
-          type: TALENT_EVENT.COHORT_GENERATED,
-          payload: { season, count: cohort.count, driver_ids: cohort.driverIds },
-        });
-      }
+      output.push({
+        type: TALENT_EVENT.COHORT_GENERATION_REQUESTED,
+        payload: { season },
+      });
       return output;
     },
   };
