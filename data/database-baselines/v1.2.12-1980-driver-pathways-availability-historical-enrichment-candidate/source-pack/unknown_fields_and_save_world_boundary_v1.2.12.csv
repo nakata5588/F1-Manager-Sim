@@ -1,0 +1,8 @@
+area,field,classification,handling
+driver_pathways,exact 1980 willingness/seeking status for most external drivers,unknown,do not claim as source-locked; keep provisional availability with confidence
+driver_pathways,complete junior results for all 38 external drivers,partially_known,store milestones only where sourced; do not model every race
+money,driver salaries / sponsor values / buyouts,unknown,abstract_index or null only
+agents,named agents/managers for most drivers,unknown,"agent archetype only, no invented names"
+relationships,friendship/rivalry/mentor relationship,unknown_without_source,neutral structural seeds only
+technical,"spares, exact manufacturing throughput, opening R&D projects",save_world_or_unknown,not stored in historical DB
+weather_race,"actual session weather, track temperature, live rubbering, incidents",save_world_simulation,not stored as gameplay authority
