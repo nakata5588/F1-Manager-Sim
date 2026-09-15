@@ -36,6 +36,7 @@ import { createRaceWeekendSystem } from "./raceWeekend.js";
 import { createRaceTimelineSystem } from "./raceTimeline.js";
 import { createRaceControlSystem } from "./raceControl.js";
 import { createChampionshipSystem } from "./championship.js";
+import { createWorldNarrativeSystem } from "./worldNarrative.js";
 
 export function createCoreWorldSystems(options = {}) {
   return [
@@ -102,5 +103,9 @@ export function createCoreWorldSystems(options = {}) {
     createRaceTimelineSystem(),
     createRaceControlSystem(),
     createChampionshipSystem(),
+    // Narrative is a pure projection layer over already-resolved simulation
+    // events. It deliberately runs last so news/history can read the updated
+    // Save World without becoming an authority over gameplay outcomes.
+    createWorldNarrativeSystem(),
   ];
 }
