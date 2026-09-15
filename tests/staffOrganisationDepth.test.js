@@ -166,12 +166,17 @@ test("scouting throughput uses organisation workload without double-counting sta
 
 test("monthly organisation history is idempotent and survives save serialization", () => {
   const { saveWorld, systems } = initialized();
+  advanceDays(saveWorld, 31, systems);
+  assert.equal(saveWorld.clock.date, "1980-02-01");
+
+  let rows = saveWorld.world.management.organization.history.filter((row) => row.date === "1980-02-01");
+  assert.equal(rows.length, 2, "one monthly snapshot per active team should be recorded on the real Month Start event");
+
   dispatchSimulationEvents(saveWorld, [
-    { type: SIM_EVENT.MONTH_STARTED, date: "1980-02-01", payload: { year: 1980, month: 2 } },
-    { type: SIM_EVENT.MONTH_STARTED, date: "1980-02-01", payload: { year: 1980, month: 2 } },
+    { type: SIM_EVENT.MONTH_STARTED, date: saveWorld.clock.date, payload: { year: 1980, month: 2 } },
   ], systems);
-  const rows = saveWorld.world.management.organization.history.filter((row) => row.date === "1980-02-01");
-  assert.equal(rows.length, 2, "one monthly snapshot per active team should be recorded once");
+  rows = saveWorld.world.management.organization.history.filter((row) => row.date === "1980-02-01");
+  assert.equal(rows.length, 2, "reprocessing the same month must not duplicate organisation history");
 
   const restored = deserializeSaveWorld(serializeSaveWorld(saveWorld));
   assert.deepEqual(organizationProjection(restored, "T1", { refresh: false }), organizationProjection(saveWorld, "T1", { refresh: false }));
