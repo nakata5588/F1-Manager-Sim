@@ -44,7 +44,7 @@ function world() {
     ],
     staffRatings: [
       { staff_id: "S1", technical: 82, engineering: 80, design: 84, leadership: 70 },
-      { staff_id: "S2", scouting: 20, judging_ability: 20, data_analysis: 20, communication: 20 },
+      { staff_id: "S2", scouting: 72, judging_ability: 72, data_analysis: 70, communication: 70 },
       { staff_id: "S3", leadership: 76, communication: 72, motivation: 74, negotiation: 68 },
       { staff_id: "S4", technical: 78, engineering: 80, design: 86 },
     ],
@@ -139,6 +139,13 @@ test("staff advice can surface weak organisation capability even with no vacancy
 
 test("scouting progress uses department effectiveness but does not alter visibility or eligibility", () => {
   const { saveWorld, systems } = initialized();
+  const scout = saveWorld.world.staffRatings.find((row) => row.staff_id === "S2");
+  scout.scouting = 20;
+  scout.judging_ability = 20;
+  scout.data_analysis = 20;
+  scout.communication = 20;
+  refreshOrganization(saveWorld);
+
   const assignment = startDriverScoutingAssignment(saveWorld, "D3", { durationDays: 2 });
   assert.equal(assignment.status, "active");
 
