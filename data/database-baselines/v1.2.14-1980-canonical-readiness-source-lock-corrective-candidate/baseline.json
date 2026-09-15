@@ -1,0 +1,155 @@
+{
+  "format": "f1-manager-sim-database-baseline",
+  "schemaVersion": 1,
+  "baselineId": "v1.2.14-1980-canonical-readiness-source-lock-corrective-candidate-2026-09-15-r3",
+  "databaseVersion": "v1.2.14-1980-canonical-readiness-source-lock-corrective-candidate",
+  "releaseName": "F1_Manager_Sim_Database_Rebuild_v1.2.14_1980_canonical_readiness_source_lock_corrective_candidate",
+  "seasonReleaseName": "F1_Manager_Sim_SeasonDefinition_1980_v1.2.14_1980_canonical_readiness_source_lock_corrective_candidate",
+  "previousDatabaseVersion": "v1.2.13-1980-driver-availability-consistency-manifest-corrective-candidate",
+  "candidateRevision": "final_corrective_freeze_r3",
+  "candidateStatus": "CUMULATIVE_CANONICAL_READINESS_SOURCE_LOCK_CORRECTIVE_CANDIDATE_FINAL_R3",
+  "canonical": false,
+  "promotionDecision": "READY_FOR_DEVELOPMENT_INTEGRATION_AS_LATEST_CANDIDATE_NOT_CANONICAL",
+  "sourceLineage": {
+    "algorithm": "sha256",
+    "sourceFilename": "f1_db(2).xlsx",
+    "sourceSha256": "9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097",
+    "seasonSourceChecksum": "9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097"
+  },
+  "counts": {
+    "drivers": 862,
+    "driverRatings": 86,
+    "staff": 61,
+    "teams": 212,
+    "tracks": 77,
+    "entityAliasRows": 210,
+    "activeTeams1980": 15,
+    "openingDriverAvailabilityRows": 66,
+    "openingEmploymentAuditRows": 66,
+    "round1EntrantReconciliationRows": 28,
+    "legacyWeatherProfilesArchived": 17,
+    "contractAuthorityAuditRows": 79,
+    "calendarRaces1980": 14,
+    "circuitLayoutRows1980": 14,
+    "staffSourceReviewRows": 53,
+    "staffSourceReviewOpen": 7,
+    "sponsorSourceReviewRows": 24,
+    "sponsorSourceLockedActiveStart": 14,
+    "sponsorSourceReviewOpen": 5,
+    "regulationReviewRows": 8,
+    "regulationOpenOrPartial": 5,
+    "externalAvailabilityUnverified": 30,
+    "encodingRepairs": 1588,
+    "materializedPromotionChecks": 80,
+    "contractCrossSurfaceConsistencyRows": 28,
+    "retiredDuplicateReferenceOccurrencesAllowed": 24
+  },
+  "identityCorrections": {
+    "d_0862": {
+      "status": "retired_duplicate_alias_and_explicit_legacy_audit_fields_only",
+      "canonicalDriverId": "d_0225",
+      "canonicalName": "David Kennedy",
+      "reason": "same historical person; opening/Round1 identity unified",
+      "contractTermCanonicalId": "ct_driver_1980_t_0015_d_0225_0023",
+      "careerIntervalCanonicalId": "d_0225_career_interval_1980_context"
+    },
+    "round1Entrants": {
+      "rows": 28,
+      "status": "PASS_28_OF_28_TEAM_AND_CAR_NUMBER_RECONCILIATION"
+    }
+  },
+  "driverAvailabilityDistribution1980": {
+    "under_contract_current_f1": 28,
+    "scoutable_talent_not_free_driver": 5,
+    "external_candidate_availability_unverified": 30,
+    "returnable_retired_inactive_not_seeking": 1,
+    "active_non_f1_contracted": 1,
+    "reserve_test_development": 1
+  },
+  "historicalSourceCoverage": {
+    "staff": {
+      "reviewed": 53,
+      "open": 7
+    },
+    "sponsors": {
+      "reviewed": 24,
+      "sourceLockedActiveStart": 14,
+      "open": 5
+    },
+    "regulations": {
+      "reviewedAreas": 8,
+      "openOrPartial": 5,
+      "primaryFiaYearbookDirectRulePageExtractionComplete": false
+    },
+    "circuits": {
+      "eventGeometryRows": 14,
+      "sourceLocked1980EventGeometry": 14,
+      "performanceTraitsStatus": "derived_gameplay_baseline"
+    }
+  },
+  "stableCanonicalIdSetHashes": {
+    "drivers": "b461477da2aec092f2ba26b3543e2419817f167b2d5bb30f5bf31a4cfdc7dd73",
+    "staff": "77f667b0722d8e34ecf97591954f6f18bfd1d484decef83ed455903e46a0d5de",
+    "teams": "228189b792fdca700a6ec62a8b5700133a877194267b601d6296a8aaf583b297",
+    "tracks": "996e93ab53df06fb6aa9321d24c664c1ebfb3aaaf2079a52792b07872155e5e8",
+    "engines": "680d5d59a1041ce78c061296b3267fce67ebcdb7f18a824efeb4657ba64f2fc4",
+    "sponsorCatalog": "93a3c60ae86a5c8bd4937d435cc3547a4db1b4732df73e2c831f191f5c1bdca1"
+  },
+  "validation": {
+    "materializedPromotionEvidence": "PASS_80_OF_80",
+    "manifestRowCounts": "PASS_ZERO_MISMATCH",
+    "round1Reconciliation": "PASS_28_OF_28",
+    "semanticHardOrphans": "PASS_ZERO",
+    "duplicatePersonUnresolved": "PASS_ZERO",
+    "legacyWeatherOrphans": "PASS_ARCHIVED_17_NON_AUTHORITATIVE",
+    "openingCrossSurface": "PASS_66_OF_66",
+    "sqliteIntegrity": "PASS_BOTH",
+    "sqliteForeignKeyCheck": "PASS_ZERO_REPORTED",
+    "futureOutcomeAuthority": "PASS_NONE",
+    "dynamicSaveWorldState": "PASS_NONE",
+    "payloadChecksums": "PASS_ALL_DECLARED_PAYLOADS",
+    "contractCrossSurface": "PASS_28_OF_28",
+    "retiredIdAuthoritativeCompositeReferences": "PASS_ZERO",
+    "readinessSemanticOrphanConsistency": "PASS"
+  },
+  "canonicalPromotionBlockers": [
+    {
+      "area": "staff",
+      "count": 7,
+      "status": "OPEN",
+      "policy": "unknown/unverified instead of invented role/date"
+    },
+    {
+      "area": "external_driver_opening_availability",
+      "count": 30,
+      "status": "OPEN_SAFE_UNCERTAINTY",
+      "policy": "not free_driver without row-level opening evidence"
+    },
+    {
+      "area": "sponsors",
+      "count": 5,
+      "status": "OPEN",
+      "policy": "no monetary values invented; unverified relationships not loaded as opening authority"
+    },
+    {
+      "area": "regulations",
+      "count": 5,
+      "status": "OPEN_OR_PARTIAL",
+      "policy": "FIA Yearbook direct rule-page extraction still required for canonical promotion"
+    }
+  ],
+  "policies": {
+    "databaseBoundary": "Global Historical Database -> Season Database 1980 -> Save World -> Simulation",
+    "freeDriverRule": "At selected-season start, free_driver requires qualified active interval + world visibility + F1 eligibility + no active F1 assignment + credible selected-season availability/seeking evidence. Unknown availability is not free_driver.",
+    "contractAuthority": "Exact historical contract dates and monetary terms remain unknown unless row-level sourced; legacy values are audit-only; abstract gameplay indices may remain derived_gameplay_baseline.",
+    "saveWorldBoundary": "Post-start employment, availability, negotiations, transfers, retirements, returns, morale, form and outcomes are Save World/simulation state.",
+    "futureOutcomes": "excluded",
+    "futureStructure": "retained_hidden_non_authoritative_reference",
+    "weatherAndTrackEvolution": "derived_gameplay_baseline; actual session state belongs to Save World/Simulation"
+  },
+  "hashPolicy": {
+    "payloadChecksums": "CHECKSUMS.json covers distributed payload artifacts except itself",
+    "bundleIdentity": "external SHA-256 sidecar after ZIP creation",
+    "authoritativeSelfHashInsideZip": false
+  }
+}

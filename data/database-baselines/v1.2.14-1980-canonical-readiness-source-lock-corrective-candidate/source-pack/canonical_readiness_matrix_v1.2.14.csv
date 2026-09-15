@@ -1,0 +1,15 @@
+area,status,detail
+materialized_availability_consistency,PASS,No availability-unverified row is authoritatively classified as free_driver.
+manifest_row_counts,PASS,Recomputed from all materialized top-level arrays at build finalization; validation requires zero mismatches.
+circuit_layout_provenance,PASS_WITH_SOURCE_MIX,14/14 event-specific 1980 geometry rows; traits remain derived_gameplay_baseline.
+regulations_source_lock,PARTIAL,5 rule areas still require primary/period row-level extraction.
+staff_source_lock,PARTIAL,7 staff review rows remain open.
+external_driver_availability,PARTIAL_SAFE_UNCERTAINTY,30 external candidates remain explicitly availability-unverified; no artificial free-driver target.
+sponsors_source_lock,PARTIAL,5 sponsor relationship rows remain open; unverified claims withheld from Season opening authority.
+opening_employment,PASS_WITH_REFERENCE_ONLY_FUTURE_POLICY,Opening classifications separated from later-1980 participation.
+encoding,PASS,1588 mojibake strings repaired conservatively; stable IDs unchanged.
+canonical_promotion,NOT_READY,"Candidate is Development-ready as latest cumulative candidate, but remaining historical-source gaps block canonical promotion."
+driver_identity_semantic_duplicates,PASS,David/Dave Kennedy duplicate resolved to canonical d_0225; duplicate-person regression added.
+semantic_orphan_references,PASS,Hard canonical reference orphans=0; 17 legacy weather references archived non-authoritatively.
+contract_authority_boundary,PASS,1980 exact contract dates/legacy monetary values are not authoritative; archived audit-only; salary_index remains derived abstract gameplay baseline.
+round1_historical_entry_reconciliation,PASS,28/28 Round 1 entries match opening team/car number/current-F1 classification.

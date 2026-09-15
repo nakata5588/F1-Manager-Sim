@@ -2,10 +2,10 @@
   "format": "f1-manager-sim-database-candidate-pointer",
   "schemaVersion": 1,
   "season": 1980,
-  "latestCandidate": "v1.2.12-1980-driver-pathways-availability-historical-enrichment-candidate",
-  "baselinePath": "data/database-baselines/v1.2.12-1980-driver-pathways-availability-historical-enrichment-candidate/baseline.json",
+  "latestCandidate": "v1.2.14-1980-canonical-readiness-source-lock-corrective-candidate",
+  "baselinePath": "data/database-baselines/v1.2.14-1980-canonical-readiness-source-lock-corrective-candidate/baseline.json",
   "canonical": false,
   "currentPromotedCanonical": "v1.2.5-1980-technical-source-lock-candidate",
-  "integrationPolicy": "latest cumulative candidate only; v1.2.12 supersedes v1.2.11 as the latest 1980 candidate",
-  "updatedAt": "2026-09-14"
+  "integrationPolicy": "latest cumulative candidate only; v1.2.14 r3 supersedes repository latest v1.2.12 while preserving the cumulative external v1.2.13 lineage",
+  "updatedAt": "2026-09-15"
 }
