@@ -32,7 +32,7 @@ test("v1.2.11 remains a pinned cumulative 1980 candidate after a newer candidate
   assert.deepEqual(baseline.bundle.doNotIntegrateSeparately, ["v1.2.8"]);
   assert.equal(baseline.bundle.appliedSequentially, false);
   assert.notEqual(latest.latestCandidate, baseline.globalDatabase.databaseVersion);
-  assert.equal(latest.latestCandidate, "v1.2.14-1980-canonical-readiness-source-lock-corrective-candidate");
+  assert.equal(latest.latestCandidate, "v1.2.15-1980-historical-source-enrichment-candidate");
   assert.equal(latest.currentPromotedCanonical, "v1.2.5-1980-technical-source-lock-candidate");
   assert.equal(latest.canonical, false);
 });
