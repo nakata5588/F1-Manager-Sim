@@ -16,7 +16,7 @@ async function text(relative) {
   return readFile(new URL(relative, ROOT), "utf8");
 }
 
-test("v1.2.12 is pinned as latest cumulative 1980 candidate without canonical promotion", async () => {
+test("v1.2.12 remains a pinned cumulative 1980 candidate after v1.2.14 integration", async () => {
   const baseline = await json("baseline.json");
   const latest = JSON.parse(await readFile(LATEST_URL, "utf8"));
 
@@ -24,7 +24,8 @@ test("v1.2.12 is pinned as latest cumulative 1980 candidate without canonical pr
   assert.equal(baseline.canonical, false);
   assert.equal(baseline.bundle.baseArtifact, "v1.2.11-1980-calendar-circuits-weather-recovery-candidate");
   assert.equal(baseline.validation.cumulativeV1211Preserved, "PASS");
-  assert.equal(latest.latestCandidate, baseline.globalDatabase.databaseVersion);
+  assert.notEqual(latest.latestCandidate, baseline.globalDatabase.databaseVersion);
+  assert.equal(latest.latestCandidate, "v1.2.14-1980-canonical-readiness-source-lock-corrective-candidate");
   assert.equal(latest.currentPromotedCanonical, "v1.2.5-1980-technical-source-lock-candidate");
 });
 
