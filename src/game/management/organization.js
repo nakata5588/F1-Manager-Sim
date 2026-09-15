@@ -23,7 +23,7 @@ const DEPARTMENT_DEFINITIONS = Object.freeze({
   },
   leadership: {
     label: "Team Leadership",
-    rolePatterns: [/team_manager/i, /team manager/i, /team_principal/i, /team principal/i, /managing_director/i, /managing director/i, /owner/i],
+    rolePatterns: [/team_manager/i, /team manager/i, /team_principal/i, /team principal/i, /managing_director/i, /managing director/i, /owner/i, /director/i],
     qualityFields: ["leadership", "communication", "motivation", "conflict_management", "negotiation", "budget_management"],
   },
   general: {
@@ -87,7 +87,11 @@ function memberQuality(saveWorld, staffId, department) {
     .map((field) => normalizedRating(dynamic[field] ?? rating[field]))
     .filter((value) => value !== null);
   if (!values.length) {
-    const fallback = normalizedRating(staffState(saveWorld, staffId)?.currentAbility ?? rating.current_ability ?? staffProfile(saveWorld, staffId)?.current_ability);
+    const fallback = normalizedRating(
+      staffState(saveWorld, staffId)?.currentAbility
+      ?? rating.current_ability
+      ?? staffProfile(saveWorld, staffId)?.current_ability,
+    );
     return fallback ?? 50;
   }
   return values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -97,11 +101,16 @@ function boardCapacityBonus(saveWorld, teamId) {
   return Math.max(0, numeric(saveWorld.world?.management?.board?.teams?.[teamId]?.staffCapacityBonus, 0));
 }
 
-function teamIds(saveWorld) {
+function activeTeamIds(saveWorld) {
+  const evolution = saveWorld.world?.governance?.teamEvolution;
+  if (evolution?.initializedAt && evolution.active && Object.keys(evolution.active).length) {
+    return Object.keys(evolution.active).sort();
+  }
   return (saveWorld.world?.teams ?? [])
     .map((row) => row.team_id ?? row.id)
     .filter(Boolean)
-    .map(String);
+    .map(String)
+    .sort();
 }
 
 function openStaffVacancies(saveWorld, teamId) {
@@ -226,12 +235,19 @@ export function ensureOrganizationState(saveWorld) {
   const state = saveWorld.world.management.organization;
   state.teams ??= {};
   state.history ??= [];
+  state.lastSnapshotMonth ??= null;
   return state;
 }
 
 export function refreshOrganization(saveWorld, options = {}) {
   const state = ensureOrganizationState(saveWorld);
-  for (const teamId of teamIds(saveWorld)) state.teams[teamId] = buildTeamOrganization(saveWorld, teamId);
+  const ids = activeTeamIds(saveWorld);
+  const active = new Set(ids);
+
+  for (const teamId of Object.keys(state.teams)) {
+    if (!active.has(teamId)) delete state.teams[teamId];
+  }
+  for (const teamId of ids) state.teams[teamId] = buildTeamOrganization(saveWorld, teamId);
 
   const monthKey = String(saveWorld.clock?.date ?? "").slice(0, 7);
   if (options.snapshot === true && monthKey && state.lastSnapshotMonth !== monthKey) {
@@ -260,9 +276,10 @@ export function refreshOrganization(saveWorld, options = {}) {
 }
 
 export function organizationProjection(saveWorld, teamId, options = {}) {
+  const id = String(teamId);
   const state = ensureOrganizationState(saveWorld);
-  if (options.refresh !== false || !state.teams?.[teamId]) refreshOrganization(saveWorld);
-  const team = state.teams?.[teamId] ?? buildTeamOrganization(saveWorld, teamId);
+  if (options.refresh !== false || !state.teams?.[id]) refreshOrganization(saveWorld);
+  const team = state.teams?.[id] ?? buildTeamOrganization(saveWorld, id);
   return structuredClone(team);
 }
 
@@ -278,6 +295,20 @@ export function organisationPressure(saveWorld, teamId) {
     .filter((row) => row.status !== "stable")
     .sort((a, b) => statusRank(b.status) - statusRank(a.status) || b.workloadIndex - a.workloadIndex || a.label.localeCompare(b.label));
   return departments.length ? structuredClone(departments[0]) : null;
+}
+
+export function organizationSummary(saveWorld, teamId = null) {
+  const state = refreshOrganization(saveWorld);
+  const rows = teamId ? [state.teams?.[String(teamId)]].filter(Boolean) : Object.values(state.teams);
+  return {
+    teams: rows.length,
+    criticalDepartments: rows.reduce((sum, team) => sum + Object.values(team.departments ?? {}).filter((row) => row.status === "critical").length, 0),
+    strainedDepartments: rows.reduce((sum, team) => sum + Object.values(team.departments ?? {}).filter((row) => row.status === "strained").length, 0),
+    weakDepartments: rows.reduce((sum, team) => sum + Object.values(team.departments ?? {}).filter((row) => row.status === "weak").length, 0),
+    averageEffectiveness: rows.length
+      ? Number((rows.reduce((sum, team) => sum + team.overallEffectiveness, 0) / rows.length).toFixed(3))
+      : 1,
+  };
 }
 
 export { DEPARTMENT_DEFINITIONS };
