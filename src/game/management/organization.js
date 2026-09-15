@@ -1,4 +1,4 @@
-const DEPARTMENT_ORDER = ["technical", "race_operations", "scouting", "commercial", "leadership", "general"];
+const DEPARTMENT_ORDER = ["race_operations", "technical", "scouting", "commercial", "leadership", "general"];
 
 const DEPARTMENT_DEFINITIONS = Object.freeze({
   technical: {
