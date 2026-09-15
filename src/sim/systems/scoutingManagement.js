@@ -1,4 +1,5 @@
 import { SIM_EVENT } from "../timeEngine.js";
+import { departmentEffectiveness } from "../../game/management/organization.js";
 import {
   completeDriverScoutingAssignment,
   ensureScoutingState,
@@ -15,6 +16,16 @@ function initializeControlledKnowledge(saveWorld) {
   }
 }
 
+function assignmentTeamId(saveWorld, assignment) {
+  return assignment?.teamId ?? saveWorld.player?.controlledTeamIds?.[0] ?? null;
+}
+
+function scoutingProgressPerDay(saveWorld, assignment) {
+  const teamId = assignmentTeamId(saveWorld, assignment);
+  if (!teamId) return 1;
+  return departmentEffectiveness(saveWorld, teamId, "scouting", 1);
+}
+
 export function createScoutingManagementSystem() {
   return {
     id: "management.scouting",
@@ -29,7 +40,12 @@ export function createScoutingManagementSystem() {
       const completed = [];
       for (const assignment of scouting.assignments) {
         if (assignment.status !== "active") continue;
-        assignment.progressDays = Math.min(assignment.durationDays, Number(assignment.progressDays ?? 0) + 1);
+        const progress = scoutingProgressPerDay(saveWorld, assignment);
+        assignment.progressDays = Math.min(
+          assignment.durationDays,
+          Number(assignment.progressDays ?? 0) + progress,
+        );
+        assignment.organisationEffectiveness = Number(progress.toFixed(3));
         if (assignment.progressDays < assignment.durationDays) continue;
         const report = completeDriverScoutingAssignment(saveWorld, assignment.id);
         completed.push({
