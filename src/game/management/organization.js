@@ -103,7 +103,7 @@ function boardCapacityBonus(saveWorld, teamId) {
 
 function activeTeamIds(saveWorld) {
   const evolution = saveWorld.world?.governance?.teamEvolution;
-  if (evolution?.initializedAt && evolution.active && Object.keys(evolution.active).length) {
+  if (evolution?.initializedAt && evolution.active && typeof evolution.active === "object") {
     return Object.keys(evolution.active).sort();
   }
   return (saveWorld.world?.teams ?? [])
