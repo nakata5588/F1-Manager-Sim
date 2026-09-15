@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Phase 31 turns the first vertical slice into an interactive race-weekend gameplay loop while keeping the simulation architecture intact.
+The Developer Playtest is the current interactive validation surface for the evolving F1 Manager Sim vertical slice. It began as the Phase 31 race-weekend loop and now exposes the major management/world systems implemented through Phase 44 while keeping the simulation architecture intact.
 
 The UI is not a second simulation implementation. It is a thin application/client layer over the canonical career bootstrap and Save World:
 
@@ -46,9 +46,26 @@ Inputs may be JSON or gzip-compressed JSON.
 13. Pit-wall strategy calls
 14. Results
 15. Drivers' / Constructors' standings
-16. Continue to the next event
+16. Continue through the championship
+17. Championship finale and season review
+18. Offseason planning
+19. New-season preparation and preseason
+20. Continue into the next season
+
+Alongside the race-weekend path, the playtest exposes current management/world surfaces for Inbox, Board, manager career, People, Staff, Recruitment, Contracts, Commercial, responsibilities, Technical Operations, Governance, Offseason and F1 World / History / Records.
 
 The UI deliberately remains a developer playtest rather than final visual polish. Its purpose is to make real simulation systems observable and controllable as early as possible.
+
+## Current pages
+
+- `/` — Career / Race Weekend
+- `/management.html` — Management Hub
+- `/technical.html` — Technical Operations
+- `/governance.html` — Governance & Grid Evolution
+- `/offseason.html` — Offseason & New Season
+- `/world.html` — F1 World / News / History / Records
+
+Phase 44 organisation state is currently consumed by simulation and Staff Advice rather than presented as a separate authoritative browser model. Any later organisation UI must remain a projection over `world.management.organization`.
 
 ## Application boundary
 
@@ -66,15 +83,15 @@ It owns orchestration only:
 - creates a semantic race-start baseline;
 - hands Race execution to `LiveRaceController`;
 - commits only the final live result into Save World history and championship systems;
-- exposes a reduced player-facing projection.
+- exposes reduced player-facing projections.
 
-The browser contains no race logic, standings logic, calendar logic, setup scoring logic or hidden database state.
+Separate application projections under `src/app/` expose Management, Technical Operations, Governance, Offseason and F1 World data without moving authority into the browser.
 
 ## Race-start baseline
 
-Phase 31 removes the Phase 30 workaround that generated an aggregate race result before the live race could begin.
+Phase 31 removed the workaround that generated an aggregate race result before the live race could begin.
 
-The new pipeline is:
+The current pipeline is:
 
 `Practice -> Qualifying -> Grid -> Strategy -> raceStartBaseline -> Live Race -> Classification -> Championship`
 
@@ -86,7 +103,7 @@ This means there is no fake classification to remove from history and no possibi
 
 ## Interactive setup
 
-Practice still uses the canonical race-weekend simulation to build setup knowledge and an internally calculated ideal setup.
+Practice uses the canonical race-weekend simulation to build setup knowledge and an internally calculated ideal setup.
 
 After Practice, the player may adjust:
 
@@ -101,9 +118,9 @@ Setup can be changed only after Practice and before Qualifying.
 
 ## Pre-Race strategy
 
-The normal strategy system still creates and locks plans on `GRID_SET` for player and AI teams.
+The normal strategy system creates and locks plans on `GRID_SET` for player and AI teams.
 
-For the controlled team, Phase 31 adds a pre-race starting-tyre revision. It re-evaluates the existing strategy plan rather than replacing the strategy system in the UI.
+For the controlled team, the playtest supports a pre-race starting-tyre revision. It re-evaluates the existing strategy plan rather than replacing the strategy system in the UI.
 
 Live pit calls continue to use `applyLiveStrategyInstruction()` at paused lap boundaries.
 
@@ -142,9 +159,21 @@ Speed only controls how frequently the browser requests the next authoritative l
 
 The loop automatically pauses when a new notable event is returned, including incidents, damage, retirements, weather changes and Race Control changes. The server still resolves those events; the browser merely stops asking for further laps.
 
+## Management and world surfaces
+
+The Management Hub already projects persistent Inbox and decision state, Board confidence/objectives, manager career, people/mentality, staff recruitment, driver recruitment/contracts, external market, commercial management and responsibility delegation.
+
+Technical Operations exposes the physical technical lifecycle, suppliers, reliability/condition, manufacturing, fitment, facilities and preseason work.
+
+Governance exposes regulation proposals/votes and team entry/exit/rebrand evolution.
+
+Offseason exposes season review, readiness, planning and transition into the next season.
+
+F1 World exposes simulation-owned news, durable history, records, active drivers/teams and alternative championship history without leaking hidden future identities.
+
 ## API surface
 
-The local server exposes:
+The local server exposes the core career/race endpoints:
 
 - `GET /api/setup`
 - `GET /api/state`
@@ -158,6 +187,8 @@ The local server exposes:
 - `POST /api/race/finish`
 - `POST /api/race/strategy`
 
+It also exposes the server-authoritative management, technical, governance, offseason and F1 World endpoints used by their respective playtest pages. Browser code remains projection/instruction code only.
+
 ## Safety / visibility rule
 
 Player-facing responses must continue to respect:
@@ -166,15 +197,20 @@ Player-facing responses must continue to respect:
 
 The Developer Playtest team chooser reads only active `snapshot.teams`. State projections read active Save World drivers/teams and never serialize `reference.futureStructure`, `futureDrivers`, `futureTeams`, `futureStaff`, `futureSponsors` or other hidden pools.
 
+Organisation projections must obey the same principle: only active-team staff/employment state may inform the current player-facing organisation view. Historical/source-lock audit packs remain reference-only.
+
 ## Next iterations
 
-Likely follow-up work:
+The highest-value remaining vertical-slice gaps are now:
 
-- calibrated absolute timing/gaps rather than abstract race-index gaps;
-- finer-grained telemetry (`lapProgress` / sector progress) and circuit geometry for a moving track map;
-- richer Practice programmes and Qualifying session management;
+- integrated New Game flow with explicit Database -> Decade -> Season -> Team -> Manager selection rather than launching one pre-supplied Season Database;
+- save/load/autosave from the playtest, including paused live races;
+- proper Calendar navigation and date/event browsing;
+- tighter integration of the separate playtest pages into one Career shell/navigation model;
+- player-facing Team / Drivers / Staff / Organisation / Car / Development / Finances views built from existing application projections;
 - full pre-race stint editor rather than starting-compound-only control;
-- save/load/autosave from the UI, including paused live races;
-- proper Calendar navigation;
-- Inbox and world-news surfaces;
-- Team / Drivers / Car / Development / Finances pages using player-facing application queries.
+- richer Practice programmes and Qualifying session management;
+- calibrated absolute timing/gaps rather than abstract race-index gaps;
+- finer-grained telemetry (`lapProgress` / sector progress) and circuit geometry for a moving track map.
+
+The next product work should favour closing these vertical-slice usability/persistence gaps over adding disconnected visual screens. Simulation and Save World remain authoritative throughout.
