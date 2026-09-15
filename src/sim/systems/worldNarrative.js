@@ -54,7 +54,7 @@ function entity(type, id, name) {
 
 function emitStory(saveWorld, event, input) {
   const entities = (input.entities ?? []).filter(Boolean);
-  const story = publishWorldStory(saveWorld, {
+  publishWorldStory(saveWorld, {
     ...input,
     date: event.date,
     sourceEventId: event.id,
@@ -75,7 +75,7 @@ function emitStory(saveWorld, event, input) {
     entities,
     data: input.data ?? event.payload ?? {},
   });
-  return story;
+  return null;
 }
 
 function raceStory(saveWorld, event) {
@@ -223,7 +223,7 @@ function contractStory(saveWorld, event, mode) {
       ? `${name} joins ${target}`
       : `${target} signs ${name}`;
 
-  return emitStory(saveWorld, event, {
+  emitStory(saveWorld, event, {
     storyKey: `contract:${mode}:${type}:${id}:${teamId}:${start}`,
     historyType: activated ? "contract_activated" : "contract_signed",
     category: type === "driver" ? "transfers" : "staff",
@@ -238,6 +238,7 @@ function contractStory(saveWorld, event, mode) {
     tags: [type, "contract"],
     data: payload,
   });
+  return null;
 }
 
 function retirementStory(saveWorld, event) {
@@ -246,7 +247,7 @@ function retirementStory(saveWorld, event) {
   const id = payload.worker_id ?? null;
   if (!id) return null;
   const name = type === "driver" ? driverName(saveWorld, id) : staffName(saveWorld, id);
-  return emitStory(saveWorld, event, {
+  emitStory(saveWorld, event, {
     storyKey: `retirement:${type}:${id}`,
     historyType: "retirement",
     category: type === "driver" ? "drivers" : "staff",
@@ -257,6 +258,7 @@ function retirementStory(saveWorld, event) {
     tags: [type, "retirement"],
     data: payload,
   });
+  return null;
 }
 
 function regulationTitle(saveWorld, proposalId) {
@@ -269,22 +271,22 @@ function regulationStory(saveWorld, event) {
   const proposalId = payload.proposal_id ?? null;
   const title = regulationTitle(saveWorld, proposalId);
   if (event.type === REGULATION_EVENT.PROPOSAL_RESOLVED) {
-    const accepted = payload.accepted === true;
-    return emitStory(saveWorld, event, {
+    emitStory(saveWorld, event, {
       storyKey: `regulation:resolved:${proposalId}`,
       historyType: "regulation_vote_resolved",
       category: "governance",
       importance: "high",
-      headline: `${title} ${accepted ? "approved" : "rejected"}`,
-      summary: accepted
+      headline: `${title} ${payload.accepted === true ? "approved" : "rejected"}`,
+      summary: payload.accepted === true
         ? `The proposal has been accepted for season ${payload.target_season ?? "a future season"}.`
         : "The proposal did not secure approval and will not become an active rule package.",
       entities: [],
-      tags: ["regulations", accepted ? "approved" : "rejected"],
+      tags: ["regulations", payload.accepted === true ? "approved" : "rejected"],
       data: payload,
     });
+    return null;
   }
-  return emitStory(saveWorld, event, {
+  emitStory(saveWorld, event, {
     storyKey: `regulation:enacted:${proposalId}:${payload.season ?? saveWorld.clock?.season}`,
     historyType: "regulation_enacted",
     category: "governance",
@@ -295,6 +297,7 @@ function regulationStory(saveWorld, event) {
     tags: ["regulations", "enacted"],
     data: payload,
   });
+  return null;
 }
 
 function teamEvolutionStory(saveWorld, event) {
@@ -303,7 +306,7 @@ function teamEvolutionStory(saveWorld, event) {
   const name = teamName(saveWorld, teamId);
   if (event.type === TEAM_EVOLUTION_EVENT.ENTRY_ACCEPTED) {
     const activated = payload.activated === true;
-    return emitStory(saveWorld, event, {
+    emitStory(saveWorld, event, {
       storyKey: `team-entry:${activated ? "activated" : "accepted"}:${payload.application_id ?? teamId}:${payload.season ?? payload.target_season ?? ""}`,
       historyType: activated ? "team_entered_championship" : "team_entry_accepted",
       category: "teams",
@@ -316,9 +319,10 @@ function teamEvolutionStory(saveWorld, event) {
       tags: ["team", "entry"],
       data: payload,
     });
+    return null;
   }
   if (event.type === TEAM_EVOLUTION_EVENT.ENTRY_REJECTED) {
-    return emitStory(saveWorld, event, {
+    emitStory(saveWorld, event, {
       storyKey: `team-entry:rejected:${payload.application_id ?? teamId}`,
       historyType: "team_entry_rejected",
       category: "teams",
@@ -329,9 +333,10 @@ function teamEvolutionStory(saveWorld, event) {
       tags: ["team", "entry"],
       data: payload,
     });
+    return null;
   }
   if (event.type === TEAM_EVOLUTION_EVENT.TEAM_EXITED) {
-    return emitStory(saveWorld, event, {
+    emitStory(saveWorld, event, {
       storyKey: `team-exit:${teamId}:${payload.season ?? saveWorld.clock?.season}`,
       historyType: "team_exited",
       category: "teams",
@@ -342,10 +347,11 @@ function teamEvolutionStory(saveWorld, event) {
       tags: ["team", "exit"],
       data: payload,
     });
+    return null;
   }
   const previous = payload.previous_name ?? payload.previousName ?? "its previous identity";
   const next = payload.new_name ?? payload.newName ?? name;
-  return emitStory(saveWorld, event, {
+  emitStory(saveWorld, event, {
     storyKey: `team-rebrand:${payload.rebrand_id ?? payload.rebrandId ?? teamId}:${next}`,
     historyType: "team_rebranded",
     category: "teams",
@@ -356,6 +362,7 @@ function teamEvolutionStory(saveWorld, event) {
     tags: ["team", "rebrand"],
     data: payload,
   });
+  return null;
 }
 
 function managerStory(saveWorld, event) {
@@ -364,7 +371,7 @@ function managerStory(saveWorld, event) {
   const name = managerName(saveWorld);
   const team = teamName(saveWorld, teamId);
   if (event.type === MANAGER_EVENT.DISMISSED) {
-    return emitStory(saveWorld, event, {
+    emitStory(saveWorld, event, {
       storyKey: `manager:dismissed:${teamId}:${event.date}`,
       historyType: "manager_dismissed",
       category: "manager",
@@ -375,8 +382,9 @@ function managerStory(saveWorld, event) {
       tags: ["manager", "dismissal"],
       data: payload,
     });
+    return null;
   }
-  return emitStory(saveWorld, event, {
+  emitStory(saveWorld, event, {
     storyKey: `manager:appointed:${teamId}:${event.date}`,
     historyType: "manager_appointed",
     category: "manager",
@@ -387,6 +395,7 @@ function managerStory(saveWorld, event) {
     tags: ["manager", "appointment"],
     data: payload,
   });
+  return null;
 }
 
 export function createWorldNarrativeSystem() {
@@ -412,7 +421,7 @@ export function createWorldNarrativeSystem() {
     handle({ saveWorld, event }) {
       ensureWorldNarrative(saveWorld);
       if (event.type === SIM_EVENT.CAREER_STARTED) {
-        return emitStory(saveWorld, event, {
+        emitStory(saveWorld, event, {
           storyKey: `career-start:${saveWorld.clock?.season}`,
           historyType: "career_started",
           category: "world",
@@ -423,6 +432,7 @@ export function createWorldNarrativeSystem() {
           tags: ["career", "world"],
           data: { sourceSeason: saveWorld.meta?.sourceSeason ?? saveWorld.clock?.season },
         });
+        return null;
       }
       if (event.type === RACE_EVENT.COMPLETED) return raceStory(saveWorld, event);
       if (event.type === CHAMPIONSHIP_EVENT.ARCHIVED) return championshipStory(saveWorld, event);
