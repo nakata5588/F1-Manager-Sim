@@ -126,6 +126,10 @@ function employedStaff(saveWorld, teamId) {
     .map(([staffId, assignment]) => ({ staffId, assignment }));
 }
 
+function workloadFactor(workloadIndex) {
+  return workloadIndex > 0 ? clamp(1 / workloadIndex, 0.55, 1.05) : 1;
+}
+
 function departmentStatus({ memberCount, vacancyCount, workloadIndex, qualityIndex }) {
   if (vacancyCount > 0 && memberCount === 0) return "critical";
   if (workloadIndex >= 1.6) return "critical";
@@ -182,8 +186,8 @@ function buildTeamOrganization(saveWorld, teamId) {
     const qualityIndex = memberCount
       ? bucket.members.reduce((sum, row) => sum + row.quality, 0) / memberCount
       : 50;
-    const workloadFactor = workloadIndex > 0 ? clamp(1 / workloadIndex, 0.55, 1.05) : 1;
-    const effectiveness = clamp((qualityIndex / 70) * workloadFactor, 0.4, 1.15);
+    const capacityFactor = workloadFactor(workloadIndex);
+    const effectiveness = clamp((qualityIndex / 70) * capacityFactor, 0.4, 1.15);
     const status = departmentStatus({ memberCount, vacancyCount, workloadIndex, qualityIndex });
     departments[department] = {
       id: department,
@@ -195,6 +199,7 @@ function buildTeamOrganization(saveWorld, teamId) {
       demandUnits: Number(demandUnits.toFixed(2)),
       capacityUnits: Number(capacityUnits.toFixed(2)),
       workloadIndex: Number(workloadIndex.toFixed(3)),
+      workloadFactor: Number(capacityFactor.toFixed(3)),
       qualityIndex: Number(qualityIndex.toFixed(2)),
       effectiveness: Number(effectiveness.toFixed(3)),
       status,
@@ -264,6 +269,7 @@ export function refreshOrganization(saveWorld, options = {}) {
           effectiveness: row.effectiveness,
           status: row.status,
           workloadIndex: row.workloadIndex,
+          workloadFactor: row.workloadFactor,
           qualityIndex: row.qualityIndex,
           memberCount: row.memberCount,
           vacancyCount: row.vacancyCount,
@@ -287,6 +293,12 @@ export function departmentEffectiveness(saveWorld, teamId, department, fallback 
   if (!teamId) return fallback;
   const team = organizationProjection(saveWorld, String(teamId));
   return numeric(team.departments?.[department]?.effectiveness, fallback);
+}
+
+export function departmentWorkloadFactor(saveWorld, teamId, department, fallback = 1) {
+  if (!teamId) return fallback;
+  const team = organizationProjection(saveWorld, String(teamId));
+  return numeric(team.departments?.[department]?.workloadFactor, fallback);
 }
 
 export function organisationPressure(saveWorld, teamId) {
