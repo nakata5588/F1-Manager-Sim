@@ -1,0 +1,7 @@
+change_id,surface,before,after,classification
+V1215-CORR-001,baseline.json,season1980Counts.activeTeams=0,activeTeams=15 from snapshot.teams,publication_baseline_fix
+V1215-CORR-002,openingEmploymentAudit1980V1215,v1.2.14 audit was presented as current and stale for v1.2.15 reclassifications,66 rows regenerated from authoritative v1.2.15 availability/market/recruitment/contracts; v1.2.14 audit marked superseded-by-policy,stale_audit_fix
+V1215-CORR-003,Beppe Gabbiani opening availability,free_driver,external_candidate_availability_unverified; general drive-seeking evidence is not F1-specific seeking evidence,epistemic_availability_fix
+V1215-CORR-004,Andrea de Cesaris / Chico Serra / Manfred Winkelhock / Mike Thackwell,active_non_f1_contracted,external_candidate_availability_unverified; 1980 programmes retained as reference but opening commitment date not source-locked,temporal_gate_fix
+V1215-CORR-005,Eliseo Salazar / Emilio de Villota,active_non_f1_contracted,external_candidate_availability_unverified; RAM/Aurora season evidence does not establish 13 Jan commitment,temporal_gate_fix
+V1215-CORR-006,validators,baseline team count and v1.2.15 opening audit freshness/temporal gate not enforced,"independent activeTeams count, regenerated opening audit consistency, temporal gate regressions and Gabbiani F1-specific seeking gate enforced",validator_hardening

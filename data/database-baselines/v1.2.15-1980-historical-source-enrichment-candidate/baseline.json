@@ -1,0 +1,92 @@
+{
+  "format": "f1-manager-sim-database-baseline",
+  "schemaVersion": 1,
+  "baselineId": "v1.2.15-1980-historical-source-enrichment-candidate-2026-09-15",
+  "candidateStatus": "DATABASE_ONLY_CUMULATIVE_1980_HISTORICAL_SOURCE_ENRICHMENT_CORRECTIVE_CANDIDATE",
+  "canonical": false,
+  "databaseVersion": "v1.2.15-1980-historical-source-enrichment-candidate",
+  "previousDatabaseVersion": "v1.2.14-1980-canonical-readiness-source-lock-corrective-candidate",
+  "candidateRevision": "historical_source_enrichment_corrective_r3_temporal_opening_audit",
+  "sourceChecksum": "9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097",
+  "majorArtifacts": {
+    "globalJson": {
+      "filename": "F1_Manager_Sim_Global_Database_v1.2.15_1980_historical_source_enrichment_candidate.json",
+      "sha256": "bb07bef1560407a5427a485ec37cd11ca94f5aa46c5a400114dadb50a75fa286",
+      "bytes": 26128090
+    },
+    "season1980Json": {
+      "filename": "F1_Manager_Sim_SeasonDefinition_1980_v1.2.15_1980_historical_source_enrichment_candidate.json",
+      "sha256": "8ac458ed69415c5583623e0b1f7d56462a2e72bbb8920f77f98ecbc7ed6c891a",
+      "bytes": 14924963
+    },
+    "globalSqlite": {
+      "filename": "F1_Manager_Sim_Global_Database_v1.2.15_1980_historical_source_enrichment_candidate.sqlite",
+      "sha256": "d683cdbbfd184bec46e01f0aaddbc35ab06a6b3ad09609aa0f57293ef1a5b377",
+      "bytes": 21352448
+    },
+    "season1980Sqlite": {
+      "filename": "F1_Manager_Sim_SeasonDefinition_1980_v1.2.15_1980_historical_source_enrichment_candidate.sqlite",
+      "sha256": "33b0a8547c9fd96a191d3250386036dfbf1efab35a0616602d04a752323662ec",
+      "bytes": 10481664
+    },
+    "editorXlsx": {
+      "filename": "F1_Manager_Sim_Database_Rebuild_v1.2.15_1980_historical_source_enrichment_candidate_corrective_r3_EDITOR.xlsx",
+      "sha256": "a92fe7b8039d1c2213dd35c2cee56768d5cf4fa43536db8bb7706ec54b441997",
+      "bytes": 91289
+    },
+    "report": {
+      "filename": "REPORT.md",
+      "sha256": "fc6dc4166505fb2530c6c126b83b432bec5de340b93005bf87089313fe84aa00",
+      "bytes": 5264
+    }
+  },
+  "globalCounts": {
+    "drivers": 862,
+    "staff": 63,
+    "staffRatings": 61,
+    "teams": 212,
+    "sponsorCatalog": 35
+  },
+  "season1980Counts": {
+    "activeTeams": 15,
+    "driverAvailabilityRows": 66,
+    "staffContracts": 52,
+    "sponsorContracts": 15,
+    "calendarRaces": 14
+  },
+  "enrichment": {
+    "staffReviewRows": 57,
+    "staffRoleTeamOpen": 0,
+    "staffDiscoveries": 4,
+    "sponsorReviewRows": 33,
+    "sponsorOpen": 0,
+    "sponsorReferenceEnrichments": 9,
+    "externalAvailabilityUnverified": 23,
+    "ordinarySourceSafeFreeDrivers": 0,
+    "regulationsOpenPartial": 4,
+    "openingEmploymentAuditRowsV1215": 66,
+    "temporalGateAuditRows": 38
+  },
+  "validation": {
+    "preChecksumMaterialized": "PASS_137_OF_137",
+    "semanticHardOrphans": "PASS_ZERO",
+    "round1Reconciliation": "PASS_28_OF_28",
+    "openingCrossSurface": "PASS_66_OF_66",
+    "futureOutcomeAuthority": "PASS_ZERO",
+    "dynamicSaveWorldAuthority": "PASS_ZERO",
+    "temporalOpeningGate": "PASS_7_REVERTED_WITHOUT_RETROACTIVE_AUTHORITY",
+    "gabbianiF1SpecificSeeking": "UNVERIFIED_NOT_FREE_DRIVER",
+    "activeTeamsCount": "PASS_15_OF_15",
+    "openingEmploymentAudit": "PASS_66_OF_66_V1215_REGENERATED",
+    "externalAvailabilityUnverified": "PASS_23",
+    "ordinarySourceSafeFreeDrivers": "PASS_0_AFTER_CONSERVATIVE_TEMPORAL_GATE",
+    "geoffLeesTemporalAuthority": "PASS_NONE",
+    "brambillaTemporalAuthority": "PASS_PRESERVED_V1214"
+  },
+  "promotion": {
+    "readyForDevelopmentCandidateIntegration": true,
+    "promotedCanonicalInThisRelease": false,
+    "currentPromotedCanonical": "v1.2.5-1980-technical-source-lock-candidate"
+  },
+  "hashPolicy": "Payload checksums internal; final ZIP SHA-256 external/non-self-referential."
+}
