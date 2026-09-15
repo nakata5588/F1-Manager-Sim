@@ -1,5 +1,5 @@
 import { SIM_EVENT } from "../timeEngine.js";
-import { departmentEffectiveness } from "../../game/management/organization.js";
+import { departmentWorkloadFactor } from "../../game/management/organization.js";
 import {
   completeDriverScoutingAssignment,
   ensureScoutingState,
@@ -23,7 +23,10 @@ function assignmentTeamId(saveWorld, assignment) {
 function scoutingProgressPerDay(saveWorld, assignment) {
   const teamId = assignmentTeamId(saveWorld, assignment);
   if (!teamId) return 1;
-  return departmentEffectiveness(saveWorld, teamId, "scouting", 1);
+  // Scout quality already determines the assignment's base duration in the
+  // scouting model. Organisation contributes capacity/workload only, avoiding
+  // a second quality multiplier for the same staff attributes.
+  return departmentWorkloadFactor(saveWorld, teamId, "scouting", 1);
 }
 
 export function createScoutingManagementSystem() {
@@ -45,7 +48,7 @@ export function createScoutingManagementSystem() {
           assignment.durationDays,
           Number(assignment.progressDays ?? 0) + progress,
         );
-        assignment.organisationEffectiveness = Number(progress.toFixed(3));
+        assignment.organisationWorkloadFactor = Number(progress.toFixed(3));
         if (assignment.progressDays < assignment.durationDays) continue;
         const report = completeDriverScoutingAssignment(saveWorld, assignment.id);
         completed.push({
