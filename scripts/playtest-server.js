@@ -64,6 +64,7 @@ import {
   developerOffseason,
   developerUpdateOffseasonPlan,
 } from "../src/app/offseasonPlaytest.js";
+import { developerWorld } from "../src/app/worldPlaytest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const STATIC_ROOT = resolve(__dirname, "../playtest");
@@ -180,6 +181,13 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/state" && request.method === "GET") {
       syncManagerControl();
       return json(response, 200, session.state());
+    }
+    if (url.pathname === "/api/world" && request.method === "GET") {
+      return json(response, 200, developerWorld(session, {
+        category: url.searchParams.get("category") ?? undefined,
+        minImportance: url.searchParams.get("minImportance") ?? undefined,
+        season: url.searchParams.get("season") ?? undefined,
+      }));
     }
 
     if (url.pathname === "/api/career" && request.method === "POST") {
