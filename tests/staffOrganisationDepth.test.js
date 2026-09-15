@@ -116,6 +116,7 @@ test("vacancies and weak staff become department pressure without changing staff
   });
   const projection = organizationProjection(saveWorld, "T1");
   assert.ok(projection.departments.technical.workloadIndex > 1);
+  assert.ok(projection.departments.technical.workloadFactor < 1);
   assert.ok(["strained", "critical"].includes(projection.departments.technical.status));
   assert.deepEqual(saveWorld.world.staffRatings.find((row) => row.staff_id === "S1"), original, "organisation review must not rewrite historical/derived staff ratings");
 });
@@ -137,13 +138,16 @@ test("staff advice can surface weak organisation capability even with no vacancy
   assert.ok(output.some((event) => /Organisation review: Technical/.test(event.payload.title)));
 });
 
-test("scouting progress uses department effectiveness but does not alter visibility or eligibility", () => {
+test("scouting throughput uses organisation workload without double-counting staff quality", () => {
   const { saveWorld, systems } = initialized();
-  const scout = saveWorld.world.staffRatings.find((row) => row.staff_id === "S2");
-  scout.scouting = 20;
-  scout.judging_ability = 20;
-  scout.data_analysis = 20;
-  scout.communication = 20;
+  saveWorld.world.employment.vacancies.push({
+    vacancyId: "vac:scouting",
+    type: "staff",
+    teamId: "T1",
+    role: "recruitment_scout",
+    openedAt: saveWorld.clock.date,
+    status: "open",
+  });
   refreshOrganization(saveWorld);
 
   const assignment = startDriverScoutingAssignment(saveWorld, "D3", { durationDays: 2 });
@@ -151,11 +155,11 @@ test("scouting progress uses department effectiveness but does not alter visibil
 
   advanceDays(saveWorld, 2, systems);
   const active = saveWorld.world.management.scouting.assignments.find((row) => row.id === assignment.id);
-  assert.equal(active.status, "active", "weak scouting department should need more than two calendar days for two effective scouting days");
-  assert.ok(active.organisationEffectiveness < 1);
+  assert.equal(active.status, "active", "an overloaded scouting department should need more calendar time than its base assignment duration");
+  assert.ok(active.organisationWorkloadFactor < 1);
   assert.equal(saveWorld.world.employment.drivers.D3, undefined, "scouting must not create an F1 contract for a talent-visible prospect");
 
-  advanceDays(saveWorld, 4, systems);
+  advanceDays(saveWorld, 2, systems);
   const completed = saveWorld.world.management.scouting.assignments.find((row) => row.id === assignment.id);
   assert.equal(completed.status, "completed");
 });
