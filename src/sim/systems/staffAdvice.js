@@ -1,5 +1,6 @@
 import { SIM_EVENT } from "../timeEngine.js";
 import { boardProjection } from "../../game/management/board.js";
+import { organisationPressure } from "../../game/management/organization.js";
 import { controlledTeamSet } from "./controlState.js";
 
 export const STAFF_ADVICE_EVENT = Object.freeze({
@@ -49,11 +50,24 @@ function adviceForTeam(saveWorld, teamId) {
   if (!advisor) return null;
   const vacancy = openVacancy(saveWorld, teamId);
   if (vacancy) return { team_id: teamId, advisor_id: advisor.id, advisor_name: staffName(saveWorld, advisor.id), advisor_role: advisor.role, category: "staff", priority: "high", title: "Staff recommendation: fill the open vacancy", body: `The team still has an open ${vacancy.type ?? "staff"} role (${vacancy.role ?? "unknown"}). Leaving it unresolved risks weakening the department.` };
+  const pressure = organisationPressure(saveWorld, teamId);
+  if (pressure) return {
+    team_id: teamId,
+    advisor_id: advisor.id,
+    advisor_name: staffName(saveWorld, advisor.id),
+    advisor_role: advisor.role,
+    category: "staff",
+    priority: pressure.status === "critical" ? "high" : "normal",
+    title: `Organisation review: ${pressure.label}`,
+    body: pressure.status === "weak"
+      ? `${pressure.label} is fully staffed but its current capability is below the team's desired operating level (${pressure.qualityIndex.toFixed(0)} quality index). Recruitment or natural staff development can improve it; this review never changes staff attributes directly.`
+      : `${pressure.label} is ${pressure.status} with a workload index of ${pressure.workloadIndex.toFixed(2)}. Review vacancies and staff capacity before the pressure affects long-term operations.`,
+  };
   const board = boardProjection(saveWorld, teamId);
   if (board.confidence < 40) return { team_id: teamId, advisor_id: advisor.id, advisor_name: staffName(saveWorld, advisor.id), advisor_role: advisor.role, category: "board", priority: "high", title: "Staff recommendation: stabilise board confidence", body: "The board is under pressure. Prioritise the weakest board objective before the next monthly review." };
   const weakest = weakestComponent(saveWorld, teamId);
   if (weakest) return { team_id: teamId, advisor_id: advisor.id, advisor_name: staffName(saveWorld, advisor.id), advisor_role: advisor.role, category: "development", priority: "normal", title: `Technical recommendation: ${weakest[0]}`, body: `${staffName(saveWorld, advisor.id)} identifies ${weakest[0]} as the weakest measured car area (${Number(weakest[1]).toFixed(1)}). This is advice only; the simulation will not start a project unless development is delegated or you choose to act.` };
-  return { team_id: teamId, advisor_id: advisor.id, advisor_name: staffName(saveWorld, advisor.id), advisor_role: advisor.role, category: "team", priority: "normal", title: "Staff review: no critical issue", body: "The senior staff review found no urgent vacancy, board or measured car-development issue this month." };
+  return { team_id: teamId, advisor_id: advisor.id, advisor_name: staffName(saveWorld, advisor.id), advisor_role: advisor.role, category: "team", priority: "normal", title: "Staff review: no critical issue", body: "The senior staff review found no urgent vacancy, board, organisational or measured car-development issue this month." };
 }
 
 export function createStaffAdviceSystem(options = {}) {

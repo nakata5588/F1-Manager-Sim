@@ -14,6 +14,7 @@ import { createContractNegotiationSystem } from "./contractNegotiation.js";
 import { createStaffNegotiationSystem } from "./staffNegotiation.js";
 import { createMarketDynamicsSystem } from "./marketDynamics.js";
 import { createBoardManagementSystem } from "./boardManagement.js";
+import { createOrganizationManagementSystem } from "./organizationManagement.js";
 import { createManagerCareerSystem } from "./managerCareer.js";
 import { createStaffAdviceSystem } from "./staffAdvice.js";
 import { createCommercialManagementSystem } from "./commercialManagement.js";
@@ -89,6 +90,10 @@ export function createCoreWorldSystems(options = {}) {
     createCommercialManagementSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createCommercialInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createBoardManagementSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
+    // Organisation is derived from the authoritative employment/board/team state.
+    // It therefore runs after those authorities and before staff advice consumes
+    // department workload and quality pressure.
+    createOrganizationManagementSystem(),
     createManagerCareerSystem(),
     createStaffAdviceSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createManagementInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
