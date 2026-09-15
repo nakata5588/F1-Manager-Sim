@@ -1,0 +1,9 @@
+area,status,detail
+cumulative_r3_preservation,PASS,v1.2.14 r3 corrective freeze preserved; no gameplay/runtime/UI changes.
+staff_source_lock,PASS_ROLE_TEAM,0 role/team review rows open; four additional opening staff relationships source-locked/materialized in v1.2.15 enrichment. Exact contract dates/money remain non-authoritative.
+external_driver_availability,PARTIAL_SAFE_UNCERTAINTY,23 external candidates remain explicitly opening-availability-unverified; 0 ordinary free drivers are source-safe. Temporal gate requires evidence covering 13 Jan 1980; 1980 programme evidence alone is reference-only.
+sponsors_source_lock,PASS_REVIEW_CLOSED,0 sponsor review rows open; nine additional 1980 relationships source-locked as post-start/reference-only where opening evidence is insufficient; no sponsor money inferred.
+regulations_source_lock,PARTIAL,4 regulation areas remain open/partial; direct FIA Yearbook rule-page extraction still required for primary lock.
+driver_market_no_future_authority,PASS,No later debut/contract/result used to create opening availability authority.
+historical_money_boundary,PASS,No historical salaries/sponsor monetary values invented.
+canonical_promotion,NOT_READY,Development-ready candidate expected if validation passes; canonical remains blocked by remaining historical-source gaps.
