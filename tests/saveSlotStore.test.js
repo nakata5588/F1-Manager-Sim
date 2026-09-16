@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AUTOSAVE_SLOT, FileSaveSlotStore, normalizeSaveSlot } from "../src/save/slotStore.js";
@@ -74,7 +74,6 @@ test("slot listing isolates a corrupt save instead of crashing all save discover
   try {
     const store = new FileSaveSlotStore(directory);
     store.save("autosave", saveWorld(), { savedAt: "2026-09-16T21:00:00.000Z" });
-    const { writeFileSync } = await import("node:fs");
     writeFileSync(join(directory, "broken.json"), "{not json", "utf8");
     const rows = store.list();
     assert.equal(rows.length, 2);
