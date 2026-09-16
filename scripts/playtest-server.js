@@ -6,6 +6,8 @@ import { dirname, extname, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
 import { DeveloperPlaytestSession } from "../src/app/developerPlaytest.js";
+import { restoreDeveloperPlaytestSession } from "../src/app/developerPersistence.js";
+import { AUTOSAVE_SLOT, FileSaveSlotStore } from "../src/save/slotStore.js";
 import {
   developerApplyManagerJob,
   developerArchiveInboxItem,
@@ -70,7 +72,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const STATIC_ROOT = resolve(__dirname, "../playtest");
 
 function usage() {
-  console.error("Usage: npm run playtest -- <season-db.json|json.gz> [--global-world <global.json|json.gz>] [--port 3000] [--host 127.0.0.1]");
+  console.error("Usage: npm run playtest -- <season-db.json|json.gz> [--global-world <global.json|json.gz>] [--save-dir <directory>] [--port 3000] [--host 127.0.0.1]");
   process.exit(1);
 }
 
@@ -81,10 +83,17 @@ function readPayload(path) {
 }
 
 function parseArgs(argv) {
-  const args = { seasonDb: null, globalWorld: null, port: 3000, host: "127.0.0.1" };
+  const args = {
+    seasonDb: null,
+    globalWorld: null,
+    saveDir: resolve(process.cwd(), "build/playtest-saves"),
+    port: 3000,
+    host: "127.0.0.1",
+  };
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
     if (value === "--global-world") args.globalWorld = argv[++index];
+    else if (value === "--save-dir") args.saveDir = resolve(argv[++index]);
     else if (value === "--port") args.port = Number(argv[++index]);
     else if (value === "--host") args.host = argv[++index];
     else if (!value.startsWith("-") && !args.seasonDb) args.seasonDb = value;
@@ -168,10 +177,21 @@ const args = parseArgs(process.argv.slice(2));
 const seasonDatabase = readPayload(args.seasonDb);
 const globalDatabase = args.globalWorld ? readPayload(args.globalWorld) : null;
 const session = new DeveloperPlaytestSession(seasonDatabase, { globalDatabase });
+const saveStore = new FileSaveSlotStore(args.saveDir);
 
 function syncManagerControl() {
   if (!session.saveWorld) return;
   developerManagementOverview(session);
+}
+
+function autosave() {
+  if (!session.saveWorld) return null;
+  return saveStore.save(AUTOSAVE_SLOT, session.requireCareer(), { pretty: false });
+}
+
+function autosavedJson(response, payload) {
+  autosave();
+  return json(response, 200, payload);
 }
 
 const server = createServer(async (request, response) => {
@@ -181,6 +201,26 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/state" && request.method === "GET") {
       syncManagerControl();
       return json(response, 200, session.state());
+    }
+    if (url.pathname === "/api/saves" && request.method === "GET") {
+      return json(response, 200, { slots: saveStore.list() });
+    }
+    if (url.pathname === "/api/saves" && request.method === "POST") {
+      const input = await body(request);
+      const summary = saveStore.save(input.slot ?? "manual-1", session.requireCareer());
+      return json(response, 200, { save: summary, slots: saveStore.list(), state: session.state() });
+    }
+    if (url.pathname === "/api/saves/load" && request.method === "POST") {
+      const input = await body(request);
+      const loaded = saveStore.load(input.slot);
+      const state = restoreDeveloperPlaytestSession(session, loaded.saveWorld);
+      syncManagerControl();
+      return json(response, 200, { save: loaded.summary, slots: saveStore.list(), state });
+    }
+    if (url.pathname === "/api/saves/delete" && request.method === "POST") {
+      const input = await body(request);
+      const deleted = saveStore.delete(input.slot);
+      return json(response, 200, { deleted, slots: saveStore.list() });
     }
     if (url.pathname === "/api/world" && request.method === "GET") {
       return json(response, 200, developerWorld(session, {
@@ -192,31 +232,31 @@ const server = createServer(async (request, response) => {
 
     if (url.pathname === "/api/career" && request.method === "POST") {
       const input = await body(request);
-      return json(response, 200, session.startCareer(input));
+      return autosavedJson(response, session.startCareer(input));
     }
     if (url.pathname === "/api/continue" && request.method === "POST") {
       const state = developerContinueCalendar(session);
       syncManagerControl();
-      return json(response, 200, state);
+      return autosavedJson(response, state);
     }
-    if (url.pathname === "/api/weekend/advance" && request.method === "POST") return json(response, 200, session.advanceWeekend());
+    if (url.pathname === "/api/weekend/advance" && request.method === "POST") return autosavedJson(response, session.advanceWeekend());
     if (url.pathname === "/api/weekend/setup" && request.method === "POST") {
       const input = await body(request);
-      return json(response, 200, session.changeSetup(input.driverId, input.setup));
+      return autosavedJson(response, session.changeSetup(input.driverId, input.setup));
     }
     if (url.pathname === "/api/weekend/starting-tyre" && request.method === "POST") {
       const input = await body(request);
-      return json(response, 200, session.changeStartingTyre(input.driverId, input.compoundId));
+      return autosavedJson(response, session.changeStartingTyre(input.driverId, input.compoundId));
     }
-    if (url.pathname === "/api/weekend/start-race" && request.method === "POST") return json(response, 200, session.startRace());
+    if (url.pathname === "/api/weekend/start-race" && request.method === "POST") return autosavedJson(response, session.startRace());
     if (url.pathname === "/api/race/advance" && request.method === "POST") {
       const input = await body(request);
-      return json(response, 200, session.advanceRace(input.laps ?? 1));
+      return autosavedJson(response, session.advanceRace(input.laps ?? 1));
     }
-    if (url.pathname === "/api/race/finish" && request.method === "POST") return json(response, 200, session.finishRace());
+    if (url.pathname === "/api/race/finish" && request.method === "POST") return autosavedJson(response, session.finishRace());
     if (url.pathname === "/api/race/strategy" && request.method === "POST") {
       const input = await body(request);
-      return json(response, 200, session.changeStrategy(input.driverId, input.instruction));
+      return autosavedJson(response, session.changeStrategy(input.driverId, input.instruction));
     }
 
     if (url.pathname === "/api/management" && request.method === "GET") return json(response, 200, developerManagementOverview(session));
@@ -401,4 +441,5 @@ server.listen(args.port, args.host, () => {
   console.log(`F1 Manager Sim Developer Playtest: http://${args.host}:${args.port}`);
   console.log(`Season Database: ${join(process.cwd(), args.seasonDb)}`);
   if (args.globalWorld) console.log(`Global Database: ${join(process.cwd(), args.globalWorld)}`);
+  console.log(`Save slots: ${args.saveDir}`);
 });

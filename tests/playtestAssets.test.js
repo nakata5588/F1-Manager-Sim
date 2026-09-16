@@ -6,6 +6,7 @@ import { spawnSync } from "node:child_process";
 for (const path of [
   "scripts/playtest-server.js",
   "playtest/app.js",
+  "playtest/persistence.js",
   "playtest/index.html",
   "playtest/styles.css",
   "playtest/management.html",
@@ -31,11 +32,14 @@ for (const path of [
 
 for (const path of [
   "scripts/playtest-server.js",
+  "src/app/developerPersistence.js",
   "src/app/technicalPlaytest.js",
   "src/app/governancePlaytest.js",
   "src/app/offseasonPlaytest.js",
   "src/app/worldPlaytest.js",
+  "src/save/slotStore.js",
   "playtest/app.js",
+  "playtest/persistence.js",
   "playtest/management.js",
   "playtest/technical.js",
   "playtest/governance.js",

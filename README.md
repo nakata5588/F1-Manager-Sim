@@ -6,13 +6,17 @@ F1 Manager Sim is a long-form Formula One management and world simulation game. 
 
 ## Current development phase
 
-**Phase 44 — Staff & Organisation Depth**
+**Phase 45 — Career Persistence / Save & Load**
 
-The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market, a persistent physical technical lifecycle, dynamic governance/grid evolution, a playable season-to-season transition, renewable driver population, persistent world news/history/records and an era-safe team-organisation model.
+The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market, a persistent physical technical lifecycle, dynamic governance/grid evolution, a playable season-to-season transition, renewable driver population, persistent world news/history/records, an era-safe team-organisation model and resumable career persistence.
 
 Current career path:
 
 `New Career -> Choose Team -> Create Manager -> Career Home -> Continue -> Race Weekends -> Championship Finale -> Season Review -> Offseason Planning -> New Season -> Preseason -> Race Weekend`
+
+Current persistence path:
+
+`Save World -> Versioned Save Envelope -> Manual Slot / Autosave -> Provenance Validation -> Restored Save World -> Resumed Career`
 
 Current management/world loop:
 
@@ -26,17 +30,19 @@ The talent lifecycle extends through:
 
 `Generated Junior -> World Visible -> Talent Visible -> F1 Eligible -> Free Driver / Contract -> F1 Career`
 
-The staff/organisation lifecycle now extends through:
+The staff/organisation lifecycle extends through:
 
 `Employment / Vacancy -> Functional Department -> Quality / Capacity / Workload -> Advice / Operational Effect -> Staff Change -> Updated Organisation`
 
-Phase 44 adds persistent, Save World-derived organisation depth without inventing modern historical structures. Current staff employment roles are grouped into era-neutral gameplay functions such as Technical, Race Operations, Scouting & Recruitment, Commercial and Team Leadership. Department quality and workload are tracked separately so existing specialist staff ratings are not double-counted. Vacancies and overload can create real organisational pressure; scouting throughput now reacts to organisational capacity while visibility, F1 eligibility and contract authority remain owned by their existing systems.
+Phase 45 adds filesystem save slots and Developer Playtest Save/Load on top of the existing versioned Save World serialization contract. Loading validates the starting Season Database provenance before restoring the mutable career, rebuilds the current application/system wiring without creating a new career, and does not replay `CAREER_STARTED`. A paused live race can be saved and restored into a fresh application session while preserving the deterministic final classification, timeline and championship state. The local playtest also writes a reserved `autosave` slot at key career/race milestones.
+
+Phase 44 adds persistent, Save World-derived organisation depth without inventing modern historical structures. Current staff employment roles are grouped into era-neutral gameplay functions such as Technical, Race Operations, Scouting & Recruitment, Commercial and Team Leadership. Department quality and workload are tracked separately so existing specialist staff ratings are not double-counted. Vacancies and overload can create real organisational pressure; scouting throughput reacts to organisational capacity while visibility, F1 eligibility and contract authority remain owned by their existing systems.
 
 Phase 43 exposes the active alternative-history universe through F1 World, History and Records. Phase 42 provides the underlying simulation-owned news/history/records projection. Phase 41 adds era-aware talent programmes, feeder-series simulation and recruitment. Phase 40 remains the generated-driver population authority. Phase 39 remains responsible for the persistent offseason cycle, final season review, Board renewal, strategic planning and handoff into the next season. Phase 38 remains responsible for regulation votes and team entry/exit/rebrand evolution. Phase 37 remains responsible for suppliers, component wear and preseason testing. Phase 36 remains responsible for physical specifications, manufacturing, inventory and fitment.
 
 The local Developer Playtest exposes:
 
-- Career / Race Weekend
+- Career / Race Weekend, including manual Save/Load and race-milestone autosave
 - Management Hub, including Inbox, Board, People, Staff, Recruitment, Contracts, Commercial and responsibilities
 - Technical Operations, including suppliers, preseason, reliability, R&D, manufacturing and facilities
 - Governance, including regulation votes and grid/team evolution
@@ -56,6 +62,10 @@ The project keeps five concerns separate:
 The database packaging boundary is:
 
 `Global Database -> Season Database -> Save World -> Simulation Engine / Game Systems -> UI projection`
+
+The persistence boundary is:
+
+`Save World -> Serialization Envelope -> Storage Slot -> Deserialization -> Source Compatibility Gate -> Save World`
 
 The race-weekend gameplay boundary is:
 
@@ -85,7 +95,7 @@ The organisation boundary is:
 
 `Authoritative Employment / Board / Team State -> Derived Department Capacity / Quality / Workload -> Advice / Existing-System Modifier`
 
-See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/STAFF_ORGANISATION_DEPTH.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/REGULATIONS_GOVERNANCE_TEAM_EVOLUTION.md`, `docs/OFFSEASON_NEW_SEASON_PREPARATION.md`, `docs/TALENT_PIPELINE_GENERATED_DRIVERS.md`, `docs/WORLD_EVENTS_NEWS_HISTORY.md`, `docs/F1_WORLD_HISTORY_RECORDS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
+See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/CAREER_PERSISTENCE_SAVE_LOAD.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/STAFF_ORGANISATION_DEPTH.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/REGULATIONS_GOVERNANCE_TEAM_EVOLUTION.md`, `docs/OFFSEASON_NEW_SEASON_PREPARATION.md`, `docs/TALENT_PIPELINE_GENERATED_DRIVERS.md`, `docs/WORLD_EVENTS_NEWS_HISTORY.md`, `docs/F1_WORLD_HISTORY_RECORDS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
 
 ## Historical data policy
 
@@ -153,7 +163,8 @@ Run the local Developer Playtest UI:
 
 ```bash
 npm run playtest -- /path/to/F1_Manager_Sim_SeasonDefinition_1980_v1.2.5_1980_technical_source_lock_candidate.json \
-  --global-world /path/to/F1_Manager_Sim_Global_Database_v1.2.5_1980_technical_source_lock_candidate.json
+  --global-world /path/to/F1_Manager_Sim_Global_Database_v1.2.5_1980_technical_source_lock_candidate.json \
+  --save-dir build/playtest-saves
 ```
 
 Then open:
@@ -165,7 +176,7 @@ Then open:
 - Offseason & New Season: `http://127.0.0.1:3000/offseason.html`
 - F1 World / History / Records: `http://127.0.0.1:3000/world.html`
 
-Both database inputs may be plain `.json` or `.json.gz`. The browser receives only player-facing projections; hidden future identity pools and reference data remain server-side in the Save World.
+Both database inputs may be plain `.json` or `.json.gz`. The browser receives only player-facing projections; hidden future identity pools and reference data remain server-side in the Save World. Save slots are local Developer Playtest artifacts and default to `build/playtest-saves`.
 
 Generated build files are intentionally not committed. Editor workbooks, SQLite mirrors and large JSON exports remain database-authoring/audit artifacts rather than authoritative runtime state; the repository pins their identities and checksums instead.
 
