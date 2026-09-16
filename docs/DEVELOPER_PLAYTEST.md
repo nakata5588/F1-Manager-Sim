@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The Developer Playtest is the current interactive validation surface for the evolving F1 Manager Sim vertical slice. It began as the Phase 31 race-weekend loop and now exposes the major management/world systems implemented through Phase 44 while keeping the simulation architecture intact.
+The Developer Playtest is the current interactive validation surface for the evolving F1 Manager Sim vertical slice. It began as the Phase 31 race-weekend loop and now exposes the major management/world systems implemented through Phase 45 while keeping the simulation architecture intact.
 
 The UI is not a second simulation implementation. It is a thin application/client layer over the canonical career bootstrap and Save World:
 
@@ -14,7 +14,8 @@ The browser never receives hidden future entity pools, future structural referen
 
 ```bash
 npm run playtest -- /path/to/season-1980.json \
-  --global-world /path/to/global-database.json
+  --global-world /path/to/global-database.json \
+  --save-dir build/playtest-saves
 ```
 
 Open:
@@ -24,6 +25,7 @@ Open:
 Options:
 
 - `--global-world <path>` validates Season Database provenance against the Global Database;
+- `--save-dir <path>` changes the local save-slot directory (default `build/playtest-saves`);
 - `--port <number>` changes the local port (default `3000`);
 - `--host <address>` changes the bind address (default `127.0.0.1`).
 
@@ -51,6 +53,7 @@ Inputs may be JSON or gzip-compressed JSON.
 18. Offseason planning
 19. New-season preparation and preseason
 20. Continue into the next season
+21. Save to a manual slot or resume from the milestone autosave
 
 Alongside the race-weekend path, the playtest exposes current management/world surfaces for Inbox, Board, manager career, People, Staff, Recruitment, Contracts, Commercial, responsibilities, Technical Operations, Governance, Offseason and F1 World / History / Records.
 
@@ -58,7 +61,7 @@ The UI deliberately remains a developer playtest rather than final visual polish
 
 ## Current pages
 
-- `/` — Career / Race Weekend
+- `/` — Career / Race Weekend, plus developer Save / Load controls
 - `/management.html` — Management Hub
 - `/technical.html` — Technical Operations
 - `/governance.html` — Governance & Grid Evolution
@@ -86,6 +89,22 @@ It owns orchestration only:
 - exposes reduced player-facing projections.
 
 Separate application projections under `src/app/` expose Management, Technical Operations, Governance, Offseason and F1 World data without moving authority into the browser.
+
+Phase 45 adds `developerPersistence.js` as an application-level restoration adapter. It validates the Save World's original Season Database identity, restores current manager control and active-weekend context, then rebuilds the same core system wiring. It does not invoke the New Career bootstrap.
+
+## Career persistence
+
+Phase 45 reuses the existing versioned Save World envelope rather than creating a playtest-specific save format:
+
+`Save World -> serialize -> local slot -> deserialize -> provenance validation -> restored Save World`
+
+The local filesystem slot store uses normalized slot names and atomic replacement writes. The reserved `autosave` slot is updated at key career/race milestones; manual slots use the same envelope and compatibility gate.
+
+Loading a save requires its starting Season Database season, `databaseVersion` and `sourceChecksum` to match the Season Database currently supplied to the playtest. If a Global Database is supplied, the normal Global/Season compatibility validation is also rerun.
+
+The canonical simulation initializer is idempotent, so a restored current save does not replay `CAREER_STARTED`, duplicate News/History or reset the event sequence.
+
+The live race state already belongs to Save World. A race saved after several laps therefore resumes from the persisted deterministic `liveRaceState` rather than being reconstructed from a new result. Automated regressions require a save/load resume to produce the same final classification, race timeline and championship state as uninterrupted execution.
 
 ## Race-start baseline
 
@@ -187,6 +206,13 @@ The local server exposes the core career/race endpoints:
 - `POST /api/race/finish`
 - `POST /api/race/strategy`
 
+Persistence endpoints:
+
+- `GET /api/saves`
+- `POST /api/saves`
+- `POST /api/saves/load`
+- `POST /api/saves/delete`
+
 It also exposes the server-authoritative management, technical, governance, offseason and F1 World endpoints used by their respective playtest pages. Browser code remains projection/instruction code only.
 
 ## Safety / visibility rule
@@ -199,12 +225,13 @@ The Developer Playtest team chooser reads only active `snapshot.teams`. State pr
 
 Organisation projections must obey the same principle: only active-team staff/employment state may inform the current player-facing organisation view. Historical/source-lock audit packs remain reference-only.
 
+Save-slot summaries expose compact current-career metadata only. They do not project hidden future structures or source-lock reference packs into the browser.
+
 ## Next iterations
 
 The highest-value remaining vertical-slice gaps are now:
 
 - integrated New Game flow with explicit Database -> Decade -> Season -> Team -> Manager selection rather than launching one pre-supplied Season Database;
-- save/load/autosave from the playtest, including paused live races;
 - proper Calendar navigation and date/event browsing;
 - tighter integration of the separate playtest pages into one Career shell/navigation model;
 - player-facing Team / Drivers / Staff / Organisation / Car / Development / Finances views built from existing application projections;
@@ -213,4 +240,4 @@ The highest-value remaining vertical-slice gaps are now:
 - calibrated absolute timing/gaps rather than abstract race-index gaps;
 - finer-grained telemetry (`lapProgress` / sector progress) and circuit geometry for a moving track map.
 
-The next product work should favour closing these vertical-slice usability/persistence gaps over adding disconnected visual screens. Simulation and Save World remain authoritative throughout.
+The next product work should favour closing these vertical-slice usability gaps over adding disconnected visual screens. Simulation and Save World remain authoritative throughout.
