@@ -93,7 +93,37 @@ test("developer setup projects public database metadata without mutating source 
   assert.equal(setup.presentation.databaseName, "Official Historical Database");
   assert.equal(setup.presentation.seasonName, "1980 Formula One World Championship");
   assert.equal(setup.presentation.versionLabel, "v1.2.16");
+  assert.equal(setup.managerBackgrounds.some((row) => row.id === "team_management"), true);
   assert.doesNotMatch(JSON.stringify(setup.presentation), /canonical|closure|audit|candidate|SeasonDefinition/i);
+});
+
+test("career creation persists Manager Profile v1 inside Save World", () => {
+  const session = new DeveloperPlaytestSession(seasonDatabase());
+  const state = session.startCareer({
+    teamId: "T1",
+    managerProfile: {
+      name: "Ricardo Nakata",
+      nationality: "Portuguese",
+      dateOfBirth: "1950-06-15",
+      background: "team_management",
+    },
+    seed: "manager-profile-v1",
+  });
+
+  assert.equal(state.career.managerName, "Ricardo Nakata");
+  assert.deepEqual(state.career.managerProfile, {
+    profileVersion: 1,
+    id: "player-manager",
+    name: "Ricardo Nakata",
+    nationality: "Portuguese",
+    dateOfBirth: "1950-06-15",
+    age: 29,
+    background: "team_management",
+    previousExperience: "Team Management",
+    createdAt: session.saveWorld.meta.createdAt,
+  });
+  assert.equal(session.saveWorld.player.manager.background, "team_management");
+  assert.equal(session.saveWorld.player.manager.career.reputation, 35);
 });
 
 test("interactive weekend runs Practice -> setup -> Qualifying -> Pre-Race -> live Race -> Results", () => {

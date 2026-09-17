@@ -3,6 +3,11 @@ import { validateSeasonDatabasePayload } from "../data/seasonDatabase.js";
 import { historicalDatabasePresentation } from "../presentation/historicalDisplayMetadata.js";
 import { projectTeamSelectionCards } from "../presentation/teamSelectionPresentation.js";
 import {
+  MANAGER_BACKGROUND_OPTIONS,
+  createManagerProfile,
+  managerProfileProjection,
+} from "../game/management/managerProfile.js";
+import {
   advanceLiveRaceSession,
   applyLiveStrategyInstruction,
   applyPreRaceStartingTyre,
@@ -398,29 +403,46 @@ export class DeveloperPlaytestSession {
         databaseVersion: this.seasonDatabase.databaseVersion,
       }),
       teams: projectTeamSelectionCards(this.seasonDatabase),
+      managerBackgrounds: MANAGER_BACKGROUND_OPTIONS,
     };
   }
 
   startCareer(options = {}) {
-    const managerName = text(options.managerName).trim();
+    const managerName = text(options.managerProfile?.name ?? options.managerName).trim();
     const controlledTeamId = text(options.teamId).trim();
     if (!managerName) throw new Error("Manager name is required.");
     if (!listDeveloperPlaytestTeams(this.seasonDatabase).some((row) => row.id === controlledTeamId)) {
       throw new Error(`Team '${controlledTeamId}' is not available in this Season Database.`);
     }
 
+    const startDate = options.startDate ?? `${this.seasonDatabase.season}-01-01`;
     const saveWorld = createCareerFromSeasonDatabase(this.seasonDatabase, {
       globalDatabase: this.globalDatabase,
       seed: options.seed ?? `${this.seasonDatabase.season}-${controlledTeamId}-${managerName}`,
-      startDate: options.startDate ?? `${this.seasonDatabase.season}-01-01`,
+      startDate,
     });
+    const manager = options.managerProfile
+      ? createManagerProfile(options.managerProfile, {
+        careerStartDate: startDate,
+        createdAt: saveWorld.meta?.createdAt ?? null,
+      })
+      : {
+        profileVersion: 1,
+        id: "player-manager",
+        name: managerName,
+        nationality: null,
+        dateOfBirth: null,
+        background: null,
+        previousExperience: null,
+        createdAt: saveWorld.meta?.createdAt ?? null,
+      };
     saveWorld.player = {
-      manager: { name: managerName },
+      manager,
       controlledTeamIds: [controlledTeamId],
     };
 
     this.controlledTeamId = controlledTeamId;
-    this.managerName = managerName;
+    this.managerName = manager.name;
     this.saveWorld = saveWorld;
     this.systems = createCoreWorldSystems({ controlledTeamIds: [controlledTeamId] })
       .filter((system) => !["race.weekend", "race.timeline"].includes(system.id));
@@ -622,6 +644,7 @@ export class DeveloperPlaytestSession {
       screen,
       career: {
         managerName: this.managerName,
+        managerProfile: managerProfileProjection(saveWorld),
         controlledTeamId: this.controlledTeamId,
         teamName: teamName(team),
         season: saveWorld.clock.season,

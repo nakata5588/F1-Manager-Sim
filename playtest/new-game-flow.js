@@ -6,6 +6,23 @@ export const NEW_GAME_STEPS = Object.freeze([
   "manager",
 ]);
 
+function validIsoDate(value) {
+  const raw = text(value).trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  const date = new Date(`${raw}T00:00:00Z`);
+  if (Number.isNaN(date.valueOf()) || date.toISOString().slice(0, 10) !== raw) return null;
+  return raw;
+}
+
+function ageAtStart(dateOfBirth, season) {
+  const birth = validIsoDate(dateOfBirth);
+  if (!birth || !Number.isInteger(Number(season))) return null;
+  const [year, month, day] = birth.split("-").map(Number);
+  let age = Number(season) - year;
+  if (month > 1 || (month === 1 && day > 1)) age -= 1;
+  return age;
+}
+
 function text(value, fallback = "") {
   return value === null || value === undefined ? fallback : String(value);
 }
@@ -132,7 +149,17 @@ export function buildNewGameCatalog(setup) {
     ids.add(database.id);
   }
 
-  return { databases };
+  const managerBackgrounds = Array.isArray(setup.managerBackgrounds)
+    ? setup.managerBackgrounds
+      .map((row) => ({
+        id: text(row?.id).trim(),
+        label: text(row?.label, row?.id ?? "Background").trim(),
+        description: text(row?.description).trim(),
+      }))
+      .filter((row) => row.id)
+    : [];
+
+  return { databases, managerBackgrounds };
 }
 
 export function databaseById(catalog, databaseId) {
@@ -169,6 +196,9 @@ export function defaultNewGameSelection(catalog) {
     season: season?.season ?? null,
     teamId: season?.teams?.[0]?.id ?? null,
     managerName: "",
+    managerNationality: "",
+    managerDateOfBirth: "",
+    managerBackground: catalog?.managerBackgrounds?.[0]?.id ?? "",
   };
 }
 
@@ -189,8 +219,19 @@ export function validateNewGameSelection(catalog, selection = {}) {
   if (!team) throw new Error("Select a valid team.");
 
   const managerName = text(selection.managerName).trim();
+  const managerNationality = text(selection.managerNationality).trim();
+  const managerDateOfBirth = validIsoDate(selection.managerDateOfBirth);
+  const managerBackground = text(selection.managerBackground).trim();
   if (!managerName) throw new Error("Manager name is required.");
   if (managerName.length > 64) throw new Error("Manager name must be 64 characters or fewer.");
+  if (!managerNationality) throw new Error("Manager nationality is required.");
+  if (managerNationality.length > 64) throw new Error("Manager nationality must be 64 characters or fewer.");
+  if (!managerDateOfBirth) throw new Error("Manager date of birth must be a valid date.");
+  if (ageAtStart(managerDateOfBirth, season.season) < 18) throw new Error("Manager must be at least 18 years old at Career Start.");
+  if (catalog?.managerBackgrounds?.length && !catalog.managerBackgrounds.some((row) => row.id === managerBackground)) {
+    throw new Error("Select a valid manager background.");
+  }
+  if (!managerBackground) throw new Error("Manager background is required.");
 
   return {
     databaseId: database.id,
@@ -202,5 +243,11 @@ export function validateNewGameSelection(catalog, selection = {}) {
     teamId: team.id,
     teamName: team.name,
     managerName,
+    managerProfile: {
+      name: managerName,
+      nationality: managerNationality,
+      dateOfBirth: managerDateOfBirth,
+      background: managerBackground,
+    },
   };
 }

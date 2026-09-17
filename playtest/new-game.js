@@ -155,16 +155,23 @@ function managerStep() {
       teamName: currentSeason()?.teams?.find((row) => row.id === selection.teamId)?.name ?? "Team",
     };
   }
-  return `<div class="ng-step-copy"><div class="eyebrow">New Game · Manager</div><h1>Create your manager.</h1><p>This creates an independent career. Your results and decisions can diverge from real Formula One history from day one.</p></div>
+  const backgrounds = catalog?.managerBackgrounds ?? [];
+  const selectedBackground = backgrounds.find((row) => row.id === selection.managerBackground) ?? null;
+  const maxBirthDate = Number.isInteger(Number(selection.season)) ? `${Number(selection.season) - 18}-01-01` : "";
+  return `<div class="ng-step-copy"><div class="eyebrow">New Game · Manager</div><h1>Create your manager.</h1><p>Build the identity that will follow you through jobs, results and an alternative Formula One career.</p></div>
     <div class="ng-manager-layout">
       <section class="ng-manager-card">
-        <label for="ng-manager-name">Manager name</label>
-        <input id="ng-manager-name" maxlength="64" autocomplete="name" placeholder="Enter manager name" value="${escapeHtml(selection.managerName)}">
-        <div class="ng-manager-note">Your team, contracts, results and alternative history will evolve inside this save only.</div>
+        <div class="ng-manager-fields">
+          <label><span>Manager name</span><input id="ng-manager-name" maxlength="64" autocomplete="name" placeholder="Enter manager name" value="${escapeHtml(selection.managerName)}"></label>
+          <label><span>Nationality</span><input id="ng-manager-nationality" maxlength="64" autocomplete="country-name" placeholder="e.g. Portuguese" value="${escapeHtml(selection.managerNationality)}"></label>
+          <label><span>Date of birth</span><input id="ng-manager-dob" type="date" ${maxBirthDate ? `max="${maxBirthDate}"` : ""} value="${escapeHtml(selection.managerDateOfBirth)}"></label>
+          <label><span>Background / Previous Experience</span><select id="ng-manager-background"><option value="">Select background</option>${backgrounds.map((row) => `<option value="${escapeHtml(row.id)}" ${row.id === selection.managerBackground ? "selected" : ""}>${escapeHtml(row.label)}</option>`).join("")}</select></label>
+        </div>
+        <div class="ng-manager-note">${escapeHtml(selectedBackground?.description ?? "Your personal profile is stored in this career and remains separate from the immutable historical database.")}</div>
       </section>
       <section class="ng-review-card">
         <div class="eyebrow">Career Setup</div>
-        <dl><div><dt>Database</dt><dd>${escapeHtml(review.databaseName)}</dd></div><div><dt>Version</dt><dd>${escapeHtml(review.databaseVersionLabel)}</dd></div><div><dt>Decade</dt><dd>${escapeHtml(`${selection.decade}s`)}</dd></div><div><dt>Season</dt><dd>${escapeHtml(review.seasonName)}</dd></div><div><dt>Team</dt><dd>${escapeHtml(review.teamName)}</dd></div></dl>
+        <dl><div><dt>Database</dt><dd>${escapeHtml(review.databaseName)}</dd></div><div><dt>Version</dt><dd>${escapeHtml(review.databaseVersionLabel)}</dd></div><div><dt>Season</dt><dd>${escapeHtml(review.seasonName)}</dd></div><div><dt>Team</dt><dd>${escapeHtml(review.teamName)}</dd></div><div><dt>Manager</dt><dd>${escapeHtml(selection.managerName || "—")}</dd></div><div><dt>Nationality</dt><dd>${escapeHtml(selection.managerNationality || "—")}</dd></div><div><dt>Born</dt><dd>${escapeHtml(selection.managerDateOfBirth || "—")}</dd></div><div><dt>Background</dt><dd>${escapeHtml(selectedBackground?.label ?? "—")}</dd></div></dl>
         <div class="ng-boundary">Historical starting conditions.<br><strong>Dynamic alternative future.</strong></div>
       </section>
     </div>${footer({ create: true })}`;
@@ -230,6 +237,7 @@ async function createCareer() {
       method: "POST",
       body: JSON.stringify({
         managerName: normalized.managerName,
+        managerProfile: normalized.managerProfile,
         teamId: normalized.teamId,
         newGame: {
           databaseId: normalized.databaseId,
@@ -307,9 +315,14 @@ function onClick(event) {
 }
 
 function onInput(event) {
-  if (event.target?.id !== "ng-manager-name") return;
-  selection.managerName = event.target.value;
+  const id = event.target?.id;
+  if (id === "ng-manager-name") selection.managerName = event.target.value;
+  else if (id === "ng-manager-nationality") selection.managerNationality = event.target.value;
+  else if (id === "ng-manager-dob") selection.managerDateOfBirth = event.target.value;
+  else if (id === "ng-manager-background") selection.managerBackground = event.target.value;
+  else return;
   wizardError = "";
+  if (id === "ng-manager-background") renderWizard();
 }
 
 async function installWizard() {
@@ -320,6 +333,7 @@ async function installWizard() {
 
   root.addEventListener("click", onClick);
   root.addEventListener("input", onInput);
+  root.addEventListener("change", onInput);
 
   const observer = new MutationObserver(() => {
     if (root.querySelector(".setup-wrap") && !root.querySelector(".new-game-shell")) renderWizard();
