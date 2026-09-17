@@ -17,6 +17,8 @@ test("career shell exposes one stable navigation model across the playable modul
   ]);
   assert.equal(new Set(items.map((row) => row.id)).size, items.length);
   assert.equal(items.every((row) => row.href.startsWith("/")), true);
+  assert.equal(items.find((row) => row.id === "calendar").href, "/championship.html#calendar");
+  assert.equal(items.find((row) => row.id === "standings").href, "/championship.html#standings");
 });
 
 test("management deep links resolve existing tabs without creating duplicate screens", () => {
@@ -30,6 +32,12 @@ test("management deep links resolve existing tabs without creating duplicate scr
   assert.equal(activeCareerNavId({ pathname: "/management.html", hash: "#commercial" }), "commercial");
   assert.equal(activeCareerNavId({ pathname: "/technical.html" }), "technical");
   assert.equal(activeCareerNavId({ pathname: "/world.html" }), "world");
+});
+
+test("Championship Hub deep links keep Calendar and Standings as separate global nav targets", () => {
+  assert.equal(activeCareerNavId({ pathname: "/championship.html", hash: "#calendar" }), "calendar");
+  assert.equal(activeCareerNavId({ pathname: "/championship.html", hash: "#standings" }), "standings");
+  assert.equal(activeCareerNavId({ pathname: "/championship.html", hash: "" }), "calendar");
 });
 
 test("career shell carries unread Inbox state as presentation metadata only", () => {
@@ -48,7 +56,7 @@ test("Continue remains contextual instead of bypassing an active weekend or offs
   assert.equal(continueIntent({ career, raceWeekend: null, nextRace: { round: 1 } }).kind, "continue");
 });
 
-test("Home shell routes Calendar and Standings as view targets without inventing new state", () => {
+test("legacy Home section links remain readable during the Championship Hub transition", () => {
   assert.equal(homeSectionTarget({ pathname: "/", search: "?section=calendar" }), "calendar");
   assert.equal(homeSectionTarget({ pathname: "/", search: "?section=standings" }), "standings");
   assert.equal(homeSectionTarget({ pathname: "/", search: "?section=unknown" }), null);
