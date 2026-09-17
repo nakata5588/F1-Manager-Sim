@@ -36,16 +36,23 @@ function rowMatchesOpeningSeason(row, season) {
   const explicitSeason = Number(row?.year ?? row?.season);
   if (Number.isFinite(explicitSeason) && explicitSeason !== season) return false;
 
+  const rawStartDate = row?.start_date ?? row?.contract_start ?? row?.effective_date ?? null;
   const startYear = Number(
     row?.start_year
     ?? row?.startSeason
     ?? row?.contract_start_year
-    ?? String(row?.start_date ?? row?.contract_start ?? "").slice(0, 4),
+    ?? String(rawStartDate ?? "").slice(0, 4),
   );
   if (Number.isFinite(startYear) && startYear > season) return false;
 
+  if (rawStartDate) {
+    const parsedStart = Date.parse(String(rawStartDate));
+    const opening = Date.parse(`${season}-01-01T00:00:00Z`);
+    if (Number.isFinite(parsedStart) && Number.isFinite(opening) && parsedStart > opening) return false;
+  }
+
   const status = text(row?.status).toLowerCase();
-  if (["future", "inactive", "terminated", "expired"].includes(status)) return false;
+  if (["future", "future_contract", "pending", "inactive", "terminated", "expired"].includes(status)) return false;
   return true;
 }
 
