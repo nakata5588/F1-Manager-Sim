@@ -109,7 +109,7 @@ function render() {
     </section>
 
     <section class="panel">
-      <div class="section-head"><div><div class="eyebrow">Preparation checklist</div><h2>${cycle.targetSeason} Readiness</h2></div><span>Live Save World status</span></div>
+      <div class="section-head"><div><div class="eyebrow">Preparation checklist</div><h2>${cycle.targetSeason} Readiness</h2></div><span>Current career status</span></div>
       <div class="check-grid">
         ${checklistCard("Driver & Staff Contracts", prep.contracts, `${drivers.expiring?.length ?? 0} driver contract(s) and ${staff.expiring?.length ?? 0} staff contract(s) need action.`)}
         ${checklistCard("Engine Supplier", supplier, supplier.activeEngineId ? `Current engine ${supplier.activeEngineId}; contract end ${supplier.activeEndSeason ?? "unknown"}.` : "No active engine supplier contract is projected for the target season.")}
