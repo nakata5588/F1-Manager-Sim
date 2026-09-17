@@ -46,3 +46,23 @@ test("Team Selection v2 renders opening context without rankings or raw driver r
   assert.doesNotMatch(teamChoice, /overall|rating|strength|standings|championshipPosition|expectedPosition/i);
   assert.doesNotMatch(teamChoice, /driver\.role/);
 });
+
+test("Manager Profile v1 form exposes identity fields without internal career-state controls", () => {
+  const wizard = readFileSync("playtest/new-game.js", "utf8");
+  const start = wizard.indexOf("function managerStep()");
+  const end = wizard.indexOf("function renderWizard()", start);
+  assert.ok(start >= 0 && end > start);
+  const managerStep = wizard.slice(start, end);
+
+  assert.match(managerStep, /ng-manager-name/);
+  assert.match(managerStep, /ng-manager-nationality/);
+  assert.match(managerStep, /ng-manager-dob/);
+  assert.match(managerStep, /ng-manager-background/);
+  assert.match(managerStep, /Background \/ Previous Experience/);
+  assert.doesNotMatch(managerStep, /reputation|jobOffers|applications|career\.history/i);
+});
+
+test("New Game sends the validated manager profile to the career endpoint", () => {
+  const wizard = readFileSync("playtest/new-game.js", "utf8");
+  assert.match(wizard, /managerProfile:\s*normalized\.managerProfile/);
+});
