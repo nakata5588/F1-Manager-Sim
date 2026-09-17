@@ -1,3 +1,4 @@
+import { entityLink } from "/entity-links.js";
 import {
   activeCareerNavId,
   buildCareerNavigation,
@@ -77,7 +78,7 @@ function renderShell(state, overview = null) {
   const topbar = document.createElement("header");
   topbar.id = TOPBAR_ID;
   topbar.innerHTML = `
-    <div class="career-shell-manager"><strong>${escapeHtml(state.career?.managerName ?? "Manager")}</strong><span>${escapeHtml(state.career?.teamName ?? "No Team")}</span></div>
+    <div class="career-shell-manager"><strong>${escapeHtml(state.career?.managerName ?? "Manager")}</strong><span>${state.career?.controlledTeamId ? entityLink("team", state.career.controlledTeamId, state.career?.teamName ?? state.career.controlledTeamId) : escapeHtml("No Team")}</span></div>
     <div class="career-shell-context"><strong>${humanDate(state.career?.date)}</strong><span>${escapeHtml(state.career?.season ?? "")} · ${escapeHtml(statusCopy(state))}</span></div>
     ${intent.visible ? `<button type="button" class="career-shell-continue" data-shell-continue data-kind="${escapeHtml(intent.kind)}" data-href="${escapeHtml(intent.href ?? "/")}">${escapeHtml(intent.label)}</button>` : ""}`;
 

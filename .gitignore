@@ -141,5 +141,9 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
+# Python bytecode/cache
+__pycache__/
+*.py[cod]
+
 # Generated historical database artifacts
 build/historical/
