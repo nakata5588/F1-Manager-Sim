@@ -92,6 +92,46 @@ function roleLabel(profile, assignmentRow) {
   return assignmentRow?.role ?? profile?.role ?? profile?.staff_role ?? profile?.job ?? "staff";
 }
 
+const OWNERSHIP_GOVERNANCE_ROLE = /\b(?:owner|co[-\s]?owner|chairman|chairwoman|chairperson|president|proprietor|founder|co[-\s]?founder)\b/i;
+
+function governanceIdentityText(profile, current) {
+  return [
+    current?.role,
+    profile?.role,
+    profile?.staff_role,
+    profile?.job,
+    profile?.position,
+    profile?.title,
+    profile?.occupation,
+    profile?.role_name,
+  ].filter(Boolean).join(" ");
+}
+
+export function staffRecruitmentEligibility(saveWorld, staffId) {
+  const profile = personProfile(saveWorld, "staff", staffId);
+  if (!profile) return { eligible: false, reason: "unknown_staff", role: null };
+  const current = assignment(saveWorld, staffId);
+  const role = roleLabel(profile, current);
+  const ownershipLocked = OWNERSHIP_GOVERNANCE_ROLE.test(governanceIdentityText(profile, current));
+  return {
+    eligible: !ownershipLocked,
+    reason: ownershipLocked ? "governance_ownership_locked" : null,
+    role,
+  };
+}
+
+function assertStaffRecruitable(saveWorld, staffId) {
+  const eligibility = staffRecruitmentEligibility(saveWorld, staffId);
+  if (!eligibility.eligible) {
+    const name = staffName(saveWorld, staffId);
+    if (eligibility.reason === "governance_ownership_locked") {
+      throw new Error(`${name} is part of the team's ownership/governance structure and cannot be recruited through an ordinary staff contract.`);
+    }
+    throw new Error(`Staff '${staffId}' is not recruitable.`);
+  }
+  return eligibility;
+}
+
 export function evaluateStaffInterest(saveWorld, staffId, targetTeamId, options = {}) {
   const person = ensurePersonState(saveWorld, "staff", staffId);
   const personality = person.personality.traits;
@@ -168,6 +208,7 @@ export function listStaffRecruitmentCandidates(saveWorld, options = {}) {
   const query = text(options.query).trim().toLowerCase();
   const targetTeamId = options.teamId ?? saveWorld.player?.controlledTeamIds?.[0] ?? null;
   return listVisibleStaff(saveWorld, { requireF1Eligible: true })
+    .filter((profile) => staffRecruitmentEligibility(saveWorld, profile.staff_id ?? profile.id).eligible)
     .map((profile) => {
       const id = profile.staff_id ?? profile.id;
       const current = assignment(saveWorld, id);
@@ -198,6 +239,7 @@ export function openStaffContractNegotiation(saveWorld, input = {}) {
   const teamId = text(input.teamId ?? input.team_id).trim();
   if (!staffId || !teamId) throw new Error("staffId and teamId are required.");
   if (!listVisibleStaff(saveWorld, { requireF1Eligible: true }).some((row) => String(row.staff_id ?? row.id) === staffId)) throw new Error(`Staff '${staffId}' is not available in the visible market.`);
+  assertStaffRecruitable(saveWorld, staffId);
   const current = assignment(saveWorld, staffId);
   const currentSeason = Number(saveWorld.clock?.season);
   const defaultStart = current?.teamId && String(current.teamId) !== teamId && Number.isInteger(Number(current.contractUntil))
@@ -269,6 +311,7 @@ function normalizeOffer(negotiation, input = {}) {
 export function submitStaffContractOfferEvent(saveWorld, negotiationId, input = {}) {
   const negotiation = ensureState(saveWorld).negotiations.find((row) => row.id === negotiationId);
   if (!negotiation || negotiation.status !== "open") throw new Error(`Open staff negotiation '${negotiationId}' does not exist.`);
+  assertStaffRecruitable(saveWorld, negotiation.staffId);
   const offer = normalizeOffer(negotiation, input);
   return {
     type: STAFF_NEGOTIATION_EVENT.OFFER_SUBMITTED,
@@ -279,6 +322,7 @@ export function submitStaffContractOfferEvent(saveWorld, negotiationId, input = 
 export function acceptStaffCounterEvent(saveWorld, negotiationId) {
   const negotiation = ensureState(saveWorld).negotiations.find((row) => row.id === negotiationId);
   if (!negotiation || negotiation.status !== "countered" || !negotiation.counterTerms) throw new Error(`Staff negotiation '${negotiationId}' has no counter-offer.`);
+  assertStaffRecruitable(saveWorld, negotiation.staffId);
   return { type: STAFF_NEGOTIATION_EVENT.COUNTER_ACCEPTED, payload: { negotiation_id: negotiation.id } };
 }
 

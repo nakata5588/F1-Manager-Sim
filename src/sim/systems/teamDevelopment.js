@@ -150,7 +150,9 @@ function maybeStartAiFacilityUpgrade(saveWorld, event, teamId, source) {
   if (cash < Math.max(2_000_000, opening * 1.2)) return null;
   const projection = technicalProjection(saveWorld, teamId);
   if (projection.facilityUpgrades.some((row) => row.status === "active")) return null;
-  const candidates = projection.facilities.filter((row) => Number(row.level) < 10).sort((a, b) => Number(a.level) - Number(b.level) || a.id.localeCompare(b.id));
+  const candidates = projection.facilities
+    .filter((row) => row.availabilityStatus !== "unavailable_future_technology" && Number.isFinite(Number(row.level)) && Number(row.level) < 10)
+    .sort((a, b) => Number(a.level) - Number(b.level) || a.id.localeCompare(b.id));
   if (!candidates.length) return null;
   const rng = createRng(`${saveWorld.meta.seed}|${event.date}|facility-upgrade|${teamId}`);
   if (rng.next() > 0.04) return null;

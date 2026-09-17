@@ -35,6 +35,54 @@ const FACILITIES = Object.freeze({
   manufacturing: { label: "Manufacturing", field: "manufacturing_level", legacyField: "manufacturing_leve", discipline: "manufacturing", baseCost: 170000 },
 });
 
+function explicitFacilityAvailability(saveWorld, facilityId) {
+  const candidates = [
+    saveWorld.world?.facilityAvailability?.[facilityId],
+    saveWorld.world?.eraTechnology?.facilities?.[facilityId],
+    saveWorld.world?.technicalEra?.facilities?.[facilityId],
+  ];
+  const raw = candidates.find((value) => value !== null && value !== undefined);
+  if (raw === undefined) return null;
+  const season = Number(saveWorld.clock?.season);
+  if (typeof raw === "boolean") {
+    return { available: raw, unlockSeason: null, source: "save_world_explicit_availability" };
+  }
+  if (Number.isFinite(Number(raw))) {
+    const unlockSeason = Number(raw);
+    return { available: season >= unlockSeason, unlockSeason, source: "save_world_explicit_unlock_season" };
+  }
+  if (typeof raw !== "object") return null;
+  const unlockSeason = numeric(raw.availableFrom ?? raw.available_from ?? raw.unlockSeason ?? raw.unlock_season);
+  const explicit = raw.available ?? raw.enabled;
+  if (explicit === undefined && unlockSeason === null) return null;
+  const available = explicit === false ? false : unlockSeason !== null ? season >= unlockSeason : explicit === true;
+  return { available, unlockSeason, source: raw.source ?? "save_world_explicit_availability" };
+}
+
+export function facilityEraAvailability(saveWorld, facilityId) {
+  const explicit = explicitFacilityAvailability(saveWorld, facilityId);
+  if (explicit) {
+    return {
+      ...explicit,
+      status: explicit.available ? "available" : "unavailable_future_technology",
+    };
+  }
+  if (facilityId === "simulator") {
+    return {
+      available: false,
+      status: "unavailable_future_technology",
+      unlockSeason: null,
+      source: "derived_gameplay_era_policy_pending_future_unlock",
+    };
+  }
+  return {
+    available: true,
+    status: "available",
+    unlockSeason: null,
+    source: "era_default_available",
+  };
+}
+
 function numeric(value, fallback = null) {
   if (value === null || value === undefined || value === "") return fallback;
   const parsed = Number(value);
@@ -84,6 +132,7 @@ function nextId(team, prefix, date) {
 function normalizeLevel(value, fallback = null) {
   const parsed = numeric(value, fallback);
   if (parsed === null) return null;
+  if (parsed === 0) return 0;
   if (parsed > 0 && parsed <= 1) return clamp(parsed * 10, 1, 10);
   return clamp(parsed, 1, 10);
 }
@@ -94,27 +143,101 @@ function initializeFacilities(saveWorld, teamId) {
   for (const [id, definition] of Object.entries(FACILITIES)) {
     const raw = source[definition.field] ?? (definition.legacyField ? source[definition.legacyField] : null);
     const level = normalizeLevel(raw);
-    if (level === null) continue;
+    const availability = facilityEraAvailability(saveWorld, id);
+    if (!availability.available) {
+      facilities[id] = {
+        id,
+        label: definition.label,
+        level: null,
+        availabilityStatus: "unavailable_future_technology",
+        unlockSeason: availability.unlockSeason,
+        availabilitySource: availability.source,
+        source: "era_locked",
+        sourceField: raw === null || raw === undefined ? null : definition.field,
+        ignoredOpeningLevel: level,
+        maintenanceDeltaAnnual: 0,
+      };
+      continue;
+    }
+    if (level === null) {
+      if (id === "manufacturing") {
+        facilities[id] = {
+          id,
+          label: definition.label,
+          level: 5,
+          availabilityStatus: "operational",
+          unlockSeason: availability.unlockSeason,
+          availabilitySource: availability.source,
+          source: "derived_gameplay_baseline",
+          sourceField: null,
+          maintenanceDeltaAnnual: 0,
+        };
+      } else {
+        facilities[id] = {
+          id,
+          label: definition.label,
+          level: 0,
+          availabilityStatus: "available_unbuilt",
+          unlockSeason: availability.unlockSeason,
+          availabilitySource: availability.source,
+          source: "derived_gameplay_availability_shell",
+          sourceField: null,
+          maintenanceDeltaAnnual: 0,
+        };
+      }
+      continue;
+    }
     facilities[id] = {
       id,
       label: definition.label,
       level: round(level, 1),
+      availabilityStatus: level > 0 ? "operational" : "available_unbuilt",
+      unlockSeason: availability.unlockSeason,
+      availabilitySource: availability.source,
       source: "historical_start_input",
       sourceField: definition.field,
       maintenanceDeltaAnnual: 0,
     };
   }
-  if (!facilities.manufacturing) {
-    facilities.manufacturing = {
-      id: "manufacturing",
-      label: FACILITIES.manufacturing.label,
-      level: 5,
-      source: "derived_gameplay_baseline",
-      sourceField: null,
-      maintenanceDeltaAnnual: 0,
-    };
-  }
   return facilities;
+}
+
+function refreshFacilityAvailability(saveWorld, team) {
+  for (const [id, definition] of Object.entries(FACILITIES)) {
+    const availability = facilityEraAvailability(saveWorld, id);
+    const current = team.facilities?.[id] ?? null;
+    if (!availability.available) {
+      if (!current) {
+        team.facilities[id] = {
+          id,
+          label: definition.label,
+          level: null,
+          availabilityStatus: "unavailable_future_technology",
+          unlockSeason: availability.unlockSeason,
+          availabilitySource: availability.source,
+          source: "era_locked",
+          sourceField: null,
+          ignoredOpeningLevel: null,
+          maintenanceDeltaAnnual: 0,
+        };
+      }
+      continue;
+    }
+    if (!current || current.availabilityStatus === "unavailable_future_technology") {
+      team.facilities[id] = {
+        id,
+        label: definition.label,
+        level: id === "manufacturing" ? 5 : 0,
+        availabilityStatus: id === "manufacturing" ? "operational" : "available_unbuilt",
+        unlockSeason: availability.unlockSeason,
+        availabilitySource: availability.source,
+        source: "save_world_era_unlock",
+        sourceField: null,
+        maintenanceDeltaAnnual: 0,
+      };
+    }
+  }
+  return team.facilities;
 }
 
 function initialComponents(saveWorld, teamId) {
@@ -148,7 +271,10 @@ export function ensureTechnicalWorld(saveWorld) {
 
 export function ensureTechnicalTeam(saveWorld, teamId, date = saveWorld.clock?.date ?? null) {
   const world = ensureTechnicalWorld(saveWorld);
-  if (world.teams[teamId]) return world.teams[teamId];
+  if (world.teams[teamId]) {
+    refreshFacilityAvailability(saveWorld, world.teams[teamId]);
+    return world.teams[teamId];
+  }
   const components = initialComponents(saveWorld, teamId);
   ensureCarState(saveWorld, teamId, components, date);
   const specs = {};
@@ -234,14 +360,25 @@ function staffEfficiency(saveWorld, teamId, component) {
 }
 
 function facilityLevel(team, id, fallback = 5) {
-  return numeric(team.facilities?.[id]?.level, fallback);
+  const facility = team.facilities?.[id];
+  if (!facility || facility.availabilityStatus === "unavailable_future_technology") return fallback;
+  return numeric(facility.level, fallback);
+}
+
+function operationalFacilityLevel(team, id) {
+  const facility = team.facilities?.[id];
+  if (!facility || facility.availabilityStatus === "unavailable_future_technology") return null;
+  const level = numeric(facility.level);
+  return level !== null && level > 0 ? level : null;
 }
 
 function designFacilityEfficiency(team, component) {
-  const levels = component === "aero_spec"
-    ? [facilityLevel(team, "windTunnel"), facilityLevel(team, "aeroDepartment")]
-    : [facilityLevel(team, "chassisShop"), facilityLevel(team, "simulator")];
-  return clamp(levels.reduce((sum, level) => sum + level, 0) / levels.length / 10, 0.2, 1);
+  const ids = component === "aero_spec"
+    ? ["windTunnel", "aeroDepartment"]
+    : ["chassisShop", "simulator"];
+  const levels = ids.map((id) => operationalFacilityLevel(team, id)).filter((level) => level !== null);
+  const effective = levels.length ? levels : [5];
+  return clamp(effective.reduce((sum, level) => sum + level, 0) / effective.length / 10, 0.2, 1);
 }
 
 function fittedRating(team, carSlot, component) {
@@ -426,10 +563,15 @@ export function startFacilityUpgrade(saveWorld, teamId, facilityId) {
   const team = ensureTechnicalTeam(saveWorld, teamId);
   const facility = team.facilities?.[facilityId];
   const definition = FACILITIES[facilityId];
-  if (!facility || !definition) throw new Error(`Facility '${facilityId}' is not available for this team/era.`);
+  if (!definition) throw new Error(`Facility '${facilityId}' is not supported.`);
+  const availability = facilityEraAvailability(saveWorld, facilityId);
+  if (!availability.available || facility?.availabilityStatus === "unavailable_future_technology") {
+    throw new Error(`${definition.label} is unavailable future technology in the current era.`);
+  }
+  if (!facility) throw new Error(`Facility '${facilityId}' is not available for this team/era.`);
   if (team.facilityUpgrades.some((row) => row.facilityId === facilityId && row.status === "active")) throw new Error("This facility already has an active upgrade.");
-  if (facility.level >= 10) throw new Error("This facility is already at the maximum supported level.");
-  const fromLevel = facility.level;
+  if (numeric(facility.level, 0) >= 10) throw new Error("This facility is already at the maximum supported level.");
+  const fromLevel = Math.max(0, numeric(facility.level, 0));
   const toLevel = Math.min(10, fromLevel + 1);
   const cost = spend(saveWorld, teamId, definition.baseCost * (0.65 + fromLevel * 0.22), `${facility.label} upgrade`);
   const durationMonths = Math.max(2, Math.round(2 + fromLevel * 0.65));
@@ -447,6 +589,7 @@ export function startFacilityUpgrade(saveWorld, teamId, facilityId) {
     source: "simulation_upgrade",
   };
   team.facilityUpgrades.push(upgrade);
+  facility.availabilityStatus = "upgrading";
   ensureHistory(saveWorld).push({ date: saveWorld.clock.date, type: "facility_upgrade_started", ...structuredClone(upgrade) });
   return structuredClone(upgrade);
 }
@@ -454,6 +597,7 @@ export function startFacilityUpgrade(saveWorld, teamId, facilityId) {
 function completeFacilityUpgrade(saveWorld, team, upgrade, date) {
   const facility = team.facilities[upgrade.facilityId];
   facility.level = upgrade.toLevel;
+  facility.availabilityStatus = "operational";
   facility.source = "save_world_upgraded";
   facility.maintenanceDeltaAnnual = round(numeric(facility.maintenanceDeltaAnnual, 0) + upgrade.cost * 0.035);
   upgrade.status = "completed";
