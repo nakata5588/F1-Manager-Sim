@@ -1,3 +1,5 @@
+import { publicLabel } from "/presentation-labels.js";
+
 const app = document.querySelector("#app");
 
 async function api(path, options = {}) {
@@ -61,7 +63,7 @@ function regulationCard(proposal, controlledTeamId) {
 function entryCard(row) {
   return `
     <article class="card">
-      <div class="card-head"><h3>${escapeHtml(row.name ?? row.teamId)}</h3><span class="tag">${escapeHtml(row.status ?? "candidate")}</span></div>
+      <div class="card-head"><h3>${escapeHtml(row.name ?? row.teamId)}</h3><span class="tag">${escapeHtml(publicLabel(row.status ?? "candidate", "Candidate"))}</span></div>
       <div class="details">
         <span>Team ID</span><strong>${escapeHtml(row.teamId)}</strong>
         <span>Readiness</span><strong>${escapeHtml(row.readiness ?? "—")}</strong>
@@ -74,7 +76,7 @@ function entryCard(row) {
 function resolvedCard(row) {
   return `
     <article class="card">
-      <div class="card-head"><h3>${escapeHtml(row.title)}</h3><span class="tag">${escapeHtml(row.status)}</span></div>
+      <div class="card-head"><h3>${escapeHtml(row.title)}</h3><span class="tag">${escapeHtml(publicLabel(row.status, "Status"))}</span></div>
       <div class="details">
         <span>Target season</span><strong>${escapeHtml(row.targetSeason)}</strong>
         <span>Yes / No / Abstain</span><strong>${escapeHtml(`${row.resolution?.yes ?? 0} / ${row.resolution?.no ?? 0} / ${row.resolution?.abstain ?? 0}`)}</strong>
@@ -96,7 +98,7 @@ function render(data, error = null) {
   app.innerHTML = `
     <header class="topbar">
       <div>
-        <p class="eyebrow">Developer Playtest · ${escapeHtml(data.date)}</p>
+        <p class="eyebrow">Governance · ${escapeHtml(data.date)}</p>
         <h1>Governance & F1 World</h1>
         <p class="muted">Season ${escapeHtml(data.season)} · Historical future rules are reference inputs, never scripted outcomes.</p>
       </div>
