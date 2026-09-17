@@ -25,7 +25,7 @@ function formatSlot(row) {
 
 async function chooseLoadSlot() {
   const payload = await request("/api/saves");
-  const slots = (payload.slots ?? []).filter((row) => !row.invalid);
+  const slots = (payload.slots ?? []).filter((row) => !row.invalid && row.compatible !== false);
   if (!slots.length) throw new Error("No valid save slots are available.");
   const suggested = slots[0].slot;
   const choice = window.prompt(`Load which save slot?\n\n${slots.map(formatSlot).join("\n")}`, suggested);
