@@ -35,7 +35,7 @@ GET /media/assets/<safe-relative-path>
 GET /media/fallback/<kind>.svg
 ```
 
-`/media/assets/` is read-only and path-contained. Absolute paths, traversal outside the selected pack and unsupported file types are rejected.
+`/media/assets/` is read-only and path-contained. Absolute paths, traversal outside the selected pack, symbolic-link escapes and unsupported file types are rejected.
 
 ## Pack layout
 
@@ -116,7 +116,7 @@ Recommended source sizes:
 
 A 150x150 people pack therefore remains valid while higher-resolution packs can look sharper on modern displays.
 
-Runtime raster formats are `webp`, `png`, `jpg` and `jpeg`. Explicit SVG assets are also accepted where appropriate, while the application itself uses SVG for built-in missing-media fallbacks.
+User-provided runtime assets are deliberately limited to `webp`, `png`, `jpg` and `jpeg`. Arbitrary SVG from external packs is not served because SVG can contain active content. The application may still use its own fixed, generated SVG for built-in missing-media fallbacks.
 
 ## Lookup and fallback
 
@@ -218,6 +218,8 @@ No UI component should create its own media naming convention.
 - category default fallback;
 - malformed manifests;
 - absolute/traversal path rejection;
+- symbolic-link escape rejection;
+- external SVG rejection;
 - safe served-path containment and file-type filtering.
 
 The Media Pack tests run inside the same full `npm test` gate as simulation and long-run validation. Presentation infrastructure therefore cannot bypass core regression testing.
