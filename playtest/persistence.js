@@ -1,3 +1,5 @@
+import { CAREER_ENTRY_STORAGE_KEY } from "/main-menu-model.js";
+
 function escapeText(value) {
   return String(value ?? "").replaceAll("\n", " ").trim();
 }
@@ -83,6 +85,7 @@ async function installPersistenceDock() {
       const slot = await chooseLoadSlot();
       if (!slot) return;
       await request("/api/saves/load", { method: "POST", body: JSON.stringify({ slot }) });
+      sessionStorage.setItem(CAREER_ENTRY_STORAGE_KEY, "1");
       window.location.reload();
     } catch (error) {
       window.alert(error.message);
@@ -90,4 +93,4 @@ async function installPersistenceDock() {
   });
 }
 
-installPersistenceDock();
+if (sessionStorage.getItem(CAREER_ENTRY_STORAGE_KEY) === "1") installPersistenceDock();
