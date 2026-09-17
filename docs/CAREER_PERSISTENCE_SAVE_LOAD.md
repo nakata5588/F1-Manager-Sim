@@ -99,10 +99,11 @@ New endpoints:
 
 - `GET /api/saves` — list slots and compact metadata;
 - `POST /api/saves` — write a manual slot;
-- `POST /api/saves/load` — validate and restore a slot;
+- `POST /api/saves/load` — validate and restore a chosen slot;
+- `POST /api/saves/continue` — restore the newest compatible valid slot;
 - `POST /api/saves/delete` — delete a slot.
 
-The main playtest page adds a small SAVE / LOAD developer control. Loading refreshes the page after the server session has been restored, so existing player-facing application projections remain authoritative.
+The Main Menu now exposes the normal player-facing Continue Game and Load Game flows. Save discovery marks corrupt or Season Database-incompatible slots as unavailable. The small SAVE / LOAD developer control remains available only inside an active career. Loading refreshes the page after the server session has been restored, so existing player-facing application projections remain authoritative.
 
 ## Autosave milestones
 
