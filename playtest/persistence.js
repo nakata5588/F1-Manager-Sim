@@ -1,3 +1,5 @@
+import { CAREER_ENTRY_STORAGE_KEY } from "/main-menu-model.js";
+
 function escapeText(value) {
   return String(value ?? "").replaceAll("\n", " ").trim();
 }
@@ -23,7 +25,7 @@ function formatSlot(row) {
 
 async function chooseLoadSlot() {
   const payload = await request("/api/saves");
-  const slots = (payload.slots ?? []).filter((row) => !row.invalid);
+  const slots = (payload.slots ?? []).filter((row) => !row.invalid && row.compatible !== false);
   if (!slots.length) throw new Error("No valid save slots are available.");
   const suggested = slots[0].slot;
   const choice = window.prompt(`Load which save slot?\n\n${slots.map(formatSlot).join("\n")}`, suggested);
@@ -83,6 +85,7 @@ async function installPersistenceDock() {
       const slot = await chooseLoadSlot();
       if (!slot) return;
       await request("/api/saves/load", { method: "POST", body: JSON.stringify({ slot }) });
+      sessionStorage.setItem(CAREER_ENTRY_STORAGE_KEY, "1");
       window.location.reload();
     } catch (error) {
       window.alert(error.message);
@@ -90,4 +93,4 @@ async function installPersistenceDock() {
   });
 }
 
-installPersistenceDock();
+if (sessionStorage.getItem(CAREER_ENTRY_STORAGE_KEY) === "1") installPersistenceDock();

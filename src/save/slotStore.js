@@ -36,11 +36,16 @@ export function projectSaveSummary(saveWorld, options = {}) {
   const managerName = saveWorld.player?.manager?.name
     ?? saveWorld.world?.management?.managerCareer?.name
     ?? null;
+  const team = (saveWorld.world?.teams ?? []).find((row) =>
+    String(row?.team_id ?? row?.id ?? "") === String(controlledTeamId ?? "")
+  );
+  const teamName = team?.team_name ?? team?.display_name ?? team?.name ?? controlledTeamId ?? null;
   return {
     slot: options.slot ? normalizeSaveSlot(options.slot) : null,
     savedAt: options.savedAt ?? null,
     managerName,
     controlledTeamId,
+    teamName,
     season: Number(saveWorld.clock?.season),
     date: saveWorld.clock?.date ?? null,
     databaseVersion: saveWorld.meta?.seasonDatabase?.databaseVersion ?? null,

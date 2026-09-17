@@ -48,6 +48,7 @@ test("filesystem slot store atomically saves, lists and restores Save World", ()
 
     assert.equal(summary.slot, "manual-1");
     assert.equal(summary.managerName, "Test Manager");
+    assert.equal(summary.teamName, "Alpha");
     assert.equal(summary.liveRace.currentLap, 4);
     assert.deepEqual(readdirSync(directory), ["manual-1.json"]);
 

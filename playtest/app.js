@@ -1,4 +1,12 @@
 import { entityLink } from "/entity-links.js";
+import {
+  CAREER_ENTRY_STORAGE_KEY,
+  REDUCED_MOTION_STORAGE_KEY,
+  hasLoadableSaves,
+  latestCompatibleSaveSlot,
+  saveSlotStatus,
+  shouldResumeCareer,
+} from "/main-menu-model.js";
 
 const root = document.querySelector("#app");
 let state = null;
@@ -8,6 +16,10 @@ let errorMessage = "";
 let runSpeed = 0;
 let autoTimer = null;
 let autoAdvancing = false;
+let menuView = "menu";
+let menuSlots = [];
+let menuBusy = false;
+let menuError = "";
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -82,6 +94,215 @@ function weekendSteps(active) {
 function weekendHero(label, title, copy) {
   const weekend = state.raceWeekend;
   return `${weekendSteps(state.screen)}<section class="hero weekend-hero"><div class="eyebrow">${escapeHtml(label)}</div><h1>${escapeHtml(title)}</h1><p>${escapeHtml(copy)}</p><div class="weekend-meta"><span>Round ${weekend?.round ?? "—"}</span><span>${escapeHtml(weekend?.trackName ?? "Circuit")}</span><span>${humanDate(weekend?.date)}</span><span>${escapeHtml(weekend?.weather ?? "Weather unspecified")}</span></div></section>`;
+}
+
+function savedAtLabel(value) {
+  if (!value) return "Save time unavailable";
+  const date = new Date(value);
+  if (Number.isNaN(date.valueOf())) return String(value);
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  }).format(date);
+}
+
+function applyReducedMotionPreference() {
+  const enabled = window.localStorage.getItem(REDUCED_MOTION_STORAGE_KEY) === "1";
+  document.body.classList.toggle("f1ms-reduced-motion", enabled);
+  return enabled;
+}
+
+function saveSlotMarkup(row) {
+  const disabled = row.invalid || row.compatible === false;
+  const team = row.teamName ?? row.controlledTeamId ?? "Unknown team";
+  const manager = row.managerName ?? "Manager";
+  const season = Number.isFinite(Number(row.season)) ? row.season : "—";
+  const careerDate = row.date ? humanDate(String(row.date).slice(0, 10)) : "Unknown date";
+  return `<article class="mm-save ${disabled ? "disabled" : ""}">
+    <div>
+      <strong>${escapeHtml(manager)} · ${escapeHtml(team)}</strong>
+      <span>${escapeHtml(season)} · ${escapeHtml(careerDate)} · ${escapeHtml(saveSlotStatus(row))}</span>
+      <small>${escapeHtml(savedAtLabel(row.savedAt))}${row.slot ? ` · ${escapeHtml(row.slot)}` : ""}${disabled && row.compatibilityError ? ` · ${escapeHtml(row.compatibilityError)}` : ""}</small>
+    </div>
+    <button type="button" data-mm-load-slot="${escapeHtml(row.slot)}" ${disabled ? "disabled" : ""}>LOAD</button>
+  </article>`;
+}
+
+function menuSidePanel() {
+  if (menuView === "load") {
+    return `<section class="mm-card">
+      <div class="eyebrow">Load Game</div>
+      <h2>Choose a career save.</h2>
+      <p>Only saves compatible with the currently loaded historical Season Database can be restored.</p>
+      <div class="mm-save-list">${menuSlots.length ? menuSlots.map(saveSlotMarkup).join("") : '<div class="mm-message">No save files have been created yet.</div>'}</div>
+      <button type="button" class="mm-back" data-mm-action="back">BACK TO MAIN MENU</button>
+    </section>`;
+  }
+  if (menuView === "settings") {
+    const reducedMotion = applyReducedMotionPreference();
+    return `<section class="mm-card">
+      <div class="eyebrow">Settings</div>
+      <h2>Presentation settings.</h2>
+      <p>Game-system settings will grow here without changing simulation authority.</p>
+      <div class="mm-setting"><div><label for="mm-reduced-motion">Reduced motion</label><small>Disables non-essential UI transitions and animation.</small></div><input id="mm-reduced-motion" type="checkbox" data-mm-reduced-motion ${reducedMotion ? "checked" : ""}></div>
+      <button type="button" class="mm-back" data-mm-action="back">BACK TO MAIN MENU</button>
+    </section>`;
+  }
+  if (menuView === "exit") {
+    return `<section class="mm-card">
+      <div class="eyebrow">Exit</div>
+      <h2>Browser playtest runtime.</h2>
+      <div class="mm-message">This browser runtime cannot reliably close a tab that it did not open. Your career is autosaved by the runtime; close this tab or browser window to exit. A desktop build can bind this action to a native exit command later.</div>
+      <button type="button" class="mm-back" data-mm-action="back">BACK TO MAIN MENU</button>
+    </section>`;
+  }
+
+  const latest = latestCompatibleSaveSlot(menuSlots);
+  return latest ? `<section class="mm-card">
+    <div class="eyebrow">Latest Career</div>
+    <h2>${escapeHtml(latest.managerName ?? "Manager")} · ${escapeHtml(latest.teamName ?? latest.controlledTeamId ?? "Team")}</h2>
+    <p>${escapeHtml(latest.season ?? "—")} season · ${escapeHtml(latest.date ? humanDate(String(latest.date).slice(0, 10)) : "Unknown career date")}</p>
+    <div class="mm-message">Continue Game will restore this latest compatible save: <strong>${escapeHtml(latest.slot)}</strong> · ${escapeHtml(savedAtLabel(latest.savedAt))}.</div>
+  </section>` : `<section class="mm-card"><div class="eyebrow">Historical Career</div><h2>No career save yet.</h2><p>Start with New Game. Historical data creates the opening world; after Career Start the future belongs to the simulation.</p></section>`;
+}
+
+function renderMainMenu() {
+  stopAuto();
+  document.body.dataset.frontDoor = "main-menu";
+  const latest = latestCompatibleSaveSlot(menuSlots);
+  root.innerHTML = `<main class="main-menu-shell ${menuBusy ? "loading" : ""}">
+    <section class="mm-panel">
+      <div>
+        <div class="mm-brand"><em>F1</em> MANAGER <span>SIM</span></div>
+        <div class="mm-copy">
+          <div class="eyebrow">Historical starting conditions · Dynamic alternative future</div>
+          <h1>Write a different Formula One history.</h1>
+          <p>Choose a real historical starting point, take control of a team and let an autonomous Formula One world evolve around your decisions.</p>
+          <div class="mm-actions">
+            <button type="button" class="mm-action primary" data-mm-action="new"><span>New Game</span><small>Start a new career</small></button>
+            <button type="button" class="mm-action" data-mm-action="continue" ${latest ? "" : "disabled"}><span>Continue Game</span><small>${latest ? `${escapeHtml(latest.managerName ?? "Manager")} · ${escapeHtml(latest.teamName ?? latest.controlledTeamId ?? "Team")}` : "No compatible save"}</small></button>
+            <button type="button" class="mm-action" data-mm-action="load" ${menuSlots.length ? "" : "disabled"}><span>Load Game</span><small>${menuSlots.length ? `${menuSlots.length} save file${menuSlots.length === 1 ? "" : "s"}` : "No saves found"}</small></button>
+            <button type="button" class="mm-action" data-mm-action="settings"><span>Settings</span><small>Presentation preferences</small></button>
+            <button type="button" class="mm-action" data-mm-action="exit"><span>Exit</span><small>Runtime-aware exit</small></button>
+          </div>
+          ${menuError ? `<div class="mm-error">${escapeHtml(menuError)}</div>` : ""}
+        </div>
+      </div>
+      <div class="mm-foot"><span>Developer Playable Validation</span><span>${hasLoadableSaves(menuSlots) ? "Compatible career save detected" : "Ready for New Game"}</span></div>
+    </section>
+    <aside class="mm-side">${menuSidePanel()}</aside>
+  </main>`;
+}
+
+async function refreshMenuSlots() {
+  const payload = await api("/api/saves");
+  menuSlots = payload.slots ?? [];
+  return menuSlots;
+}
+
+async function openNewGameWizard() {
+  menuBusy = true;
+  menuError = "";
+  renderMainMenu();
+  try {
+    const setup = await api("/api/setup");
+    sessionStorage.removeItem(CAREER_ENTRY_STORAGE_KEY);
+    document.body.dataset.frontDoor = "new-game";
+    state = { screen: "new_career", setup };
+    menuBusy = false;
+    render();
+  } catch (error) {
+    menuBusy = false;
+    menuError = error.message;
+    renderMainMenu();
+  }
+}
+
+async function loadCareerSlot(slot) {
+  if (!slot || menuBusy) return;
+  menuBusy = true;
+  menuError = "";
+  renderMainMenu();
+  try {
+    await api("/api/saves/load", { method: "POST", body: JSON.stringify({ slot }) });
+    sessionStorage.setItem(CAREER_ENTRY_STORAGE_KEY, "1");
+    window.location.reload();
+  } catch (error) {
+    menuBusy = false;
+    menuError = error.message;
+    await refreshMenuSlots().catch(() => {});
+    renderMainMenu();
+  }
+}
+
+async function continueLatestCareer() {
+  if (menuBusy) return;
+  menuBusy = true;
+  menuError = "";
+  renderMainMenu();
+  try {
+    await api("/api/saves/continue", { method: "POST", body: "{}" });
+    sessionStorage.setItem(CAREER_ENTRY_STORAGE_KEY, "1");
+    window.location.reload();
+  } catch (error) {
+    menuBusy = false;
+    menuError = error.message;
+    await refreshMenuSlots().catch(() => {});
+    renderMainMenu();
+  }
+}
+
+async function handleMenuAction(actionName) {
+  if (!actionName || menuBusy) return;
+  if (actionName === "new") return openNewGameWizard();
+  if (actionName === "continue") return continueLatestCareer();
+  if (actionName === "load") {
+    menuView = "load";
+    menuError = "";
+    renderMainMenu();
+    return;
+  }
+  if (actionName === "settings") {
+    menuView = "settings";
+    menuError = "";
+    renderMainMenu();
+    return;
+  }
+  if (actionName === "back") {
+    menuView = "menu";
+    menuError = "";
+    renderMainMenu();
+    return;
+  }
+  if (actionName === "exit") {
+    if (window.f1ManagerRuntime?.exit instanceof Function) {
+      await window.f1ManagerRuntime.exit();
+      return;
+    }
+    menuView = "exit";
+    menuError = "";
+    renderMainMenu();
+  }
+}
+
+async function bootstrap() {
+  applyReducedMotionPreference();
+  try {
+    const current = await api("/api/state");
+    if (shouldResumeCareer(sessionStorage.getItem(CAREER_ENTRY_STORAGE_KEY), current)) {
+      document.body.dataset.frontDoor = "career";
+      state = current;
+      render();
+      return;
+    }
+    sessionStorage.removeItem(CAREER_ENTRY_STORAGE_KEY);
+    state = current;
+    await refreshMenuSlots();
+    renderMainMenu();
+  } catch (error) {
+    menuError = error.message;
+    renderMainMenu();
+  }
 }
 
 function renderSetup() {
@@ -250,6 +471,11 @@ async function action(fn) {
 }
 
 root.addEventListener("input", (event) => {
+  if (event.target.matches("[data-mm-reduced-motion]")) {
+    window.localStorage.setItem(REDUCED_MOTION_STORAGE_KEY, event.target.checked ? "1" : "0");
+    applyReducedMotionPreference();
+    return;
+  }
   if (event.target.matches('input[type="range"]')) {
     const label = event.target.closest(".slider");
     const value = label?.querySelector(`[data-value-for="${event.target.name}"]`);
@@ -258,6 +484,21 @@ root.addEventListener("input", (event) => {
 });
 
 root.addEventListener("click", (event) => {
+  const menuAction = event.target.closest("[data-mm-action]")?.dataset.mmAction;
+  if (menuAction) {
+    handleMenuAction(menuAction).catch((error) => {
+      menuBusy = false;
+      menuError = error.message;
+      renderMainMenu();
+    });
+    return;
+  }
+  const loadSlot = event.target.closest("[data-mm-load-slot]")?.dataset.mmLoadSlot;
+  if (loadSlot) {
+    loadCareerSlot(loadSlot);
+    return;
+  }
+
   const team = event.target.closest("[data-team]");
   if (team) {
     selectedTeam = team.dataset.team;
@@ -307,4 +548,4 @@ root.addEventListener("click", (event) => {
   if (laps) action(() => api("/api/race/advance", { method: "POST", body: JSON.stringify({ laps: Number(laps) }) }));
 });
 
-action(() => api("/api/state"));
+bootstrap();

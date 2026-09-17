@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Phase 46 turns the Developer Playtest bootstrap into an explicit game-facing New Game path:
+Phase 46 introduced the explicit game-facing New Game wizard. The Playable Validation front door now places that wizard behind the Main Menu:
 
-`New Game -> Database -> Decade -> Season -> Team -> Manager -> Career`
+`Launch -> Main Menu -> New Game -> Database -> Decade -> Season -> Team -> Manager -> Career`
 
 The flow is presentation/orchestration only. It does not create a second historical database model and it does not move simulation authority into the browser.
 
@@ -61,9 +61,10 @@ The same helper already accepts an explicit multi-database catalog shape for lat
 Phase 45 Save / Load remains independent of New Game.
 
 - New Game creates a fresh Save World.
-- Load restores an existing Save World through the provenance compatibility gate.
-- The fixed persistence dock remains available on the New Game screen for loading an existing career.
-- Manual Save stays disabled until a career exists.
+- Continue Game restores the most recently saved slot that passes the current Season Database compatibility gate.
+- Load Game lists save slots at the Main Menu and disables corrupt or incompatible saves.
+- The fixed developer SAVE / LOAD dock is career-only and is not shown on the Main Menu or New Game wizard.
+- Manual Save remains available only after a career is active.
 
 ## Current UI stages
 

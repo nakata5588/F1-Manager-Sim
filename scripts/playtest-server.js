@@ -6,7 +6,7 @@ import { dirname, extname, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
 import { DeveloperPlaytestSession } from "../src/app/developerPlaytest.js";
-import { restoreDeveloperPlaytestSession } from "../src/app/developerPersistence.js";
+import { restoreDeveloperPlaytestSession, validateDeveloperSaveCompatibility } from "../src/app/developerPersistence.js";
 import { AUTOSAVE_SLOT, FileSaveSlotStore } from "../src/save/slotStore.js";
 import {
   developerApplyManagerJob,
@@ -207,6 +207,37 @@ function autosavedJson(response, payload) {
   return json(response, 200, payload);
 }
 
+function projectedSaveSlots() {
+  return saveStore.list().map((row) => {
+    if (row.invalid) return { ...row, compatible: false, compatibilityError: "Invalid save file." };
+    try {
+      const loaded = saveStore.load(row.slot);
+      validateDeveloperSaveCompatibility(session, loaded.saveWorld);
+      return { ...row, compatible: true };
+    } catch (error) {
+      return {
+        ...row,
+        compatible: false,
+        compatibilityError: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+}
+
+function loadSaveSlot(slot) {
+  const loaded = saveStore.load(slot);
+  validateDeveloperSaveCompatibility(session, loaded.saveWorld);
+  const state = restoreDeveloperPlaytestSession(session, loaded.saveWorld);
+  syncManagerControl();
+  return { save: loaded.summary, slots: projectedSaveSlots(), state };
+}
+
+function continueLatestSave() {
+  const latest = projectedSaveSlots().find((row) => !row.invalid && row.compatible);
+  if (!latest) throw new Error("No compatible save is available to continue.");
+  return loadSaveSlot(latest.slot);
+}
+
 function profileWithResolvedMedia(profile) {
   const kind = profile.media?.category ?? (profile.type === "team" ? "teamLogo" : profile.type);
   const projected = { ...profile, media: resolveMediaAsset(mediaPack, kind, profile.id) };
@@ -259,24 +290,24 @@ const server = createServer(async (request, response) => {
       return json(response, 200, session.state());
     }
     if (url.pathname === "/api/saves" && request.method === "GET") {
-      return json(response, 200, { slots: saveStore.list() });
+      return json(response, 200, { slots: projectedSaveSlots() });
     }
     if (url.pathname === "/api/saves" && request.method === "POST") {
       const input = await body(request);
       const summary = saveStore.save(input.slot ?? "manual-1", session.requireCareer());
-      return json(response, 200, { save: summary, slots: saveStore.list(), state: session.state() });
+      return json(response, 200, { save: summary, slots: projectedSaveSlots(), state: session.state() });
     }
     if (url.pathname === "/api/saves/load" && request.method === "POST") {
       const input = await body(request);
-      const loaded = saveStore.load(input.slot);
-      const state = restoreDeveloperPlaytestSession(session, loaded.saveWorld);
-      syncManagerControl();
-      return json(response, 200, { save: loaded.summary, slots: saveStore.list(), state });
+      return json(response, 200, loadSaveSlot(input.slot));
+    }
+    if (url.pathname === "/api/saves/continue" && request.method === "POST") {
+      return json(response, 200, continueLatestSave());
     }
     if (url.pathname === "/api/saves/delete" && request.method === "POST") {
       const input = await body(request);
       const deleted = saveStore.delete(input.slot);
-      return json(response, 200, { deleted, slots: saveStore.list() });
+      return json(response, 200, { deleted, slots: projectedSaveSlots() });
     }
     if (url.pathname === "/api/profile" && request.method === "GET") {
       return json(response, 200, profileWithResolvedMedia(developerEntityProfile(session, url.searchParams.get("type"), url.searchParams.get("id"))));

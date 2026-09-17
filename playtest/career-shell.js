@@ -1,4 +1,5 @@
 import { entityLink } from "/entity-links.js";
+import { CAREER_ENTRY_STORAGE_KEY } from "/main-menu-model.js";
 import {
   activeCareerNavId,
   buildCareerNavigation,
@@ -216,6 +217,7 @@ function installDeepLinks() {
 }
 
 async function installCareerShell() {
+  if (sessionStorage.getItem(CAREER_ENTRY_STORAGE_KEY) !== "1") return;
   shellState = await request("/api/state");
   if (shellState.screen === "new_career") {
     if (window.location.pathname !== "/") window.location.replace("/");
