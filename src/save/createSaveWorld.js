@@ -1,5 +1,9 @@
 import { extractDatabaseReferenceContext } from "../data/databaseManagementMaterializer.js";
 import {
+  applyDatabaseOpeningState,
+  extractDatabaseAuditReferenceContext,
+} from "../data/databaseOpeningState.js";
+import {
   extractTechnicalReferenceContext,
   initializeTechnicalStartingState,
 } from "../data/databaseTechnicalMaterializer.js";
@@ -23,12 +27,18 @@ export function createSaveWorld(historicalSnapshot, options = {}) {
   const databasePolicy = structuredClone(clonedSnapshot.databasePolicy ?? null);
   const startDate = options.startDate ?? `${historicalSnapshot.season}-01-01`;
 
+  // Database opening baselines must become active starting state before any
+  // simulation system sees the career. This is where season-scoped finance,
+  // period-correct circuit geometry and derived track/weather seeds are applied.
+  const openingState = applyDatabaseOpeningState(clonedSnapshot);
+
   // Database technical rows are immutable starting/reference inputs. Materialize
   // the mutable fitted-car state before moving those source rows out of world.
   initializeTechnicalStartingState(clonedSnapshot, startDate);
   const databaseContext = {
     ...extractDatabaseReferenceContext(clonedSnapshot),
     ...extractTechnicalReferenceContext(clonedSnapshot),
+    ...extractDatabaseAuditReferenceContext(clonedSnapshot),
   };
   const hasDatabaseContext = Object.keys(databaseContext).length > 0;
 
@@ -48,6 +58,7 @@ export function createSaveWorld(historicalSnapshot, options = {}) {
         databaseVersion: historicalSnapshot.databaseVersion ?? null,
         sourceChecksum: historicalSnapshot.sourceChecksum ?? null,
       },
+      databaseOpeningState: openingState,
       databasePolicy,
       seed: String(options.seed ?? `${historicalSnapshot.season}-default`),
       createdAt: options.createdAt ?? new Date().toISOString(),
