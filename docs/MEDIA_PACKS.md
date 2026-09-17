@@ -1,19 +1,43 @@
 # Media Packs
 
-F1 Manager Sim uses local **media packs** for presentation assets. Media is not simulation authority and must remain separate from the immutable Historical World Database and evolving Save World.
+F1 Manager Sim uses local **media packs** for presentation assets. Media is not simulation authority and remains separate from both the immutable Historical World Database and the evolving Save World.
 
-The design deliberately borrows the useful idea from TEW-style picture packs: a database/save references stable entity identities while the selected media pack resolves those identities to local image files.
+The useful design principle is the same as a classic picture-pack system: databases and saves keep stable entity identities while the selected media pack resolves those identities to local presentation files.
 
 ## Principles
 
-- Stable entity IDs are the lookup key. Renaming a driver/team does not break its image.
+- Stable entity IDs are the lookup key. Renaming or rebranding an entity does not break its media.
 - A career can switch media packs without changing simulation state.
-- Missing images never block a career; category-specific defaults are used.
-- Images are presentation-only. They never determine ratings, identity, availability or simulation behaviour.
-- The repository must not silently redistribute copyrighted imagery. Each distributable asset should have source/license/provenance metadata where applicable.
-- User/mod media packs may contain their own assets without modifying the historical database.
+- Missing images never block a career.
+- Media never determines ratings, identity, availability, performance or simulation behaviour.
+- The repository must not silently redistribute copyrighted imagery. Historical/distributable assets need appropriate source, licence and provenance handling.
+- User/mod packs may provide their own assets without changing historical data or saves.
+- Filesystem paths stay inside the server-side resolver. Browser/API projections receive URLs, not absolute operating-system paths.
 
-## Proposed pack layout
+## Runtime status
+
+The developer playtest has a runtime Media Pack resolver in `src/media/mediaPack.js`.
+
+The playtest server selects the bundled default pack unless another pack is passed explicitly:
+
+```text
+npm run playtest -- <season-db> --global-world <global-db> --media-pack ./media-packs/my-pack
+```
+
+A user-selected pack must contain a valid `manifest.json`. The bundled default pack is intentionally allowed to contain no historical images yet: unresolved entities fall back to application-generated SVG placeholders.
+
+The server exposes presentation-only endpoints:
+
+```text
+GET /api/media-pack
+GET /api/media/resolve?kind=driver&id=d_0001
+GET /media/assets/<safe-relative-path>
+GET /media/fallback/<kind>.svg
+```
+
+`/media/assets/` is read-only and path-contained. Absolute paths, traversal outside the selected pack and unsupported file types are rejected.
+
+## Pack layout
 
 ```text
 media-packs/
@@ -40,21 +64,43 @@ media-packs/
     defaults/
 ```
 
-The physical filename should normally use the canonical stable ID rather than a display name, for example:
+The physical filename should normally use the canonical stable ID rather than a display name:
 
 ```text
 people/drivers/d_0001.webp
 people/staff/s_0042.webp
 teams/logos/t_0007.webp
+teams/cars/t_0007.webp
 circuits/maps/tr_0012.webp
 sponsors/sp_0020.webp
 ```
 
-A manifest may override filenames or provide aliases when an external pack uses another naming convention.
+## Supported media kinds
+
+The resolver currently understands these categories:
+
+```text
+driver
+staff
+manager
+teamLogo
+car
+teamBackdrop
+circuit
+circuitMap
+city
+flag
+sponsor
+engine
+tyre
+championship
+```
+
+This category list is presentation infrastructure. Adding an image category does not add any game mechanic or simulation authority.
 
 ## Image sizes
 
-The resolver must not require one exact source resolution. The UI is responsible for sizing/cropping.
+The resolver does not require one exact source resolution. UI components are responsible for sizing and cropping.
 
 Recommended source sizes:
 
@@ -68,36 +114,36 @@ Recommended source sizes:
 | Car image | 600x300 | 1200x600 | landscape / transparent preferred |
 | Country flag | 64x40 | 128x80 | landscape |
 
-A TEW-style 150x150 people pack therefore remains valid, while higher-resolution packs can look sharper on modern displays.
+A 150x150 people pack therefore remains valid while higher-resolution packs can look sharper on modern displays.
 
-Supported runtime formats should include at least `webp`, `png`, `jpg` and `jpeg`. Resolution order may prefer WebP/PNG before JPEG when multiple files exist.
+Runtime raster formats are `webp`, `png`, `jpg` and `jpeg`. Explicit SVG assets are also accepted where appropriate, while the application itself uses SVG for built-in missing-media fallbacks.
 
 ## Lookup and fallback
 
-For an entity `d_0001`, the resolver should:
+For an entity such as `d_0001`, resolution is deterministic:
 
-1. check a manifest override;
-2. check the canonical category path by stable ID and supported extensions;
-3. optionally check configured aliases;
-4. use the selected pack's category default;
-5. use the built-in application fallback.
+1. manifest override;
+2. canonical category path by stable ID, following the manifest extension order;
+3. selected pack category default, if that file actually exists;
+4. built-in application SVG fallback.
 
-Example:
+Example canonical search:
 
 ```text
 people/drivers/d_0001.webp
 people/drivers/d_0001.png
 people/drivers/d_0001.jpg
-defaults/driver.webp
 ```
 
-Generated drivers do not need Historical Database media rows. They can use a generated-person fallback or Save World-created portrait reference later.
+A missing path written in a manifest is not treated as an asset. Resolution continues safely to the next fallback.
 
-## Pack manifest
+Generated drivers do not need Historical Database media rows. They can use the same fallback system now and a Save World-created portrait reference in a future generated-media layer.
 
-Each pack contains a small `manifest.json` describing the pack rather than embedding image paths throughout the databases.
+## Manifest
 
-Suggested fields:
+Every selected external pack contains `manifest.json`.
+
+Example:
 
 ```json
 {
@@ -113,16 +159,23 @@ Suggested fields:
     "driver": "defaults/driver.webp",
     "staff": "defaults/staff.webp",
     "teamLogo": "defaults/team-logo.webp",
+    "car": "defaults/car.webp",
     "circuit": "defaults/circuit.webp",
-    "sponsor": "defaults/sponsor.webp"
+    "circuitMap": "defaults/circuit-map.webp"
   },
-  "overrides": {}
+  "overrides": {
+    "driver": {
+      "d_0001": "custom/drivers/d_0001-special.webp"
+    }
+  }
 }
 ```
 
-## Database relationship
+Overrides may also use the flat `kind:entityId` form. All manifest paths are validated as paths relative to the pack.
 
-The Global/Season Database should not carry absolute filesystem paths. At most it may contain a presentation hint such as `media_key`, but canonical entity ID lookup is preferred.
+## Database and Save World relationship
+
+The Global/Season Database must not carry absolute filesystem paths. At most it may contain presentation hints such as team colours or template keys with explicit provenance; canonical stable-ID lookup is preferred for media files.
 
 Example:
 
@@ -131,32 +184,40 @@ driver_id = d_0001
 media resolver -> people/drivers/d_0001.webp
 ```
 
-This preserves the architectural boundary:
-
-`Historical/Save World identity -> Media Resolver -> Selected Media Pack -> UI`
-
-## Playtest server
-
-The local playtest server should eventually support a selected pack, for example:
+The architecture remains:
 
 ```text
-npm run playtest -- <season-db> --global-world <global-db> --media-pack ./media-packs/my-pack
+Historical/Save World identity
+          ↓
+Presentation projection
+          ↓
+Media resolver
+          ↓
+Selected Media Pack
+          ↓
+UI
 ```
 
-The server can expose resolved files under a safe read-only route such as `/media/...`. The media root must be path-contained so arbitrary local files cannot be served.
+Changing the final two layers cannot change the simulated world.
 
 ## Profiles and UI
 
-The same resolver should be used everywhere. A driver portrait shown on Career Home, Drivers, qualifying, race timing or the full profile must resolve from the same entity ID.
+Entity profiles now consume resolver output rather than inventing independent image paths. Driver/staff profiles can show the resolved portrait; team profiles can show the resolved logo and car slot.
 
-Clickable entity profiles can therefore display:
+The same resolver should progressively be reused by Career Home, Drivers, Staff, qualifying, race timing, championship pages, F1 World and the future circuit/race-map renderer.
 
-- portrait or logo;
-- identity/current team;
-- current Save World status;
-- attributes/knowledge appropriate to the viewer;
-- career/history information;
-- relationships/contracts where permitted;
-- contextual images such as team logo or circuit map.
+No UI component should create its own media naming convention.
 
-No UI component should hardcode its own independent image filename rules.
+## Tests
+
+`tests/mediaPack.test.js` validates:
+
+- no-pack fallback;
+- stable-ID canonical lookup;
+- manifest override precedence;
+- category default fallback;
+- malformed manifests;
+- absolute/traversal path rejection;
+- safe served-path containment and file-type filtering.
+
+The Media Pack tests run inside the same full `npm test` gate as simulation and long-run validation. Presentation infrastructure therefore cannot bypass core regression testing.
