@@ -1,0 +1,42 @@
+name: One-off entity profile integration
+
+on:
+  push:
+    branches: [playtest-entity-profiles]
+
+permissions:
+  contents: write
+
+jobs:
+  integrate-and-test:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: playtest-entity-profiles
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Apply entity profile integration
+        run: python scripts/oneoff-entity-profiles.py
+      - name: Run simulation tests
+        run: npm test
+      - name: Run database tooling tests
+        run: python -m unittest discover -s tools/db/tests -v
+      - name: Commit integration and remove one-off tooling
+        run: |
+          rm scripts/oneoff-entity-profiles.py
+          rm .github/workflows/oneoff-entity-profiles.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Finish entity profile integration"
+          git push origin HEAD:playtest-entity-profiles
