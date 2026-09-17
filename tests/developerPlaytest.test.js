@@ -80,6 +80,22 @@ test("developer playtest lists Season Database teams without exposing hidden poo
   assert.deepEqual(listDeveloperPlaytestTeams(payload).map((row) => row.id), ["T1", "T2"]);
 });
 
+test("developer setup projects public database metadata without mutating source identity", () => {
+  const payload = seasonDatabase();
+  payload.databaseVersion = "v1.2.16-1980-canonical-closure-audit-consistency-candidate";
+  payload.releaseName = "F1_Manager_Sim_SeasonDefinition_1980_v1.2.16_1980_canonical_closure_audit_consistency_candidate";
+  payload.snapshot.databaseVersion = payload.databaseVersion;
+  const session = new DeveloperPlaytestSession(payload);
+  const setup = session.setup();
+
+  assert.equal(setup.databaseVersion, payload.databaseVersion);
+  assert.equal(setup.releaseName, payload.releaseName);
+  assert.equal(setup.presentation.databaseName, "Official Historical Database");
+  assert.equal(setup.presentation.seasonName, "1980 Formula One World Championship");
+  assert.equal(setup.presentation.versionLabel, "v1.2.16");
+  assert.doesNotMatch(JSON.stringify(setup.presentation), /canonical|closure|audit|candidate|SeasonDefinition/i);
+});
+
 test("interactive weekend runs Practice -> setup -> Qualifying -> Pre-Race -> live Race -> Results", () => {
   const session = new DeveloperPlaytestSession(seasonDatabase());
   assert.equal(session.state().screen, "new_career");
