@@ -16,7 +16,7 @@ async function text(relative) {
   return readFile(new URL(relative, ROOT), "utf8");
 }
 
-test("v1.2.12 remains a pinned cumulative 1980 candidate after v1.2.15 integration", async () => {
+test("v1.2.12 remains a pinned cumulative 1980 candidate after v1.2.16 integration", async () => {
   const baseline = await json("baseline.json");
   const latest = JSON.parse(await readFile(LATEST_URL, "utf8"));
 
@@ -25,7 +25,7 @@ test("v1.2.12 remains a pinned cumulative 1980 candidate after v1.2.15 integrati
   assert.equal(baseline.bundle.baseArtifact, "v1.2.11-1980-calendar-circuits-weather-recovery-candidate");
   assert.equal(baseline.validation.cumulativeV1211Preserved, "PASS");
   assert.notEqual(latest.latestCandidate, baseline.globalDatabase.databaseVersion);
-  assert.equal(latest.latestCandidate, "v1.2.15-1980-historical-source-enrichment-candidate");
+  assert.equal(latest.latestCandidate, "v1.2.16-1980-canonical-closure-audit-consistency-candidate");
   assert.equal(latest.currentPromotedCanonical, "v1.2.5-1980-technical-source-lock-candidate");
 });
 

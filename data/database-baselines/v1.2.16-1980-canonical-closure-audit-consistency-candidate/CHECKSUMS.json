@@ -1,0 +1,25 @@
+{
+  "releaseName": "F1_Manager_Sim_Database_Rebuild_v1.2.16_1980_canonical_closure_audit_consistency_candidate",
+  "databaseVersion": "v1.2.16-1980-canonical-closure-audit-consistency-candidate",
+  "candidateRevision": "canonical_closure_audit_consistency_r1",
+  "receivedBundle": {
+    "filename": "F1_Manager_Sim_Database_Rebuild_v1.2.16_1980_canonical_closure_audit_consistency_candidate_Bundle.zip",
+    "sha256": "81866f02b6aa26e89c99af8431061ef956d2fc602cd0d60c09db92d40c179f3b",
+    "authoritativeSelfHashInsideZip": false
+  },
+  "verification": {
+    "declaredPayloadChecksums": 22,
+    "verifiedPayloadChecksums": 22,
+    "status": "PASS_22_OF_22",
+    "materializedPromotionEvidence": "PASS_46_OF_46"
+  },
+  "majorArtifacts": {
+    "globalJson": {"sha256": "a2d43b40f05e937dd47f42c163af4aaf6edd0c416c939ccd981cb1438f5999e1", "bytes": 26304076},
+    "season1980Json": {"sha256": "28363504c23ad44bb83976cdae643804e5a4fd661984edf5da2b18f57f92ff0d", "bytes": 15108502},
+    "globalSqlite": {"sha256": "abce8b9fc800c3ef0c034d2b2d834beb0b7c449fadd2f3da0c326130e0e6c75c", "bytes": 21581824, "integrity": "ok", "foreignKeyViolations": 0},
+    "season1980Sqlite": {"sha256": "4d7224f9737d3d7248bbfc26c29482d18d3bef14e88623cef7934a99b8539a70", "bytes": 10633216, "integrity": "ok", "foreignKeyViolations": 0},
+    "editorXlsx": {"sha256": "f40baf864029c16d97436754f9cb8bc754b7031f56974b6bf09ba994114bb516", "bytes": 47195},
+    "suppliedBaseline": {"sha256": "db7c495211352450cd0029f058032be02a3b4c53eb3c7b84cf713d672c6cbf5e", "bytes": 1679},
+    "suppliedReport": {"sha256": "9276f00e3987bd5ff505ff05e16e981f1d7c2e94ca95fdea3cec61588412d585", "bytes": 3450}
+  }
+}

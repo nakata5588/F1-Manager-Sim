@@ -17,7 +17,7 @@ async function text(relative) {
   return readFile(new URL(relative, ROOT), "utf8");
 }
 
-test("v1.2.15 corrective r3 is latest cumulative 1980 candidate without canonical promotion", async () => {
+test("v1.2.15 corrective r3 remains pinned after v1.2.16 integration", async () => {
   const baseline = await json("baseline.json");
   const latest = JSON.parse(await readFile(LATEST_URL, "utf8"));
 
@@ -25,7 +25,8 @@ test("v1.2.15 corrective r3 is latest cumulative 1980 candidate without canonica
   assert.equal(baseline.canonical, false);
   assert.equal(baseline.promotion.readyForDevelopmentCandidateIntegration, true);
   assert.equal(baseline.promotion.promotedCanonicalInThisRelease, false);
-  assert.equal(latest.latestCandidate, baseline.databaseVersion);
+  assert.notEqual(latest.latestCandidate, baseline.databaseVersion);
+  assert.equal(latest.latestCandidate, "v1.2.16-1980-canonical-closure-audit-consistency-candidate");
   assert.equal(latest.currentPromotedCanonical, "v1.2.5-1980-technical-source-lock-candidate");
   assert.equal(latest.canonical, false);
 });
