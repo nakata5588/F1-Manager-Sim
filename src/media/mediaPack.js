@@ -1,10 +1,12 @@
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { extname, isAbsolute, posix, resolve, sep } from "node:path";
 
 export const MEDIA_PACK_FORMAT = "f1-manager-sim-media-pack";
 export const MEDIA_PACK_SCHEMA_VERSION = 1;
 
-const ALLOWED_EXTENSIONS = new Set(["webp", "png", "jpg", "jpeg", "svg"]);
+// User-provided packs are deliberately raster-only. Built-in application
+// fallbacks may use generated SVG because their content is controlled by us.
+const ALLOWED_EXTENSIONS = new Set(["webp", "png", "jpg", "jpeg"]);
 
 export const MEDIA_KINDS = Object.freeze({
   driver: { directory: "people/drivers", defaultKey: "driver" },
@@ -39,10 +41,12 @@ function safeRelativePath(value, label = "media path") {
 function containedPath(root, relativePath, label = "media path") {
   const candidate = resolve(root, relativePath);
   const normalizedRoot = resolve(root);
-  if (candidate !== normalizedRoot && !candidate.startsWith(`${normalizedRoot}${sep}`)) {
-    throw new Error(`${label} escapes the media pack.`);
-  }
+  if (!isContained(normalizedRoot, candidate)) throw new Error(`${label} escapes the media pack.`);
   return candidate;
+}
+
+function isContained(root, candidate) {
+  return candidate === root || candidate.startsWith(`${root}${sep}`);
 }
 
 function fileExists(path) {
@@ -50,6 +54,19 @@ function fileExists(path) {
     return existsSync(path) && statSync(path).isFile();
   } catch {
     return false;
+  }
+}
+
+function realFileInsidePack(pack, path) {
+  try {
+    const realPackRoot = realpathSync(pack.rootDirectory);
+    const realAssetRoot = realpathSync(pack.assetRoot);
+    if (!isContained(realPackRoot, realAssetRoot)) return null;
+    const realPath = realpathSync(path);
+    if (!isContained(realAssetRoot, realPath)) return null;
+    return realPath;
+  } catch {
+    return null;
   }
 }
 
@@ -124,6 +141,15 @@ export function loadMediaPack(rootDirectory, { required = false } = {}) {
     };
   }
 
+  try {
+    const realRoot = realpathSync(root);
+    const realManifest = realpathSync(manifestPath);
+    if (!isContained(realRoot, realManifest)) throw new Error("Media pack manifest escapes the selected pack through a symbolic link.");
+  } catch (error) {
+    if (error instanceof Error && /symbolic link/.test(error.message)) throw error;
+    throw new Error(`Media pack manifest cannot be safely resolved: ${error instanceof Error ? error.message : String(error)}`);
+  }
+
   let manifest;
   try {
     manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
@@ -132,6 +158,20 @@ export function loadMediaPack(rootDirectory, { required = false } = {}) {
   }
   const validated = validateManifest(manifest);
   const assetRoot = validated.assetRoot === "." ? root : containedPath(root, validated.assetRoot, "manifest assetRoot");
+
+  if (existsSync(assetRoot)) {
+    try {
+      const realRoot = realpathSync(root);
+      const realAssetRoot = realpathSync(assetRoot);
+      if (!isContained(realRoot, realAssetRoot)) {
+        throw new Error("Media pack assetRoot escapes the selected pack through a symbolic link.");
+      }
+    } catch (error) {
+      if (error instanceof Error && /symbolic link/.test(error.message)) throw error;
+      throw new Error(`Media pack assetRoot cannot be safely resolved: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
   return {
     available: true,
     rootDirectory: root,
@@ -164,8 +204,10 @@ function usableAsset(pack, relativePath) {
   const path = containedPath(pack.assetRoot, safe);
   if (!fileExists(path)) return null;
   const extension = extname(path).slice(1).toLowerCase();
-  if (!pack.extensions.includes(extension) && extension !== "svg") return null;
-  return { relativePath: safe, path, extension };
+  if (!pack.extensions.includes(extension)) return null;
+  const realPath = realFileInsidePack(pack, path);
+  if (!realPath) return null;
+  return { relativePath: safe, path: realPath, extension };
 }
 
 function safeEntityStem(entityId) {
@@ -239,8 +281,10 @@ export function resolveServedMediaPath(pack, requestRelativePath) {
   const path = containedPath(pack.assetRoot, safe, "requested media path");
   if (!fileExists(path)) return null;
   const extension = extname(path).slice(1).toLowerCase();
-  if (!pack.extensions.includes(extension) && extension !== "svg") return null;
-  return { path, relativePath: safe, extension };
+  if (!pack.extensions.includes(extension)) return null;
+  const realPath = realFileInsidePack(pack, path);
+  if (!realPath) return null;
+  return { path: realPath, relativePath: safe, extension };
 }
 
 export function mediaContentType(extensionValue) {
@@ -248,7 +292,6 @@ export function mediaContentType(extensionValue) {
   if (extension === "webp") return "image/webp";
   if (extension === "png") return "image/png";
   if (extension === "jpg" || extension === "jpeg") return "image/jpeg";
-  if (extension === "svg") return "image/svg+xml; charset=utf-8";
   return "application/octet-stream";
 }
 
