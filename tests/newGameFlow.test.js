@@ -10,6 +10,10 @@ import {
 
 const legacySetup1980 = {
   season: 1980,
+  managerBackgrounds: [
+    { id: "team_management", label: "Team Management", description: "Team leadership experience." },
+    { id: "newcomer", label: "New to Formula One", description: "Fresh management career." },
+  ],
   databaseVersion: "v1.2.16-1980-canonical-closure-audit-consistency-candidate",
   releaseName: "F1_Manager_Sim_SeasonDefinition_1980_v1.2.16_1980_canonical_closure_audit_consistency_candidate",
   teams: [
@@ -146,6 +150,9 @@ test("final New Game selection validates database, decade, season, team and mana
   const selection = defaultNewGameSelection(catalog);
   selection.teamId = "t_0001";
   selection.managerName = "Ricardo Nakata";
+  selection.managerNationality = "Portuguese";
+  selection.managerDateOfBirth = "1950-06-15";
+  selection.managerBackground = "team_management";
 
   const result = validateNewGameSelection(catalog, selection);
   assert.equal(result.season, 1980);
@@ -155,8 +162,17 @@ test("final New Game selection validates database, decade, season, team and mana
   assert.equal(result.teamId, "t_0001");
   assert.equal(result.teamName, "Williams");
   assert.equal(result.managerName, "Ricardo Nakata");
+  assert.deepEqual(result.managerProfile, {
+    name: "Ricardo Nakata",
+    nationality: "Portuguese",
+    dateOfBirth: "1950-06-15",
+    background: "team_management",
+  });
 
   assert.throws(() => validateNewGameSelection(catalog, { ...selection, season: 1990 }), /valid season/i);
   assert.throws(() => validateNewGameSelection(catalog, { ...selection, teamId: "future_team" }), /valid team/i);
   assert.throws(() => validateNewGameSelection(catalog, { ...selection, managerName: "" }), /manager name/i);
+  assert.throws(() => validateNewGameSelection(catalog, { ...selection, managerNationality: "" }), /nationality/i);
+  assert.throws(() => validateNewGameSelection(catalog, { ...selection, managerDateOfBirth: "1965-01-01" }), /at least 18/i);
+  assert.throws(() => validateNewGameSelection(catalog, { ...selection, managerBackground: "invalid" }), /valid manager background/i);
 });
