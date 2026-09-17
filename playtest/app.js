@@ -173,7 +173,7 @@ function renderMainMenu() {
   root.innerHTML = `<main class="main-menu-shell ${menuBusy ? "loading" : ""}">
     <section class="mm-panel">
       <div>
-        <div class="mm-brand"><em>F1</em> HISTORY <span>MANAGER SIM</span></div>
+        <div class="mm-brand"><em>F1</em> MANAGER <span>SIM</span></div>
         <div class="mm-copy">
           <div class="eyebrow">Historical starting conditions · Dynamic alternative future</div>
           <h1>Write a different Formula One history.</h1>
