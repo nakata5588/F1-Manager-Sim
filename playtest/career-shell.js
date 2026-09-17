@@ -58,10 +58,8 @@ function statusCopy(state) {
 function renderShell(state, overview = null) {
   const intent = continueIntent(state);
   const groups = buildCareerNavigation(window.location, { unreadInbox: overview?.inbox?.unread ?? 0 });
-  const existingSidebar = document.getElementById(SHELL_ID);
-  const existingTopbar = document.getElementById(TOPBAR_ID);
-  existingSidebar?.remove();
-  existingTopbar?.remove();
+  document.getElementById(SHELL_ID)?.remove();
+  document.getElementById(TOPBAR_ID)?.remove();
 
   document.body.classList.add("career-shell-active");
   document.body.dataset.careerPage = activeCareerNavId(window.location) ?? "career";
@@ -82,6 +80,14 @@ function renderShell(state, overview = null) {
 
   document.body.prepend(topbar);
   document.body.prepend(sidebar);
+}
+
+function syncActiveNavigation() {
+  const active = activeCareerNavId(window.location);
+  document.body.dataset.careerPage = active ?? "career";
+  document.querySelectorAll("[data-career-nav]").forEach((link) => {
+    link.classList.toggle("active", link.dataset.careerNav === active);
+  });
 }
 
 function flash(message, tone = "error") {
@@ -141,14 +147,19 @@ function applyHomeDeepLink() {
   return true;
 }
 
+function applyDeepLink() {
+  syncActiveNavigation();
+  return applyManagementDeepLink() || applyHomeDeepLink();
+}
+
 function installDeepLinks() {
-  const apply = () => applyManagementDeepLink() || applyHomeDeepLink();
-  apply();
-  const observer = new MutationObserver(() => apply());
+  applyDeepLink();
+  const observer = new MutationObserver(() => applyDeepLink());
   const root = document.querySelector("#app, #management-app, #technical-app") ?? document.body;
   observer.observe(root, { childList: true, subtree: true });
   window.setTimeout(() => observer.disconnect(), 3000);
-  window.addEventListener("hashchange", applyManagementDeepLink);
+  window.addEventListener("hashchange", applyDeepLink);
+  window.addEventListener("popstate", applyDeepLink);
 }
 
 async function installCareerShell() {
