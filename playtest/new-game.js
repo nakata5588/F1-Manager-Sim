@@ -8,6 +8,7 @@ import {
   seasonsForDecade,
   validateNewGameSelection,
 } from "/new-game-flow.js";
+import { CAREER_ENTRY_STORAGE_KEY } from "/main-menu-model.js";
 
 const root = document.querySelector("#app");
 let setupPayload = null;
@@ -210,6 +211,7 @@ async function createCareer() {
         },
       }),
     });
+    sessionStorage.setItem(CAREER_ENTRY_STORAGE_KEY, "1");
     window.location.reload();
   } catch (error) {
     submitting = false;
