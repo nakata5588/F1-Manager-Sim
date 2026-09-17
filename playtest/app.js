@@ -144,7 +144,7 @@ function menuSidePanel() {
     return `<section class="mm-card">
       <div class="eyebrow">Settings</div>
       <h2>Presentation settings.</h2>
-      <p>Game-system settings will grow here without changing simulation authority.</p>
+      <p>Adjust presentation preferences for this device.</p>
       <div class="mm-setting"><div><label for="mm-reduced-motion">Reduced motion</label><small>Disables non-essential UI transitions and animation.</small></div><input id="mm-reduced-motion" type="checkbox" data-mm-reduced-motion ${reducedMotion ? "checked" : ""}></div>
       <button type="button" class="mm-back" data-mm-action="back">BACK TO MAIN MENU</button>
     </section>`;
@@ -321,7 +321,7 @@ function renderSetup() {
 function renderHome() {
   stopAuto();
   const next = state.nextRace;
-  shell(`<section class="hero"><div class="eyebrow">Career Home</div><h1>${entityLink("team", state.career.controlledTeamId, state.career.teamName)}</h1><p>The world is live. Continue advances the actual Save World to the next Grand Prix weekend.</p></section>
+  shell(`<section class="hero"><div class="eyebrow">Career Home</div><h1>${entityLink("team", state.career.controlledTeamId, state.career.teamName)}</h1><p>The world is live. Continue advances your career to the next Grand Prix weekend.</p></section>
     <section class="grid">
       <article class="card span-4"><h2>Next Grand Prix</h2>${next ? `<div class="kpi">R${next.round}</div><strong>${escapeHtml(next.name)}</strong><div class="muted">${humanDate(next.date)}</div>` : '<div class="muted">Season complete</div>'}</article>
       <article class="card span-4"><h2>Your Drivers</h2><div class="list">${state.teamDrivers.map((driver) => `<div class="row"><span>${entityLink("driver", driver.id, driver.name)}</span><span class="muted">${escapeHtml(publicLabel(driver.role, "Driver"))}</span></div>`).join("")}</div></article>
@@ -346,7 +346,7 @@ function renderPracticeResults() {
   const practice = state.raceWeekend.practice;
   shell(`${weekendHero("Practice Complete", state.raceWeekend.name, "Review driver feedback and adjust the car before Qualifying. The ideal setup remains hidden in the simulation engine.")}
     <section class="grid">${practice.team.map((driver) => `<article class="card span-6 setup-card" data-driver="${escapeHtml(driver.driverId)}"><div class="driver-card-head"><div><div class="eyebrow">${entityLink("driver", driver.driverId, driver.driverName)}</div><h2>Car Setup</h2></div><div class="setup-score"><strong>${number(driver.setupQuality)}</strong><span>quality</span></div></div><div class="muted small">Setup knowledge ${number(driver.setupKnowledge)}%</div>${setupSlider("aeroBalance", "Aero balance", driver.setup.aeroBalance)}${setupSlider("mechanicalGrip", "Mechanical grip", driver.setup.mechanicalGrip)}${setupSlider("gearing", "Gearing", driver.setup.gearing)}${setupSlider("cooling", "Cooling", driver.setup.cooling)}<button class="secondary" data-action="apply-setup">APPLY SETUP</button></article>`).join("")}
-      <article class="card span-12 action-row"><div><h2>Ready for Qualifying?</h2><div class="muted">Setup changes are applied directly to the active Save World weekend.</div></div><button class="primary" data-action="advance-weekend">CONTINUE TO QUALIFYING</button></article>
+      <article class="card span-12 action-row"><div><h2>Ready for Qualifying?</h2><div class="muted">Setup changes apply to the current race weekend.</div></div><button class="primary" data-action="advance-weekend">CONTINUE TO QUALIFYING</button></article>
     </section>`);
 }
 
@@ -414,7 +414,7 @@ function resultsTable() {
 
 function renderResults() {
   stopAuto();
-  shell(`<section class="hero"><div class="eyebrow">Race Results</div><h1>${escapeHtml(state.lastRace?.name ?? "Grand Prix complete")}</h1><p>The live result is committed to Save World history and championship standings.</p></section><section class="grid"><article class="card span-8"><h2>Classification</h2>${resultsTable()}</article><article class="card span-4"><h2>Next Grand Prix</h2>${state.nextRace ? `<strong>${escapeHtml(state.nextRace.name)}</strong><div class="muted">${humanDate(state.nextRace.date)}</div>` : '<div class="muted">No remaining race in this season.</div>'}</article><article class="card span-6"><h2>Drivers' Championship</h2>${standingsList(state.standings.drivers, "driver")}</article><article class="card span-6"><h2>Constructors' Championship</h2>${standingsList(state.standings.constructors, "team")}</article></section>`, "Standings", true);
+  shell(`<section class="hero"><div class="eyebrow">Race Results</div><h1>${escapeHtml(state.lastRace?.name ?? "Grand Prix complete")}</h1><p>The race result is now part of your career history and championship standings.</p></section><section class="grid"><article class="card span-8"><h2>Classification</h2>${resultsTable()}</article><article class="card span-4"><h2>Next Grand Prix</h2>${state.nextRace ? `<strong>${escapeHtml(state.nextRace.name)}</strong><div class="muted">${humanDate(state.nextRace.date)}</div>` : '<div class="muted">No remaining race in this season.</div>'}</article><article class="card span-6"><h2>Drivers' Championship</h2>${standingsList(state.standings.drivers, "driver")}</article><article class="card span-6"><h2>Constructors' Championship</h2>${standingsList(state.standings.constructors, "team")}</article></section>`, "Standings", true);
 }
 
 function render() {
