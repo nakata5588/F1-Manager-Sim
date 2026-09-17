@@ -1,0 +1,128 @@
+export const CAREER_NAV_GROUPS = Object.freeze([
+  {
+    id: "career",
+    label: "Career",
+    items: [
+      { id: "home", label: "Home", href: "/" },
+      { id: "inbox", label: "Inbox", href: "/management.html#inbox" },
+      { id: "calendar", label: "Calendar", href: "/?section=calendar" },
+    ],
+  },
+  {
+    id: "team",
+    label: "Team",
+    items: [
+      { id: "team", label: "Team", href: "/management.html#people" },
+      { id: "drivers", label: "Drivers", href: "/management.html#recruitment" },
+      { id: "staff", label: "Staff", href: "/management.html#staff" },
+    ],
+  },
+  {
+    id: "operations",
+    label: "Operations",
+    items: [
+      { id: "technical", label: "Car & Development", href: "/technical.html" },
+      { id: "commercial", label: "Finances & Sponsors", href: "/management.html#commercial" },
+    ],
+  },
+  {
+    id: "competition",
+    label: "Competition",
+    items: [
+      { id: "standings", label: "Standings", href: "/?section=standings" },
+      { id: "world", label: "F1 World", href: "/world.html" },
+      { id: "governance", label: "Governance", href: "/governance.html" },
+    ],
+  },
+  {
+    id: "season",
+    label: "Season",
+    items: [
+      { id: "offseason", label: "Offseason & New Season", href: "/offseason.html" },
+    ],
+  },
+]);
+
+const MANAGEMENT_HASH_TO_NAV = Object.freeze({
+  inbox: "inbox",
+  board: "team",
+  career: "team",
+  people: "team",
+  staff: "staff",
+  recruitment: "drivers",
+  contracts: "drivers",
+  market: "drivers",
+  commercial: "commercial",
+  responsibilities: "team",
+});
+
+const MANAGEMENT_TABS = new Set(Object.keys(MANAGEMENT_HASH_TO_NAV));
+
+function cleanPath(pathname) {
+  const value = String(pathname || "/").replace(/\/+$/, "");
+  return value || "/";
+}
+
+function cleanHash(hash) {
+  return String(hash || "").replace(/^#/, "").trim().toLowerCase();
+}
+
+export function managementTabForHash(hash) {
+  const tab = cleanHash(hash);
+  return MANAGEMENT_TABS.has(tab) ? tab : null;
+}
+
+export function activeCareerNavId(location = {}) {
+  const path = cleanPath(location.pathname);
+  const hash = cleanHash(location.hash);
+  const params = new URLSearchParams(String(location.search || ""));
+
+  if (path === "/management.html") return MANAGEMENT_HASH_TO_NAV[hash] ?? "inbox";
+  if (path === "/technical.html") return "technical";
+  if (path === "/world.html") return "world";
+  if (path === "/governance.html") return "governance";
+  if (path === "/offseason.html") return "offseason";
+  if (path === "/") {
+    if (params.get("section") === "calendar") return "calendar";
+    if (params.get("section") === "standings") return "standings";
+    return "home";
+  }
+  return null;
+}
+
+export function buildCareerNavigation(location = {}, options = {}) {
+  const activeId = activeCareerNavId(location);
+  const unread = Math.max(0, Number(options.unreadInbox ?? 0) || 0);
+  return CAREER_NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.map((item) => ({
+      ...item,
+      active: item.id === activeId,
+      badge: item.id === "inbox" && unread > 0 ? unread : null,
+    })),
+  }));
+}
+
+export function continueIntent(state = {}) {
+  if (!state || state.screen === "new_career" || !state.career) {
+    return { visible: false, kind: "none", label: null, href: null };
+  }
+
+  const weekend = state.raceWeekend;
+  if (weekend && weekend.stage && weekend.stage !== "completed") {
+    return { visible: true, kind: "navigate", label: "RACE WEEKEND ▶", href: "/" };
+  }
+
+  if (!state.nextRace) {
+    return { visible: true, kind: "navigate", label: "OFFSEASON ▶", href: "/offseason.html" };
+  }
+
+  return { visible: true, kind: "continue", label: "CONTINUE ▶", href: "/" };
+}
+
+export function homeSectionTarget(location = {}) {
+  if (cleanPath(location.pathname) !== "/") return null;
+  const params = new URLSearchParams(String(location.search || ""));
+  const section = params.get("section");
+  return section === "calendar" || section === "standings" ? section : null;
+}
