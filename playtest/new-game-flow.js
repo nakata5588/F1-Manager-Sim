@@ -19,6 +19,16 @@ function slug(value, fallback = "database") {
   return normalized || fallback;
 }
 
+function publicVersionLabel(value, fallback = "Current") {
+  const raw = text(value).trim();
+  const match = raw.match(/(^|[^0-9])v?(\d+)\.(\d+)\.(\d+)(?=$|[^0-9])/i);
+  return match ? `v${match[2]}.${match[3]}.${match[4]}` : fallback;
+}
+
+function seasonDisplayName(season) {
+  return `${season} Formula One World Championship`;
+}
+
 function normalizeTeams(rows = []) {
   return rows
     .map((row) => ({
@@ -34,25 +44,47 @@ function normalizeTeams(rows = []) {
 function normalizeSeason(row, fallback = {}) {
   const season = Number(row?.season ?? fallback.season);
   if (!Number.isInteger(season)) throw new Error("New Game catalog season must be an integer.");
+  const presentation = row?.presentation ?? fallback.presentation ?? {};
+  const databaseVersion = row?.databaseVersion ?? fallback.databaseVersion ?? null;
   return {
     season,
     decade: Math.floor(season / 10) * 10,
+    name: text(row?.displayName ?? presentation.seasonName, seasonDisplayName(season)).trim(),
+    versionLabel: text(row?.versionLabel ?? presentation.versionLabel, publicVersionLabel(databaseVersion)).trim(),
     releaseName: row?.releaseName ?? fallback.releaseName ?? null,
-    databaseVersion: row?.databaseVersion ?? fallback.databaseVersion ?? null,
+    databaseVersion,
     teams: normalizeTeams(row?.teams ?? fallback.teams ?? []),
   };
 }
 
 function normalizeDatabase(row, index = 0) {
-  const name = text(row?.name ?? row?.releaseName ?? row?.databaseVersion, `Database ${index + 1}`).trim();
+  const presentation = row?.presentation ?? {};
+  const publicName = text(
+    row?.displayName ?? presentation.databaseName ?? row?.name,
+    `Historical Database ${index + 1}`,
+  ).trim();
   const databaseVersion = row?.databaseVersion ?? null;
-  const releaseName = row?.releaseName ?? name;
-  const id = text(row?.id).trim() || `db-${slug(databaseVersion ?? releaseName ?? name)}-${index + 1}`;
+  const releaseName = row?.releaseName ?? null;
+  const id = text(row?.id).trim() || `db-${slug(databaseVersion ?? releaseName ?? publicName)}-${index + 1}`;
   const seasons = (row?.seasons ?? [])
     .map((season) => normalizeSeason(season, row))
     .sort((a, b) => a.season - b.season);
-  if (!seasons.length) throw new Error(`New Game database '${name}' has no seasons.`);
-  return { id, name, databaseVersion, releaseName, seasons };
+  if (!seasons.length) throw new Error(`New Game database '${publicName}' has no seasons.`);
+  return {
+    id,
+    name: publicName,
+    description: text(
+      row?.description ?? presentation.databaseDescription,
+      "Historical Formula One starting conditions with a dynamic alternative future.",
+    ).trim(),
+    versionLabel: text(
+      row?.versionLabel ?? presentation.versionLabel,
+      publicVersionLabel(databaseVersion),
+    ).trim(),
+    databaseVersion,
+    releaseName,
+    seasons,
+  };
 }
 
 export function buildNewGameCatalog(setup) {
@@ -61,14 +93,19 @@ export function buildNewGameCatalog(setup) {
   const databases = Array.isArray(setup.databases) && setup.databases.length
     ? setup.databases.map(normalizeDatabase)
     : [normalizeDatabase({
-      id: `db-${slug(setup.databaseVersion ?? setup.releaseName ?? "local")}`,
-      name: setup.releaseName ?? "Local Season Database",
+      id: `db-${slug(setup.databaseVersion ?? setup.releaseName ?? "official")}`,
+      displayName: setup.presentation?.databaseName ?? "Official Historical Database",
+      description: setup.presentation?.databaseDescription,
+      presentation: setup.presentation ?? null,
       releaseName: setup.releaseName ?? null,
       databaseVersion: setup.databaseVersion ?? null,
       seasons: [{
         season: setup.season,
+        displayName: setup.presentation?.seasonName,
+        versionLabel: setup.presentation?.versionLabel,
         releaseName: setup.releaseName ?? null,
         databaseVersion: setup.databaseVersion ?? null,
+        presentation: setup.presentation ?? null,
         teams: setup.teams ?? [],
       }],
     })];
@@ -142,8 +179,10 @@ export function validateNewGameSelection(catalog, selection = {}) {
   return {
     databaseId: database.id,
     databaseName: database.name,
+    databaseVersionLabel: database.versionLabel,
     decade,
     season: season.season,
+    seasonName: season.name,
     teamId: team.id,
     teamName: team.name,
     managerName,
