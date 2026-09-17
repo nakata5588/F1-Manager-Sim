@@ -7,6 +7,7 @@ import { createCareerDevelopmentSystem } from "./careerDevelopment.js";
 import { createRetirementSystem } from "./retirement.js";
 import { createRetirementEmploymentSystem } from "./retirementEmployment.js";
 import { createAiEmploymentDecisionSystem, createEmploymentMarketSystem } from "./employmentMarket.js";
+import { createOpeningAvailabilityGuardSystem } from "./openingAvailabilityGuard.js";
 import { createTransferVacancySystem } from "./transferVacancy.js";
 import { createPeopleDynamicsSystem } from "./peopleDynamics.js";
 import { createScoutingManagementSystem } from "./scoutingManagement.js";
@@ -41,22 +42,12 @@ import { createWorldNarrativeSystem } from "./worldNarrative.js";
 
 export function createCoreWorldSystems(options = {}) {
   return [
-    // Generated talent is Save World state and must exist before the visibility
-    // boundary checks whether a junior has reached F1 eligibility this season.
-    createTalentPipelineSystem({
-      cohortSize: options.generatedTalentCohortSize,
-    }),
+    createTalentPipelineSystem({ cohortSize: options.generatedTalentCohortSize }),
     createEntityAvailabilitySystem(),
-    // Governance deliberately runs immediately after visibility/eligibility.
-    // Future teams and historical future rules may therefore become candidates
-    // without becoming mandatory outcomes.
     createGovernanceManagementSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createTeamExitCleanupSystem(),
     createGovernanceInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createCareerLifecycleSystem(),
-    // Era-aware talent programmes sit between lifecycle/visibility and annual
-    // development. They can support juniors and AI recruitment without creating
-    // a second employment or development authority.
     createTalentRecruitmentSystem({
       minimumScore: options.talentRecruitmentMinimumScore,
       durationSeasons: options.talentProgrammeDurationSeasons,
@@ -66,6 +57,7 @@ export function createCoreWorldSystems(options = {}) {
     createContractMilestoneSystem(),
     createTransferVacancySystem(),
     createEmploymentMarketSystem(),
+    createOpeningAvailabilityGuardSystem(),
     createRetirementEmploymentSystem(),
     createAiEmploymentDecisionSystem({
       controlledTeamIds: options.controlledTeamIds ?? [],
@@ -90,9 +82,6 @@ export function createCoreWorldSystems(options = {}) {
     createCommercialManagementSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createCommercialInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createBoardManagementSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
-    // Organisation is derived from the authoritative employment/board/team state.
-    // It therefore runs after those authorities and before staff advice consumes
-    // department workload and quality pressure.
     createOrganizationManagementSystem(),
     createManagerCareerSystem(),
     createStaffAdviceSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
@@ -108,9 +97,6 @@ export function createCoreWorldSystems(options = {}) {
     createRaceTimelineSystem(),
     createRaceControlSystem(),
     createChampionshipSystem(),
-    // Narrative is a pure projection layer over already-resolved simulation
-    // events. It deliberately runs last so news/history can read the updated
-    // Save World without becoming an authority over gameplay outcomes.
     createWorldNarrativeSystem(),
   ];
 }
