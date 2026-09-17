@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -98,16 +98,41 @@ test("media manifests reject absolute or traversal asset paths", () => {
   });
 });
 
-test("served media paths stay contained and only expose supported media files", () => {
+test("served media paths stay contained and only expose supported raster files", () => {
   withPack(manifest(), {
     "people/drivers/d_0001.png": "png",
+    "people/drivers/d_0001.svg": "<svg></svg>",
     "notes.txt": "not media",
   }, (root) => {
     const pack = loadMediaPack(root, { required: true });
     assert.equal(resolveServedMediaPath(pack, "../manifest.json"), null);
     assert.equal(resolveServedMediaPath(pack, "notes.txt"), null);
+    assert.equal(resolveServedMediaPath(pack, "people/drivers/d_0001.svg"), null);
     assert.equal(resolveServedMediaPath(pack, "people/drivers/d_0001.png")?.relativePath, "people/drivers/d_0001.png");
   });
+});
+
+test("user packs cannot opt into active SVG content", () => {
+  withPack(manifest({ supportedExtensions: ["png", "svg"] }), {}, (root) => {
+    assert.throws(() => loadMediaPack(root, { required: true }), /Unsupported media extension 'svg'/);
+  });
+});
+
+test("symbolic links cannot expose files outside the selected pack", { skip: process.platform === "win32" }, () => {
+  const outside = mkdtempSync(join(tmpdir(), "f1-media-outside-"));
+  try {
+    writeFileSync(join(outside, "secret.png"), "secret");
+    withPack(manifest(), {}, (root) => {
+      const linkPath = join(root, "people", "drivers", "d_0001.png");
+      mkdirSync(join(root, "people", "drivers"), { recursive: true });
+      symlinkSync(join(outside, "secret.png"), linkPath);
+      const pack = loadMediaPack(root, { required: true });
+      assert.equal(resolveMediaAsset(pack, "driver", "d_0001").source, "builtin");
+      assert.equal(resolveServedMediaPath(pack, "people/drivers/d_0001.png"), null);
+    });
+  } finally {
+    rmSync(outside, { recursive: true, force: true });
+  }
 });
 
 test("malformed or unsupported manifests fail fast", () => {
