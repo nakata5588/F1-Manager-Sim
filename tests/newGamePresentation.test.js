@@ -30,3 +30,19 @@ test("New Game card CSS prevents long public labels from escaping cards", () => 
   assert.match(css, /\.ng-choice strong\{[^}]*overflow-wrap:anywhere/);
   assert.match(css, /\.ng-choice small\{[^}]*overflow-wrap:anywhere/);
 });
+
+test("Team Selection v2 renders opening context without rankings or raw driver roles", () => {
+  const wizard = readFileSync("playtest/new-game.js", "utf8");
+  const start = wizard.indexOf("function teamChoice(");
+  const end = wizard.indexOf("function footer(", start);
+  assert.ok(start >= 0 && end > start);
+  const teamChoice = wizard.slice(start, end);
+
+  assert.match(teamChoice, /team\.drivers/);
+  assert.match(teamChoice, /team\.engine/);
+  assert.match(teamChoice, /team\.chassis/);
+  assert.match(teamChoice, /resolvedMedia\?\.logo/);
+  assert.match(teamChoice, /visualIdentity\?\.colours/);
+  assert.doesNotMatch(teamChoice, /overall|rating|strength|standings|championshipPosition|expectedPosition/i);
+  assert.doesNotMatch(teamChoice, /driver\.role/);
+});
