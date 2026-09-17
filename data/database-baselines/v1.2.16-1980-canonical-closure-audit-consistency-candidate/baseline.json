@@ -1,0 +1,47 @@
+{
+  "format": "f1-manager-sim-database-baseline",
+  "schemaVersion": 1,
+  "baselineId": "v1.2.16-1980-canonical-closure-audit-consistency-candidate-2026-09-17",
+  "candidateStatus": "CUMULATIVE_1980_CANONICAL_CLOSURE_AUDIT_CONSISTENCY_CANDIDATE",
+  "canonical": false,
+  "databaseVersion": "v1.2.16-1980-canonical-closure-audit-consistency-candidate",
+  "previousDatabaseVersion": "v1.2.15-1980-historical-source-enrichment-candidate",
+  "candidateRevision": "canonical_closure_audit_consistency_r1",
+  "sourceChecksum": "9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097",
+  "globalCounts": {
+    "drivers": 862,
+    "staff": 63,
+    "teams": 212,
+    "sponsorCatalog": 35
+  },
+  "season1980Counts": {
+    "activeTeams": 15,
+    "driverAvailabilityRows": 66,
+    "staffContracts": 53,
+    "sponsorContracts": 15,
+    "calendarRaces": 14
+  },
+  "closure": {
+    "staffReviewRows": 57,
+    "staffCanonicalBlockers": 0,
+    "externalAvailabilityUnverified": 23,
+    "ordinarySourceSafeFreeDrivers": 0,
+    "regulationCanonicalBlockers": 0,
+    "regulationPrimaryTextResearchDebt": 2
+  },
+  "validation": {
+    "materialized": "PASS_46_OF_46",
+    "sqliteGlobal": "ok",
+    "sqliteSeason": "ok",
+    "staffClosure": "PASS_57_OF_57",
+    "externalAvailabilityUnverified": "PASS_23",
+    "ordinarySourceSafeFreeDrivers": "PASS_0"
+  },
+  "promotion": {
+    "readyForDevelopmentCandidateIntegration": true,
+    "readyForCanonicalPromotion": true,
+    "promotedCanonicalInThisRelease": false,
+    "currentPromotedCanonical": "v1.2.5-1980-technical-source-lock-candidate"
+  },
+  "hashPolicy": "Payload checksums internal; final ZIP SHA-256 external/non-self-referential."
+}

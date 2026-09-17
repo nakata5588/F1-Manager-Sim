@@ -32,7 +32,7 @@ test("v1.2.11 remains a pinned cumulative 1980 candidate after a newer candidate
   assert.deepEqual(baseline.bundle.doNotIntegrateSeparately, ["v1.2.8"]);
   assert.equal(baseline.bundle.appliedSequentially, false);
   assert.notEqual(latest.latestCandidate, baseline.globalDatabase.databaseVersion);
-  assert.equal(latest.latestCandidate, "v1.2.15-1980-historical-source-enrichment-candidate");
+  assert.equal(latest.latestCandidate, "v1.2.16-1980-canonical-closure-audit-consistency-candidate");
   assert.equal(latest.currentPromotedCanonical, "v1.2.5-1980-technical-source-lock-candidate");
   assert.equal(latest.canonical, false);
 });
@@ -40,20 +40,10 @@ test("v1.2.11 remains a pinned cumulative 1980 candidate after a newer candidate
 test("v1.2.11 pins the audited Global and Season identities and hashes", async () => {
   const baseline = await json("baseline.json");
   const checksums = await json("CHECKSUMS.json");
-
   assert.equal(checksums.checksums.length, 21);
-  assert.equal(
-    baseline.globalDatabase.jsonSha256,
-    "843befe2dc4a0be7684ca3b3a9d84d3241746c315165837ee6d953869500c352",
-  );
-  assert.equal(
-    baseline.seasonDatabases["1980"].jsonSha256,
-    "ce2af269291a9c3e150a5773362deba472d67b2f9f626346b5744b147a4ea9d3",
-  );
-  assert.equal(
-    baseline.globalDatabase.sourceSha256,
-    baseline.seasonDatabases["1980"].sourceChecksum,
-  );
+  assert.equal(baseline.globalDatabase.jsonSha256, "843befe2dc4a0be7684ca3b3a9d84d3241746c315165837ee6d953869500c352");
+  assert.equal(baseline.seasonDatabases["1980"].jsonSha256, "ce2af269291a9c3e150a5773362deba472d67b2f9f626346b5744b147a4ea9d3");
+  assert.equal(baseline.globalDatabase.sourceSha256, baseline.seasonDatabases["1980"].sourceChecksum);
   assert.equal(baseline.validation.bundleChecksums, "PASS_21_OF_21");
   assert.equal(baseline.validation.globalSqliteIntegrity, "PASS");
   assert.equal(baseline.validation.seasonSqliteIntegrity, "PASS");
@@ -63,7 +53,6 @@ test("v1.2.11 pins the audited Global and Season identities and hashes", async (
 test("v1.2.11 cumulative integrity preserves all real layers and recovers v1.2.8 scope", async () => {
   const csv = await text("source-pack/v1211_cumulative_integrity_checks.csv");
   const rows = dataLines(csv);
-
   assert.equal(rows.length, 10);
   assert.equal(rows.every((row) => row.includes(",PASS,")), true);
   assert.match(csv, /v1\.2\.4 technical data present in Global,PASS/);
@@ -83,7 +72,6 @@ test("1980 Calendar Circuits Weather recovery has complete 14-round coverage", a
   const layouts = await text("source-pack/circuit_layout_baseline_1980.csv");
   const weather = await text("source-pack/weather_profile_baseline_1980.csv");
   const evolution = await text("source-pack/track_evolution_baseline_1980.csv");
-
   assert.equal(dataLines(readiness).length, 8);
   assert.equal(dataLines(readiness).every((row) => row.endsWith(",PASS")), true);
   assert.equal(dataLines(calendarAudit).length, 14);
@@ -91,7 +79,6 @@ test("1980 Calendar Circuits Weather recovery has complete 14-round coverage", a
   assert.equal(dataLines(layouts).length, 14);
   assert.equal(dataLines(weather).length, 14);
   assert.equal(dataLines(evolution).length, 14);
-
   assert.equal(dataLines(calendarAudit).every((row) => row.includes("pre_start_fixture_only_no_result_authority")), true);
   assert.equal(dataLines(weather).every((row) => row.includes("derived_gameplay_baseline")), true);
   assert.equal(dataLines(evolution).every((row) => row.includes("derived_gameplay_baseline")), true);
@@ -102,7 +89,6 @@ test("weather and track evolution remain simulation baselines rather than script
   const unknown = await text("source-pack/calendar_circuit_weather_unknown_fields_1980.csv");
   const weather = await text("source-pack/weather_profile_baseline_1980.csv");
   const evolution = await text("source-pack/track_evolution_baseline_1980.csv");
-
   assert.match(policy, /Weather profiles are probability baselines, not real session weather\."?,derived_gameplay_baseline,generate_actual_weather/);
   assert.match(policy, /Track grip\/rubbering starts from a model seed and evolves inside each session\.,derived_gameplay_baseline,own_live_track_state/);
   assert.match(unknown, /actual_session_weather_1980,do_not_source_lock/);
@@ -113,8 +99,5 @@ test("weather and track evolution remain simulation baselines rather than script
 
 test("v1.2.11 keeps Spanish GP 1980 outside the championship calendar by default", async () => {
   const readiness = await text("source-pack/calendar_circuit_weather_readiness_1980.csv");
-  assert.match(
-    readiness,
-    /Spanish GP 1980 championship inclusion,excluded\/reference-only,excluded\/reference-only,PASS/,
-  );
+  assert.match(readiness, /Spanish GP 1980 championship inclusion,excluded\/reference-only,excluded\/reference-only,PASS/);
 });

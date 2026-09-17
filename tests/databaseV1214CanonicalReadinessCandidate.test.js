@@ -16,14 +16,14 @@ async function text(relative) {
   return readFile(new URL(relative, ROOT), "utf8");
 }
 
-test("v1.2.14 r3 remains a pinned cumulative 1980 candidate after v1.2.15 integration", async () => {
+test("v1.2.14 r3 remains a pinned cumulative 1980 candidate after v1.2.16 integration", async () => {
   const baseline = await json("baseline.json");
   const latest = JSON.parse(await readFile(LATEST_URL, "utf8"));
   assert.equal(baseline.candidateRevision, "final_corrective_freeze_r3");
   assert.equal(baseline.canonical, false);
   assert.equal(baseline.promotionDecision, "READY_FOR_DEVELOPMENT_INTEGRATION_AS_LATEST_CANDIDATE_NOT_CANONICAL");
   assert.notEqual(latest.latestCandidate, baseline.databaseVersion);
-  assert.equal(latest.latestCandidate, "v1.2.15-1980-historical-source-enrichment-candidate");
+  assert.equal(latest.latestCandidate, "v1.2.16-1980-canonical-closure-audit-consistency-candidate");
   assert.equal(latest.currentPromotedCanonical, "v1.2.5-1980-technical-source-lock-candidate");
 });
 
