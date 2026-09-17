@@ -93,7 +93,7 @@ function recentDriverResults(saveWorld, driverId) {
     if (!result) continue;
     const teamId = result.teamId ?? result.team_id ?? null;
     rows.push({
-      season: race.season ?? String(race.date ?? "").slice(0, 4) || null,
+      season: race.season ?? (String(race.date ?? "").slice(0, 4) || null),
       round: race.round ?? null,
       date: race.date ?? null,
       raceName: race.gpName ?? race.gp_name ?? race.name ?? race.gpId ?? race.gp_id ?? "Grand Prix",

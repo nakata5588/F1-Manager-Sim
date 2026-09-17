@@ -67,6 +67,7 @@ import {
   developerUpdateOffseasonPlan,
 } from "../src/app/offseasonPlaytest.js";
 import { developerWorld } from "../src/app/worldPlaytest.js";
+import { developerEntityProfile } from "../src/app/entityProfilePlaytest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const STATIC_ROOT = resolve(__dirname, "../playtest");
@@ -221,6 +222,9 @@ const server = createServer(async (request, response) => {
       const input = await body(request);
       const deleted = saveStore.delete(input.slot);
       return json(response, 200, { deleted, slots: saveStore.list() });
+    }
+    if (url.pathname === "/api/profile" && request.method === "GET") {
+      return json(response, 200, developerEntityProfile(session, url.searchParams.get("type"), url.searchParams.get("id")));
     }
     if (url.pathname === "/api/world" && request.method === "GET") {
       return json(response, 200, developerWorld(session, {

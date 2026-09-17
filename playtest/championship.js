@@ -1,3 +1,5 @@
+import { entityLink } from "/entity-links.js";
+
 const root = document.querySelector("#championship-app");
 let payload = null;
 
@@ -45,15 +47,15 @@ function calendarView(championship) {
       <article class="championship-round ${escapeHtml(row.status)}">
         <div class="championship-round-number"><small>ROUND</small><strong>${row.round ?? "—"}</strong></div>
         <div class="championship-round-main"><small>${humanDate(row.date)}${row.country ? ` · ${escapeHtml(row.country)}` : ""}</small><h3>${escapeHtml(row.name)}</h3><span>${escapeHtml(row.trackName)}</span></div>
-        <div class="championship-round-result"><em>${statusLabel(row.status)}</em>${row.winner ? `<strong>${escapeHtml(row.winner.driverName)}</strong><small>${escapeHtml(row.winner.teamName)}</small>` : `<strong>${row.laps ? `${row.laps} laps` : "—"}</strong><small>${row.championshipStatus === "championship" ? "Championship round" : escapeHtml(row.championshipStatus)}</small>`}</div>
+        <div class="championship-round-result"><em>${statusLabel(row.status)}</em>${row.winner ? `<strong>${entityLink("driver", row.winner.driverId, row.winner.driverName)}</strong><small>${entityLink("team", row.winner.teamId, row.winner.teamName)}</small>` : `<strong>${row.laps ? `${row.laps} laps` : "—"}</strong><small>${row.championshipStatus === "championship" ? "Championship round" : escapeHtml(row.championshipStatus)}</small>`}</div>
       </article>`).join("") || '<p class="championship-empty">No races are present in the current Save World calendar.</p>'}
     </div>
   </section>`;
 }
 
-function table(title, rows, controlledTeamId = null) {
+function table(title, rows, type, controlledTeamId = null) {
   return `<article class="championship-panel"><div class="championship-panel-head"><div><span>Standings</span><h2>${escapeHtml(title)}</h2></div></div>
-    <div class="championship-table">${rows.map((row) => `<div class="championship-standing ${controlledTeamId && String(row.id) === String(controlledTeamId) ? "controlled" : ""}"><b>${row.position ?? "—"}</b><strong>${escapeHtml(row.name ?? row.id)}</strong><span>${Number(row.wins ?? 0)} W</span><em>${Number(row.points ?? 0)} pts</em></div>`).join("") || '<p class="championship-empty">No championship standings yet.</p>'}</div>
+    <div class="championship-table">${rows.map((row) => `<div class="championship-standing ${controlledTeamId && String(row.id) === String(controlledTeamId) ? "controlled" : ""}"><b>${row.position ?? "—"}</b><strong>${entityLink(type, row.id, row.name ?? row.id)}</strong><span>${Number(row.wins ?? 0)} W</span><em>${Number(row.points ?? 0)} pts</em></div>`).join("") || '<p class="championship-empty">No championship standings yet.</p>'}</div>
   </article>`;
 }
 
@@ -63,7 +65,7 @@ function archiveView(archive = []) {
 }
 
 function standingsView(championship) {
-  return `<section class="championship-standings-grid">${table("Drivers' Championship", championship.standings?.drivers ?? [])}${table("Constructors' Championship", championship.standings?.constructors ?? [], championship.controlledTeamId)}</section>${archiveView(championship.archive)}`;
+  return `<section class="championship-standings-grid">${table("Drivers' Championship", championship.standings?.drivers ?? [], "driver")}${table("Constructors' Championship", championship.standings?.constructors ?? [], "team", championship.controlledTeamId)}</section>${archiveView(championship.archive)}`;
 }
 
 function render() {

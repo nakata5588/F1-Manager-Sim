@@ -1,3 +1,5 @@
+import { entityLink } from "/entity-links.js";
+
 const root = document.querySelector("#app");
 let state = null;
 let selectedTeam = null;
@@ -38,10 +40,10 @@ function number(value, fallback = "—") {
   return value === null || value === undefined || Number.isNaN(Number(value)) ? fallback : Number(value);
 }
 
-function standingsList(rows) {
+function standingsList(rows, type) {
   if (!rows?.length) return '<div class="muted">No championship points yet.</div>';
   return `<div class="list">${rows.slice(0, 8).map((row) => `
-    <div class="row"><span class="pos">${row.position}</span><span class="grow">${escapeHtml(row.name)}</span><span class="points">${row.points}</span></div>
+    <div class="row"><span class="pos">${row.position}</span><span class="grow">${entityLink(type, row.id, row.name)}</span><span class="points">${row.points}</span></div>
   `).join("")}</div>`;
 }
 
@@ -56,7 +58,7 @@ function navigation(active = "Home") {
 
 function topbar(showContinue = true) {
   return `<div class="topbar">
-    <div class="manager"><strong>${escapeHtml(state.career.managerName)}</strong><span>${escapeHtml(state.career.teamName)}</span></div>
+    <div class="manager"><strong>${escapeHtml(state.career.managerName)}</strong><span>${entityLink("team", state.career.controlledTeamId, state.career.teamName)}</span></div>
     <div class="date">${humanDate(state.career.date)} · ${state.career.season}</div>
     ${showContinue ? '<button class="continue" data-action="continue">CONTINUE ▶</button>' : ""}
   </div>`;
@@ -97,13 +99,13 @@ function renderSetup() {
 function renderHome() {
   stopAuto();
   const next = state.nextRace;
-  shell(`<section class="hero"><div class="eyebrow">Career Home</div><h1>${escapeHtml(state.career.teamName)}</h1><p>The world is live. Continue advances the actual Save World to the next Grand Prix weekend.</p></section>
+  shell(`<section class="hero"><div class="eyebrow">Career Home</div><h1>${entityLink("team", state.career.controlledTeamId, state.career.teamName)}</h1><p>The world is live. Continue advances the actual Save World to the next Grand Prix weekend.</p></section>
     <section class="grid">
       <article class="card span-4"><h2>Next Grand Prix</h2>${next ? `<div class="kpi">R${next.round}</div><strong>${escapeHtml(next.name)}</strong><div class="muted">${humanDate(next.date)}</div>` : '<div class="muted">Season complete</div>'}</article>
-      <article class="card span-4"><h2>Your Drivers</h2><div class="list">${state.teamDrivers.map((driver) => `<div class="row"><span>${escapeHtml(driver.name)}</span><span class="muted">${escapeHtml(driver.role)}</span></div>`).join("")}</div></article>
+      <article class="card span-4"><h2>Your Drivers</h2><div class="list">${state.teamDrivers.map((driver) => `<div class="row"><span>${entityLink("driver", driver.id, driver.name)}</span><span class="muted">${escapeHtml(driver.role)}</span></div>`).join("")}</div></article>
       <article class="card span-4"><h2>Season</h2><div class="kpi">${state.career.season}</div><div class="muted">Historical start · dynamic future</div></article>
-      <article class="card span-6"><h2>Drivers' Championship</h2>${standingsList(state.standings.drivers)}</article>
-      <article class="card span-6"><h2>Constructors' Championship</h2>${standingsList(state.standings.constructors)}</article>
+      <article class="card span-6"><h2>Drivers' Championship</h2>${standingsList(state.standings.drivers, "driver")}</article>
+      <article class="card span-6"><h2>Constructors' Championship</h2>${standingsList(state.standings.constructors, "team")}</article>
     </section>`, "Home", true);
 }
 
@@ -121,13 +123,13 @@ function renderPracticeResults() {
   stopAuto();
   const practice = state.raceWeekend.practice;
   shell(`${weekendHero("Practice Complete", state.raceWeekend.name, "Review driver feedback and adjust the car before Qualifying. The ideal setup remains hidden in the simulation engine.")}
-    <section class="grid">${practice.team.map((driver) => `<article class="card span-6 setup-card" data-driver="${escapeHtml(driver.driverId)}"><div class="driver-card-head"><div><div class="eyebrow">${escapeHtml(driver.driverName)}</div><h2>Car Setup</h2></div><div class="setup-score"><strong>${number(driver.setupQuality)}</strong><span>quality</span></div></div><div class="muted small">Setup knowledge ${number(driver.setupKnowledge)}%</div>${setupSlider("aeroBalance", "Aero balance", driver.setup.aeroBalance)}${setupSlider("mechanicalGrip", "Mechanical grip", driver.setup.mechanicalGrip)}${setupSlider("gearing", "Gearing", driver.setup.gearing)}${setupSlider("cooling", "Cooling", driver.setup.cooling)}<button class="secondary" data-action="apply-setup">APPLY SETUP</button></article>`).join("")}
+    <section class="grid">${practice.team.map((driver) => `<article class="card span-6 setup-card" data-driver="${escapeHtml(driver.driverId)}"><div class="driver-card-head"><div><div class="eyebrow">${entityLink("driver", driver.driverId, driver.driverName)}</div><h2>Car Setup</h2></div><div class="setup-score"><strong>${number(driver.setupQuality)}</strong><span>quality</span></div></div><div class="muted small">Setup knowledge ${number(driver.setupKnowledge)}%</div>${setupSlider("aeroBalance", "Aero balance", driver.setup.aeroBalance)}${setupSlider("mechanicalGrip", "Mechanical grip", driver.setup.mechanicalGrip)}${setupSlider("gearing", "Gearing", driver.setup.gearing)}${setupSlider("cooling", "Cooling", driver.setup.cooling)}<button class="secondary" data-action="apply-setup">APPLY SETUP</button></article>`).join("")}
       <article class="card span-12 action-row"><div><h2>Ready for Qualifying?</h2><div class="muted">Setup changes are applied directly to the active Save World weekend.</div></div><button class="primary" data-action="advance-weekend">CONTINUE TO QUALIFYING</button></article>
     </section>`);
 }
 
 function qualifyingTable(rows) {
-  return `<table><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Score</th><th>Status</th></tr></thead><tbody>${rows.map((row) => `<tr class="${row.controlled ? "controlled" : ""}"><td><strong>${row.position}</strong></td><td>${escapeHtml(row.driverName)}</td><td>${escapeHtml(row.teamName)}</td><td>${number(row.score)}</td><td><span class="status">${escapeHtml(row.status)}</span></td></tr>`).join("")}</tbody></table>`;
+  return `<table><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Score</th><th>Status</th></tr></thead><tbody>${rows.map((row) => `<tr class="${row.controlled ? "controlled" : ""}"><td><strong>${row.position}</strong></td><td>${entityLink("driver", row.driverId, row.driverName)}</td><td>${entityLink("team", row.teamId, row.teamName)}</td><td>${number(row.score)}</td><td><span class="status">${escapeHtml(row.status)}</span></td></tr>`).join("")}</tbody></table>`;
 }
 
 function renderQualifyingResults() {
@@ -142,7 +144,7 @@ function tyreOptions(options, selected) {
 }
 
 function gridTable(rows) {
-  return `<table><thead><tr><th>Grid</th><th>Driver</th><th>Team</th></tr></thead><tbody>${rows.map((row) => `<tr class="${row.controlled ? "controlled" : ""}"><td><strong>${row.position}</strong></td><td>${escapeHtml(row.driverName)}</td><td>${escapeHtml(row.teamName)}</td></tr>`).join("")}</tbody></table>`;
+  return `<table><thead><tr><th>Grid</th><th>Driver</th><th>Team</th></tr></thead><tbody>${rows.map((row) => `<tr class="${row.controlled ? "controlled" : ""}"><td><strong>${row.position}</strong></td><td>${entityLink("driver", row.driverId, row.driverName)}</td><td>${entityLink("team", row.teamId, row.teamName)}</td></tr>`).join("")}</tbody></table>`;
 }
 
 function renderPreRace() {
@@ -150,7 +152,7 @@ function renderPreRace() {
   const weekend = state.raceWeekend;
   const strategies = state.liveRace?.strategies ?? weekend.strategies;
   shell(`${weekendHero("Pre-Race", weekend.name, "The grid is set. Confirm the starting tyre for each car before lights out.")}
-    <section class="grid"><article class="card span-7"><h2>Starting Grid</h2>${gridTable(weekend.grid)}</article><div class="span-5 strategy-stack">${strategies.map((plan) => `<article class="card tyre-card" data-driver="${escapeHtml(plan.driverId)}"><div class="eyebrow">${escapeHtml(plan.driverName)}</div><h2>Race Strategy</h2><div class="row"><span>Planned stops</span><strong>${plan.plannedStops}</strong></div><label class="field-label">Starting tyre<select name="startingCompound">${tyreOptions(state.liveRace.tyreOptions, plan.startingCompoundId)}</select></label><button class="secondary" data-action="starting-tyre">APPLY STARTING TYRE</button><div class="stints">${plan.stints.map((stint) => `<span>${stint.stint}: ${escapeHtml(stint.compoundId ?? "N/A")} · ${stint.targetLaps}L</span>`).join("")}</div></article>`).join("")}</div><article class="card span-12 action-row"><div><h2>Ready for lights out</h2><div class="muted">Only the live race result will be committed to history and championship standings.</div></div><button class="primary race-start" data-action="start-race">START RACE</button></article></section>`);
+    <section class="grid"><article class="card span-7"><h2>Starting Grid</h2>${gridTable(weekend.grid)}</article><div class="span-5 strategy-stack">${strategies.map((plan) => `<article class="card tyre-card" data-driver="${escapeHtml(plan.driverId)}"><div class="eyebrow">${entityLink("driver", plan.driverId, plan.driverName)}</div><h2>Race Strategy</h2><div class="row"><span>Planned stops</span><strong>${plan.plannedStops}</strong></div><label class="field-label">Starting tyre<select name="startingCompound">${tyreOptions(state.liveRace.tyreOptions, plan.startingCompoundId)}</select></label><button class="secondary" data-action="starting-tyre">APPLY STARTING TYRE</button><div class="stints">${plan.stints.map((stint) => `<span>${stint.stint}: ${escapeHtml(stint.compoundId ?? "N/A")} · ${stint.targetLaps}L</span>`).join("")}</div></article>`).join("")}</div><article class="card span-12 action-row"><div><h2>Ready for lights out</h2><div class="muted">Only the live race result will be committed to history and championship standings.</div></div><button class="primary race-start" data-action="start-race">START RACE</button></article></section>`);
 }
 
 function feedLabel(event) {
@@ -170,7 +172,7 @@ function raceFeed(events) {
 }
 
 function pitWallCards(race) {
-  return race.strategies.map((plan) => `<article class="pit-card" data-driver="${escapeHtml(plan.driverId)}"><div><strong>${escapeHtml(plan.driverName)}</strong><div class="muted small">Start ${escapeHtml(plan.startingCompoundId ?? "N/A")} · ${plan.plannedStops} planned stop${plan.plannedStops === 1 ? "" : "s"}</div></div><select name="boxCompound">${tyreOptions(race.tyreOptions, plan.startingCompoundId)}</select><button class="secondary compact" data-action="box-driver">BOX NEXT LAP</button></article>`).join("");
+  return race.strategies.map((plan) => `<article class="pit-card" data-driver="${escapeHtml(plan.driverId)}"><div><strong>${entityLink("driver", plan.driverId, plan.driverName)}</strong><div class="muted small">Start ${escapeHtml(plan.startingCompoundId ?? "N/A")} · ${plan.plannedStops} planned stop${plan.plannedStops === 1 ? "" : "s"}</div></div><select name="boxCompound">${tyreOptions(race.tyreOptions, plan.startingCompoundId)}</select><button class="secondary compact" data-action="box-driver">BOX NEXT LAP</button></article>`).join("");
 }
 
 function renderRace() {
@@ -180,17 +182,17 @@ function renderRace() {
   shell(`${weekendSteps("race")}<div class="race-head"><div><div class="eyebrow">Live Race · ${escapeHtml(race.weather ?? "conditions unknown")}${race.activeControl ? ` · ${escapeHtml(race.activeControl.replaceAll("_", " "))}` : ""}</div><h1>${escapeHtml(weekend?.name ?? race.gpId ?? "Grand Prix")}</h1></div><div class="lap">LAP ${race.currentLap} / ${race.totalLaps}</div></div>
     <div class="race-controls"><button data-action="pause" class="${runSpeed === 0 ? "selected" : ""}">PAUSE</button>${speedButtons}<button data-race-laps="1">STEP +1</button><button class="finish" data-action="finish-race">SIM TO FINISH</button></div>
     ${race.attentionRequired ? '<div class="attention">Simulation paused on a notable race event.</div>' : ""}
-    <section class="grid race-grid"><article class="card span-8"><h2>Live Timing <span class="muted small">Gap Index is simulation-relative, not seconds.</span></h2><div class="table-wrap"><table><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Gap Index</th><th>Tyre</th><th>Wear</th><th>Temp</th><th>Fuel</th><th>Status</th></tr></thead><tbody>${race.order.map((row) => `<tr class="${row.controlled ? "controlled" : ""}"><td><strong>${row.position}</strong></td><td>${escapeHtml(row.driverName)}</td><td>${escapeHtml(row.teamName)}</td><td>${row.position === 1 ? "LEADER" : `+${number(row.gapIndex, 0)}`}</td><td>${escapeHtml(row.compoundId ?? "—")}</td><td>${row.tyreWearPercent === null ? "—" : `${row.tyreWearPercent}%`}</td><td>${escapeHtml(row.tyreTemperature ?? "—")}</td><td>${row.fuelKg === null ? "—" : `${row.fuelKg} kg`}</td><td><span class="status">${escapeHtml(row.status)}</span></td></tr>`).join("")}</tbody></table></div></article><div class="span-4 side-stack"><article class="card"><h2>Race Control Feed</h2>${raceFeed(race.latestEvents)}</article><article class="card"><h2>Pit Wall</h2><div class="pit-wall">${pitWallCards(race)}</div></article><article class="card"><h2>Race State</h2><div class="row"><span>Progress</span><strong>${Math.round((race.progress ?? 0) * 100)}%</strong></div><div class="row"><span>Strategy revisions</span><strong>${race.strategyRevisions.length}</strong></div></article></div></section>`);
+    <section class="grid race-grid"><article class="card span-8"><h2>Live Timing <span class="muted small">Gap Index is simulation-relative, not seconds.</span></h2><div class="table-wrap"><table><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Gap Index</th><th>Tyre</th><th>Wear</th><th>Temp</th><th>Fuel</th><th>Status</th></tr></thead><tbody>${race.order.map((row) => `<tr class="${row.controlled ? "controlled" : ""}"><td><strong>${row.position}</strong></td><td>${entityLink("driver", row.driverId, row.driverName)}</td><td>${entityLink("team", row.teamId, row.teamName)}</td><td>${row.position === 1 ? "LEADER" : `+${number(row.gapIndex, 0)}`}</td><td>${escapeHtml(row.compoundId ?? "—")}</td><td>${row.tyreWearPercent === null ? "—" : `${row.tyreWearPercent}%`}</td><td>${escapeHtml(row.tyreTemperature ?? "—")}</td><td>${row.fuelKg === null ? "—" : `${row.fuelKg} kg`}</td><td><span class="status">${escapeHtml(row.status)}</span></td></tr>`).join("")}</tbody></table></div></article><div class="span-4 side-stack"><article class="card"><h2>Race Control Feed</h2>${raceFeed(race.latestEvents)}</article><article class="card"><h2>Pit Wall</h2><div class="pit-wall">${pitWallCards(race)}</div></article><article class="card"><h2>Race State</h2><div class="row"><span>Progress</span><strong>${Math.round((race.progress ?? 0) * 100)}%</strong></div><div class="row"><span>Strategy revisions</span><strong>${race.strategyRevisions.length}</strong></div></article></div></section>`);
 }
 
 function resultsTable() {
   const rows = state.lastRace?.classification ?? [];
-  return `<table><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Status</th></tr></thead><tbody>${rows.map((row) => `<tr><td><strong>${row.position}</strong></td><td>${escapeHtml(row.driverName)}</td><td>${escapeHtml(row.teamName)}</td><td>${escapeHtml(row.status ?? "FINISHED")}</td></tr>`).join("")}</tbody></table>`;
+  return `<table><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Status</th></tr></thead><tbody>${rows.map((row) => `<tr><td><strong>${row.position}</strong></td><td>${entityLink("driver", row.driverId, row.driverName)}</td><td>${entityLink("team", row.teamId, row.teamName)}</td><td>${escapeHtml(row.status ?? "FINISHED")}</td></tr>`).join("")}</tbody></table>`;
 }
 
 function renderResults() {
   stopAuto();
-  shell(`<section class="hero"><div class="eyebrow">Race Results</div><h1>${escapeHtml(state.lastRace?.name ?? "Grand Prix complete")}</h1><p>The live result is committed to Save World history and championship standings.</p></section><section class="grid"><article class="card span-8"><h2>Classification</h2>${resultsTable()}</article><article class="card span-4"><h2>Next Grand Prix</h2>${state.nextRace ? `<strong>${escapeHtml(state.nextRace.name)}</strong><div class="muted">${humanDate(state.nextRace.date)}</div>` : '<div class="muted">No remaining race in this season.</div>'}</article><article class="card span-6"><h2>Drivers' Championship</h2>${standingsList(state.standings.drivers)}</article><article class="card span-6"><h2>Constructors' Championship</h2>${standingsList(state.standings.constructors)}</article></section>`, "Standings", true);
+  shell(`<section class="hero"><div class="eyebrow">Race Results</div><h1>${escapeHtml(state.lastRace?.name ?? "Grand Prix complete")}</h1><p>The live result is committed to Save World history and championship standings.</p></section><section class="grid"><article class="card span-8"><h2>Classification</h2>${resultsTable()}</article><article class="card span-4"><h2>Next Grand Prix</h2>${state.nextRace ? `<strong>${escapeHtml(state.nextRace.name)}</strong><div class="muted">${humanDate(state.nextRace.date)}</div>` : '<div class="muted">No remaining race in this season.</div>'}</article><article class="card span-6"><h2>Drivers' Championship</h2>${standingsList(state.standings.drivers, "driver")}</article><article class="card span-6"><h2>Constructors' Championship</h2>${standingsList(state.standings.constructors, "team")}</article></section>`, "Standings", true);
 }
 
 function render() {

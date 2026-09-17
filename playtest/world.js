@@ -1,3 +1,5 @@
+import { entityLink } from "/entity-links.js";
+
 const app = document.querySelector("#app");
 
 async function api(path) {
@@ -21,7 +23,7 @@ function recordTable(rows, kind) {
   return `<div class="table-wrap"><table>
     <thead><tr><th>${kind}</th><th>Starts</th><th>Wins</th><th>Podiums</th><th>Titles</th></tr></thead>
     <tbody>${rows.slice(0, 12).map((row) => `<tr>
-      <td><strong>${escapeHtml(row.name ?? row.id)}</strong><span class="sub">${escapeHtml(row.id)}</span></td>
+      <td><strong>${entityLink(kind === "Driver" ? "driver" : "team", row.id, row.name ?? row.id)}</strong><span class="sub">${escapeHtml(row.id)}</span></td>
       <td>${escapeHtml(row.starts)}</td><td>${escapeHtml(row.wins)}</td><td>${escapeHtml(row.podiums)}</td><td>${escapeHtml(row.championships)}</td>
     </tr>`).join("")}</tbody>
   </table></div>`;
