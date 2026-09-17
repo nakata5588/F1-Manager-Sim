@@ -59,6 +59,7 @@ for (const path of [
   "src/app/entityProfilePlaytest.js",
   "src/media/mediaPack.js",
   "src/presentation/teamVisualIdentity.js",
+  "src/presentation/historicalDisplayMetadata.js",
   "src/save/slotStore.js",
   "playtest/app.js",
   "playtest/persistence.js",

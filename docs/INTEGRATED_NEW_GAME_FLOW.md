@@ -43,6 +43,21 @@ Team choices come only from `snapshot.teams` exposed by the active Season Databa
 
 Selecting 1980 does not grant authority to later historical results, contracts, transfers, retirements or championships. Those remain reference-only inputs where applicable; Save World owns all post-start outcomes.
 
+## Public presentation metadata
+
+Historical source identity and player-facing labels are separate contracts.
+
+The runtime keeps the original `databaseVersion`, `releaseName`, source checksum, stable IDs and manifests intact for validation and persistence. `DeveloperPlaytestSession.setup()` additionally projects presentation-only metadata:
+
+- database name — for example `Official Historical Database`;
+- season name — for example `1980 Formula One World Championship`;
+- concise version label — for example `v1.2.16`;
+- player-facing description.
+
+The browser catalog consumes these public fields. Technical release filenames, candidate/audit labels and source-lock terminology must never be used as visible card titles or subtitles. The catalog retains internal identity fields beneath the presentation layer so career creation and compatibility validation continue to use the authoritative source identity.
+
+Legacy/single-season setup payloads without presentation metadata receive safe browser fallbacks. A semantic version prefix may be shortened for display, but an arbitrary technical identifier is never shown as the version label.
+
 ## Browser catalog contract
 
 `playtest/new-game-flow.js` normalizes the setup projection into a catalog containing:

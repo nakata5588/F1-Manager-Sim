@@ -133,7 +133,7 @@ function menuSidePanel() {
     return `<section class="mm-card">
       <div class="eyebrow">Load Game</div>
       <h2>Choose a career save.</h2>
-      <p>Only saves compatible with the currently loaded historical Season Database can be restored.</p>
+      <p>Only saves compatible with the currently loaded historical database release can be restored.</p>
       <div class="mm-save-list">${menuSlots.length ? menuSlots.map(saveSlotMarkup).join("") : '<div class="mm-message">No save files have been created yet.</div>'}</div>
       <button type="button" class="mm-back" data-mm-action="back">BACK TO MAIN MENU</button>
     </section>`;
@@ -309,9 +309,9 @@ function renderSetup() {
   stopAuto();
   const setup = state.setup;
   root.innerHTML = `<main class="setup-wrap ${busy ? "loading" : ""}"><section class="setup">
-    <div class="setup-head"><div class="eyebrow">Developer Playtest · ${setup.season}</div><h1>Start a new career.</h1><p>${escapeHtml(setup.releaseName ?? "Season Database")} · Choose the team you want to manage. Historical data defines the starting world; what happens next belongs to the simulation.</p></div>
+    <div class="setup-head"><div class="eyebrow">New Career · ${setup.season}</div><h1>Start a new career.</h1><p>${escapeHtml(setup.presentation?.seasonName ?? `${setup.season} Formula One World Championship`)} · Choose the team you want to manage. Historical data defines the starting world; what happens next belongs to the simulation.</p></div>
     ${errorMessage ? `<div class="error">${escapeHtml(errorMessage)}</div>` : ""}
-    <div class="form-row"><input id="manager-name" type="text" maxlength="64" placeholder="Manager name" value="Ricardo Nakata"><div class="card"><span class="muted">Database</span><br><strong>${escapeHtml(setup.databaseVersion ?? "local")}</strong></div></div>
+    <div class="form-row"><input id="manager-name" type="text" maxlength="64" placeholder="Manager name" value="Ricardo Nakata"><div class="card"><span class="muted">Database</span><br><strong>${escapeHtml(setup.presentation?.databaseName ?? "Official Historical Database")}</strong><div class="muted small">Version ${escapeHtml(setup.presentation?.versionLabel ?? "Current")}</div></div></div>
     <div class="team-grid">${setup.teams.map((team) => `<button class="team ${selectedTeam === team.id ? "selected" : ""}" data-team="${escapeHtml(team.id)}"><strong>${escapeHtml(team.name)}</strong><small>${escapeHtml(team.nationality ?? "Formula One constructor")}</small></button>`).join("")}</div>
     <button class="start" data-action="start" ${selectedTeam ? "" : "disabled"}>START CAREER</button>
   </section></main>`;
