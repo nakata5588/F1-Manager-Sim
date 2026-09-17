@@ -1,0 +1,24 @@
+{
+  "format": "f1-manager-sim-media-pack",
+  "schemaVersion": 1,
+  "id": "default",
+  "name": "Default Media Pack",
+  "version": "0.1.0",
+  "assetRoot": ".",
+  "preferredPortraitSize": 256,
+  "supportedExtensions": ["webp", "png", "jpg", "jpeg"],
+  "defaults": {
+    "driver": "defaults/driver.webp",
+    "staff": "defaults/staff.webp",
+    "manager": "defaults/manager.webp",
+    "teamLogo": "defaults/team-logo.webp",
+    "car": "defaults/car.webp",
+    "circuit": "defaults/circuit.webp",
+    "circuitMap": "defaults/circuit-map.webp",
+    "city": "defaults/city.webp",
+    "sponsor": "defaults/sponsor.webp",
+    "engine": "defaults/engine.webp",
+    "tyre": "defaults/tyre.webp"
+  },
+  "overrides": {}
+}

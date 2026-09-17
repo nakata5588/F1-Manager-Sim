@@ -5,11 +5,14 @@ import {
   homeSectionTarget,
   managementTabForHash,
 } from "/career-shell-model.js";
+import { buildTeamLabelMap, resolveTeamLabelsInText } from "/entity-label-model.js";
 
 const SHELL_ID = "career-shell-sidebar";
 const TOPBAR_ID = "career-shell-topbar";
 let shellState = null;
 let shellBusy = false;
+let teamLabels = new Map();
+let labelObserver = null;
 
 async function request(path, options = {}) {
   const response = await fetch(path, {
@@ -103,6 +106,55 @@ function flash(message, tone = "error") {
   window.setTimeout(() => node.classList.remove("show"), 2800);
 }
 
+function shouldResolveTextNode(node) {
+  const parent = node?.parentElement;
+  if (!parent) return false;
+  return !parent.closest("script, style, textarea, input, select, option, [data-show-entity-id]");
+}
+
+function resolveTextNode(node) {
+  if (!shouldResolveTextNode(node) || !teamLabels.size) return;
+  const current = node.nodeValue ?? "";
+  const resolved = resolveTeamLabelsInText(current, teamLabels);
+  if (resolved !== current) node.nodeValue = resolved;
+}
+
+function applyPresentationLabels(root = document.body) {
+  if (!root || !teamLabels.size) return;
+  if (root.nodeType === Node.TEXT_NODE) {
+    resolveTextNode(root);
+    return;
+  }
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  while (walker.nextNode()) resolveTextNode(walker.currentNode);
+}
+
+async function installPresentationLabels(state) {
+  let setup = null;
+  try { setup = await request("/api/setup"); } catch { setup = null; }
+  const rows = [
+    ...(setup?.teams ?? []),
+    ...(state?.standings?.constructors ?? []),
+  ];
+  if (state?.career?.controlledTeamId && state?.career?.teamName) {
+    rows.push({ id: state.career.controlledTeamId, name: state.career.teamName });
+  }
+  teamLabels = buildTeamLabelMap(rows);
+  applyPresentationLabels(document.body);
+
+  labelObserver?.disconnect();
+  labelObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type === "characterData") {
+        resolveTextNode(mutation.target);
+        continue;
+      }
+      for (const node of mutation.addedNodes) applyPresentationLabels(node);
+    }
+  });
+  labelObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+}
+
 async function runContinue(button) {
   if (shellBusy) return;
   const kind = button.dataset.kind;
@@ -172,6 +224,7 @@ async function installCareerShell() {
   let overview = null;
   try { overview = await request("/api/management"); } catch { overview = null; }
   renderShell(shellState, overview);
+  await installPresentationLabels(shellState);
   installDeepLinks();
 
   document.addEventListener("click", (event) => {
