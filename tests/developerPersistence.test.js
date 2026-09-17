@@ -69,7 +69,16 @@ function seasonDatabase() {
 
 function pausedRaceSession(seed = "phase-45-resume") {
   const session = new DeveloperPlaytestSession(seasonDatabase());
-  session.startCareer({ managerName: "Persistence Manager", teamId: "T1", seed });
+  session.startCareer({
+    managerProfile: {
+      name: "Persistence Manager",
+      nationality: "Portuguese",
+      dateOfBirth: "1955-02-10",
+      background: "engineering",
+    },
+    teamId: "T1",
+    seed,
+  });
   session.continue();
   session.advanceWeekend();
   session.advanceWeekend();
@@ -88,6 +97,10 @@ test("playtest restore resumes a paused live race to the exact same authoritativ
   assert.equal(restoredState.screen, "race");
   assert.equal(restoredState.liveRace.currentLap, 3);
   assert.equal(restoredState.career.managerName, "Persistence Manager");
+  assert.equal(restoredState.career.managerProfile.nationality, "Portuguese");
+  assert.equal(restoredState.career.managerProfile.dateOfBirth, "1955-02-10");
+  assert.equal(restoredState.career.managerProfile.background, "engineering");
+  assert.equal(restoredState.career.managerProfile.previousExperience, "Engineering");
   assert.equal(restoredState.career.controlledTeamId, "T1");
 
   const fullState = uninterrupted.finishRace();
@@ -95,6 +108,23 @@ test("playtest restore resumes a paused live race to the exact same authoritativ
   assert.deepEqual(resumedState.lastRace.classification, fullState.lastRace.classification);
   assert.deepEqual(restored.saveWorld.history.races[0].timeline, uninterrupted.saveWorld.history.races[0].timeline);
   assert.deepEqual(restored.saveWorld.world.championship, uninterrupted.saveWorld.world.championship);
+});
+
+test("restore normalizes legacy name-only manager saves without inventing personal details", () => {
+  const original = pausedRaceSession("manager-profile-legacy");
+  original.saveWorld.player.manager = {
+    name: "Legacy Persistence Manager",
+    career: original.saveWorld.player.manager.career,
+  };
+  const serialized = serializeDeveloperPlaytestSession(original, { savedAt: "2026-09-16T22:02:00.000Z" });
+
+  const restored = new DeveloperPlaytestSession(seasonDatabase());
+  const state = restoreDeveloperPlaytestSession(restored, serialized);
+  assert.equal(state.career.managerProfile.name, "Legacy Persistence Manager");
+  assert.equal(state.career.managerProfile.nationality, null);
+  assert.equal(state.career.managerProfile.dateOfBirth, null);
+  assert.equal(state.career.managerProfile.background, null);
+  assert.equal(state.career.managerProfile.previousExperience, null);
 });
 
 test("restore does not replay Career Start or duplicate narrative/history state", () => {
