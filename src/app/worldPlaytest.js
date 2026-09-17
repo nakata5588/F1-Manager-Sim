@@ -3,6 +3,7 @@ import {
   listWorldNews,
   worldRecordsSummary,
 } from "../game/worldNarrative.js";
+import { developerChampionship } from "./championshipPlaytest.js";
 
 function requireSession(session) {
   if (!session || typeof session.requireCareer !== "function") throw new TypeError("A DeveloperPlaytestSession is required.");
@@ -46,6 +47,7 @@ export function developerWorld(session, options = {}) {
     activeDrivers: visibleActiveDrivers(saveWorld),
     activeTeams: activeTeams(saveWorld),
     standings: currentStandings(saveWorld),
+    championship: developerChampionship(session),
     news: listWorldNews(saveWorld, {
       category: options.category,
       minImportance: options.minImportance,

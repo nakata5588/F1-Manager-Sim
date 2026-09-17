@@ -5,7 +5,7 @@ export const CAREER_NAV_GROUPS = Object.freeze([
     items: [
       { id: "home", label: "Home", href: "/" },
       { id: "inbox", label: "Inbox", href: "/management.html#inbox" },
-      { id: "calendar", label: "Calendar", href: "/?section=calendar" },
+      { id: "calendar", label: "Calendar", href: "/championship.html#calendar" },
     ],
   },
   {
@@ -29,7 +29,7 @@ export const CAREER_NAV_GROUPS = Object.freeze([
     id: "competition",
     label: "Competition",
     items: [
-      { id: "standings", label: "Standings", href: "/?section=standings" },
+      { id: "standings", label: "Standings", href: "/championship.html#standings" },
       { id: "world", label: "F1 World", href: "/world.html" },
       { id: "governance", label: "Governance", href: "/governance.html" },
     ],
@@ -79,6 +79,7 @@ export function activeCareerNavId(location = {}) {
 
   if (path === "/management.html") return MANAGEMENT_HASH_TO_NAV[hash] ?? "inbox";
   if (path === "/technical.html") return "technical";
+  if (path === "/championship.html") return hash === "standings" ? "standings" : "calendar";
   if (path === "/world.html") return "world";
   if (path === "/governance.html") return "governance";
   if (path === "/offseason.html") return "offseason";
