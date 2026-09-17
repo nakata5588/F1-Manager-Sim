@@ -1,4 +1,5 @@
 import { entityLink } from "/entity-links.js";
+import { publicLabel } from "/presentation-labels.js";
 import {
   CAREER_ENTRY_STORAGE_KEY,
   REDUCED_MOTION_STORAGE_KEY,
@@ -64,7 +65,7 @@ function navigation(active = "Home") {
   return `<aside class="sidebar">
     <div class="brand">F1 <span>MANAGER</span> SIM</div>
     <div class="nav">${entries.map((entry) => `<div class="${entry === active ? "active" : ""}">${entry}</div>`).join("")}</div>
-    <div class="version">DEVELOPER PLAYTEST · PHASE 31</div>
+    <div class="version">F1 MANAGER SIM</div>
   </aside>`;
 }
 
@@ -143,7 +144,7 @@ function menuSidePanel() {
     return `<section class="mm-card">
       <div class="eyebrow">Settings</div>
       <h2>Presentation settings.</h2>
-      <p>Game-system settings will grow here without changing simulation authority.</p>
+      <p>Adjust presentation preferences for this device.</p>
       <div class="mm-setting"><div><label for="mm-reduced-motion">Reduced motion</label><small>Disables non-essential UI transitions and animation.</small></div><input id="mm-reduced-motion" type="checkbox" data-mm-reduced-motion ${reducedMotion ? "checked" : ""}></div>
       <button type="button" class="mm-back" data-mm-action="back">BACK TO MAIN MENU</button>
     </section>`;
@@ -151,7 +152,7 @@ function menuSidePanel() {
   if (menuView === "exit") {
     return `<section class="mm-card">
       <div class="eyebrow">Exit</div>
-      <h2>Browser playtest runtime.</h2>
+      <h2>Browser runtime.</h2>
       <div class="mm-message">This browser runtime cannot reliably close a tab that it did not open. Your career is autosaved by the runtime; close this tab or browser window to exit. A desktop build can bind this action to a native exit command later.</div>
       <button type="button" class="mm-back" data-mm-action="back">BACK TO MAIN MENU</button>
     </section>`;
@@ -188,7 +189,7 @@ function renderMainMenu() {
           ${menuError ? `<div class="mm-error">${escapeHtml(menuError)}</div>` : ""}
         </div>
       </div>
-      <div class="mm-foot"><span>Developer Playable Validation</span><span>${hasLoadableSaves(menuSlots) ? "Compatible career save detected" : "Ready for New Game"}</span></div>
+      <div class="mm-foot"><span>F1 Manager Sim</span><span>${hasLoadableSaves(menuSlots) ? "Compatible career save detected" : "Ready for New Game"}</span></div>
     </section>
     <aside class="mm-side">${menuSidePanel()}</aside>
   </main>`;
@@ -320,10 +321,10 @@ function renderSetup() {
 function renderHome() {
   stopAuto();
   const next = state.nextRace;
-  shell(`<section class="hero"><div class="eyebrow">Career Home</div><h1>${entityLink("team", state.career.controlledTeamId, state.career.teamName)}</h1><p>The world is live. Continue advances the actual Save World to the next Grand Prix weekend.</p></section>
+  shell(`<section class="hero"><div class="eyebrow">Career Home</div><h1>${entityLink("team", state.career.controlledTeamId, state.career.teamName)}</h1><p>The world is live. Continue advances your career to the next Grand Prix weekend.</p></section>
     <section class="grid">
       <article class="card span-4"><h2>Next Grand Prix</h2>${next ? `<div class="kpi">R${next.round}</div><strong>${escapeHtml(next.name)}</strong><div class="muted">${humanDate(next.date)}</div>` : '<div class="muted">Season complete</div>'}</article>
-      <article class="card span-4"><h2>Your Drivers</h2><div class="list">${state.teamDrivers.map((driver) => `<div class="row"><span>${entityLink("driver", driver.id, driver.name)}</span><span class="muted">${escapeHtml(driver.role)}</span></div>`).join("")}</div></article>
+      <article class="card span-4"><h2>Your Drivers</h2><div class="list">${state.teamDrivers.map((driver) => `<div class="row"><span>${entityLink("driver", driver.id, driver.name)}</span><span class="muted">${escapeHtml(publicLabel(driver.role, "Driver"))}</span></div>`).join("")}</div></article>
       <article class="card span-4"><h2>Season</h2><div class="kpi">${state.career.season}</div><div class="muted">Historical start · dynamic future</div></article>
       <article class="card span-6"><h2>Drivers' Championship</h2>${standingsList(state.standings.drivers, "driver")}</article>
       <article class="card span-6"><h2>Constructors' Championship</h2>${standingsList(state.standings.constructors, "team")}</article>
@@ -345,12 +346,12 @@ function renderPracticeResults() {
   const practice = state.raceWeekend.practice;
   shell(`${weekendHero("Practice Complete", state.raceWeekend.name, "Review driver feedback and adjust the car before Qualifying. The ideal setup remains hidden in the simulation engine.")}
     <section class="grid">${practice.team.map((driver) => `<article class="card span-6 setup-card" data-driver="${escapeHtml(driver.driverId)}"><div class="driver-card-head"><div><div class="eyebrow">${entityLink("driver", driver.driverId, driver.driverName)}</div><h2>Car Setup</h2></div><div class="setup-score"><strong>${number(driver.setupQuality)}</strong><span>quality</span></div></div><div class="muted small">Setup knowledge ${number(driver.setupKnowledge)}%</div>${setupSlider("aeroBalance", "Aero balance", driver.setup.aeroBalance)}${setupSlider("mechanicalGrip", "Mechanical grip", driver.setup.mechanicalGrip)}${setupSlider("gearing", "Gearing", driver.setup.gearing)}${setupSlider("cooling", "Cooling", driver.setup.cooling)}<button class="secondary" data-action="apply-setup">APPLY SETUP</button></article>`).join("")}
-      <article class="card span-12 action-row"><div><h2>Ready for Qualifying?</h2><div class="muted">Setup changes are applied directly to the active Save World weekend.</div></div><button class="primary" data-action="advance-weekend">CONTINUE TO QUALIFYING</button></article>
+      <article class="card span-12 action-row"><div><h2>Ready for Qualifying?</h2><div class="muted">Setup changes apply to the current race weekend.</div></div><button class="primary" data-action="advance-weekend">CONTINUE TO QUALIFYING</button></article>
     </section>`);
 }
 
 function qualifyingTable(rows) {
-  return `<table><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Score</th><th>Status</th></tr></thead><tbody>${rows.map((row) => `<tr class="${row.controlled ? "controlled" : ""}"><td><strong>${row.position}</strong></td><td>${entityLink("driver", row.driverId, row.driverName)}</td><td>${entityLink("team", row.teamId, row.teamName)}</td><td>${number(row.score)}</td><td><span class="status">${escapeHtml(row.status)}</span></td></tr>`).join("")}</tbody></table>`;
+  return `<table><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Score</th><th>Status</th></tr></thead><tbody>${rows.map((row) => `<tr class="${row.controlled ? "controlled" : ""}"><td><strong>${row.position}</strong></td><td>${entityLink("driver", row.driverId, row.driverName)}</td><td>${entityLink("team", row.teamId, row.teamName)}</td><td>${number(row.score)}</td><td><span class="status">${escapeHtml(publicLabel(row.status, "Status"))}</span></td></tr>`).join("")}</tbody></table>`;
 }
 
 function renderQualifyingResults() {
@@ -378,13 +379,13 @@ function renderPreRace() {
 
 function feedLabel(event) {
   const driver = event.driverName ? ` · ${event.driverName}` : "";
-  if (event.type === "race_control") return `${String(event.control ?? "race control").replaceAll("_", " ")}${driver}`;
+  if (event.type === "race_control") return `${publicLabel(event.control ?? "race control", "Race Control")}${driver}`;
   if (event.type === "weather_change") return `Weather ${event.from ?? "?"} → ${event.to ?? "?"}`;
   if (event.type === "retirement") return `Retirement${driver} · ${event.reason ?? "unknown"}`;
   if (event.type === "incident") return `Incident${driver}${event.sectorName ? ` · ${event.sectorName}` : ""}`;
   if (event.type === "damage") return `Damage${driver}`;
   if (event.type === "strategy_revision") return `Strategy revision${driver}`;
-  return `${String(event.type ?? "event").replaceAll("_", " ")}${driver}`;
+  return `${publicLabel(event.type ?? "event", "Event")}${driver}`;
 }
 
 function raceFeed(events) {
@@ -400,10 +401,10 @@ function renderRace() {
   const race = state.liveRace;
   const weekend = state.raceWeekend;
   const speedButtons = [1, 2, 4, 8].map((speed) => `<button class="${runSpeed === speed ? "selected" : ""}" data-speed="${speed}">${speed}×</button>`).join("");
-  shell(`${weekendSteps("race")}<div class="race-head"><div><div class="eyebrow">Live Race · ${escapeHtml(race.weather ?? "conditions unknown")}${race.activeControl ? ` · ${escapeHtml(race.activeControl.replaceAll("_", " "))}` : ""}</div><h1>${escapeHtml(weekend?.name ?? race.gpId ?? "Grand Prix")}</h1></div><div class="lap">LAP ${race.currentLap} / ${race.totalLaps}</div></div>
+  shell(`${weekendSteps("race")}<div class="race-head"><div><div class="eyebrow">Live Race · ${escapeHtml(race.weather ?? "conditions unknown")}${race.activeControl ? ` · ${escapeHtml(publicLabel(race.activeControl))}` : ""}</div><h1>${escapeHtml(weekend?.name ?? race.gpId ?? "Grand Prix")}</h1></div><div class="lap">LAP ${race.currentLap} / ${race.totalLaps}</div></div>
     <div class="race-controls"><button data-action="pause" class="${runSpeed === 0 ? "selected" : ""}">PAUSE</button>${speedButtons}<button data-race-laps="1">STEP +1</button><button class="finish" data-action="finish-race">SIM TO FINISH</button></div>
     ${race.attentionRequired ? '<div class="attention">Simulation paused on a notable race event.</div>' : ""}
-    <section class="grid race-grid"><article class="card span-8"><h2>Live Timing <span class="muted small">Gap Index is simulation-relative, not seconds.</span></h2><div class="table-wrap"><table><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Gap Index</th><th>Tyre</th><th>Wear</th><th>Temp</th><th>Fuel</th><th>Status</th></tr></thead><tbody>${race.order.map((row) => `<tr class="${row.controlled ? "controlled" : ""}"><td><strong>${row.position}</strong></td><td>${entityLink("driver", row.driverId, row.driverName)}</td><td>${entityLink("team", row.teamId, row.teamName)}</td><td>${row.position === 1 ? "LEADER" : `+${number(row.gapIndex, 0)}`}</td><td>${escapeHtml(row.compoundId ?? "—")}</td><td>${row.tyreWearPercent === null ? "—" : `${row.tyreWearPercent}%`}</td><td>${escapeHtml(row.tyreTemperature ?? "—")}</td><td>${row.fuelKg === null ? "—" : `${row.fuelKg} kg`}</td><td><span class="status">${escapeHtml(row.status)}</span></td></tr>`).join("")}</tbody></table></div></article><div class="span-4 side-stack"><article class="card"><h2>Race Control Feed</h2>${raceFeed(race.latestEvents)}</article><article class="card"><h2>Pit Wall</h2><div class="pit-wall">${pitWallCards(race)}</div></article><article class="card"><h2>Race State</h2><div class="row"><span>Progress</span><strong>${Math.round((race.progress ?? 0) * 100)}%</strong></div><div class="row"><span>Strategy revisions</span><strong>${race.strategyRevisions.length}</strong></div></article></div></section>`);
+    <section class="grid race-grid"><article class="card span-8"><h2>Live Timing <span class="muted small">Gap Index is simulation-relative, not seconds.</span></h2><div class="table-wrap"><table><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Gap Index</th><th>Tyre</th><th>Wear</th><th>Temp</th><th>Fuel</th><th>Status</th></tr></thead><tbody>${race.order.map((row) => `<tr class="${row.controlled ? "controlled" : ""}"><td><strong>${row.position}</strong></td><td>${entityLink("driver", row.driverId, row.driverName)}</td><td>${entityLink("team", row.teamId, row.teamName)}</td><td>${row.position === 1 ? "LEADER" : `+${number(row.gapIndex, 0)}`}</td><td>${escapeHtml(row.compoundId ?? "—")}</td><td>${row.tyreWearPercent === null ? "—" : `${row.tyreWearPercent}%`}</td><td>${escapeHtml(row.tyreTemperature ?? "—")}</td><td>${row.fuelKg === null ? "—" : `${row.fuelKg} kg`}</td><td><span class="status">${escapeHtml(publicLabel(row.status, "Status"))}</span></td></tr>`).join("")}</tbody></table></div></article><div class="span-4 side-stack"><article class="card"><h2>Race Control Feed</h2>${raceFeed(race.latestEvents)}</article><article class="card"><h2>Pit Wall</h2><div class="pit-wall">${pitWallCards(race)}</div></article><article class="card"><h2>Race State</h2><div class="row"><span>Progress</span><strong>${Math.round((race.progress ?? 0) * 100)}%</strong></div><div class="row"><span>Strategy revisions</span><strong>${race.strategyRevisions.length}</strong></div></article></div></section>`);
 }
 
 function resultsTable() {
@@ -413,7 +414,7 @@ function resultsTable() {
 
 function renderResults() {
   stopAuto();
-  shell(`<section class="hero"><div class="eyebrow">Race Results</div><h1>${escapeHtml(state.lastRace?.name ?? "Grand Prix complete")}</h1><p>The live result is committed to Save World history and championship standings.</p></section><section class="grid"><article class="card span-8"><h2>Classification</h2>${resultsTable()}</article><article class="card span-4"><h2>Next Grand Prix</h2>${state.nextRace ? `<strong>${escapeHtml(state.nextRace.name)}</strong><div class="muted">${humanDate(state.nextRace.date)}</div>` : '<div class="muted">No remaining race in this season.</div>'}</article><article class="card span-6"><h2>Drivers' Championship</h2>${standingsList(state.standings.drivers, "driver")}</article><article class="card span-6"><h2>Constructors' Championship</h2>${standingsList(state.standings.constructors, "team")}</article></section>`, "Standings", true);
+  shell(`<section class="hero"><div class="eyebrow">Race Results</div><h1>${escapeHtml(state.lastRace?.name ?? "Grand Prix complete")}</h1><p>The race result is now part of your career history and championship standings.</p></section><section class="grid"><article class="card span-8"><h2>Classification</h2>${resultsTable()}</article><article class="card span-4"><h2>Next Grand Prix</h2>${state.nextRace ? `<strong>${escapeHtml(state.nextRace.name)}</strong><div class="muted">${humanDate(state.nextRace.date)}</div>` : '<div class="muted">No remaining race in this season.</div>'}</article><article class="card span-6"><h2>Drivers' Championship</h2>${standingsList(state.standings.drivers, "driver")}</article><article class="card span-6"><h2>Constructors' Championship</h2>${standingsList(state.standings.constructors, "team")}</article></section>`, "Standings", true);
 }
 
 function render() {

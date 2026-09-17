@@ -1,3 +1,5 @@
+import { publicLabel } from "/presentation-labels.js";
+
 const root = document.querySelector("#app");
 let state = null;
 let career = null;
@@ -35,7 +37,7 @@ function statusClass(value) {
 }
 
 function badge(value) {
-  const label = String(value ?? "unknown").replaceAll("_", " ");
+  const label = publicLabel(value ?? "unknown", "Unknown");
   return `<span class="badge ${statusClass(value)}">${escapeHtml(label)}</span>`;
 }
 
@@ -52,7 +54,7 @@ function standings(rows, controlledTeamId) {
 }
 
 function renderNoCareer() {
-  root.innerHTML = `<section class="empty"><h2>No active career</h2><p>Start a career in the main Developer Playtest first.</p><a class="button" href="/">Return to Career Setup</a></section>`;
+  root.innerHTML = `<section class="empty"><h2>No active career</h2><p>Start a career from the Main Menu first.</p><a class="button" href="/">Return to Career Setup</a></section>`;
 }
 
 function renderNoCycle() {
@@ -81,7 +83,7 @@ function render() {
     <section class="hero">
       <div>
         <div class="eyebrow">${cycle.closingSeason} → ${cycle.targetSeason}</div>
-        <h2>${escapeHtml(team?.teamName ?? "Team")} · ${escapeHtml(String(cycle.stage).replaceAll("_", " "))}</h2>
+        <h2>${escapeHtml(team?.teamName ?? "Team")} · ${escapeHtml(publicLabel(cycle.stage, "Offseason"))}</h2>
         <p>The championship has ended. Existing management systems remain authoritative; this page coordinates the transition into the next season.</p>
       </div>
       <div class="hero-actions">
@@ -107,7 +109,7 @@ function render() {
     </section>
 
     <section class="panel">
-      <div class="section-head"><div><div class="eyebrow">Preparation checklist</div><h2>${cycle.targetSeason} Readiness</h2></div><span>Live Save World status</span></div>
+      <div class="section-head"><div><div class="eyebrow">Preparation checklist</div><h2>${cycle.targetSeason} Readiness</h2></div><span>Current career status</span></div>
       <div class="check-grid">
         ${checklistCard("Driver & Staff Contracts", prep.contracts, `${drivers.expiring?.length ?? 0} driver contract(s) and ${staff.expiring?.length ?? 0} staff contract(s) need action.`)}
         ${checklistCard("Engine Supplier", supplier, supplier.activeEngineId ? `Current engine ${supplier.activeEngineId}; contract end ${supplier.activeEndSeason ?? "unknown"}.` : "No active engine supplier contract is projected for the target season.")}

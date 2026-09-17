@@ -32,7 +32,7 @@ test("clean launch stays at the front door while an explicitly active tab resume
 test("save status gives useful load-game context without exposing raw persistence internals", () => {
   assert.equal(saveSlotStatus({ compatible: false }), "Incompatible with the loaded Season Database");
   assert.match(saveSlotStatus({ liveRace: { status: "paused", currentLap: 8, totalLaps: 40 } }), /Lap 8\/40/);
-  assert.equal(saveSlotStatus({ weekend: { phase: "practice_results" } }), "practice results");
+  assert.equal(saveSlotStatus({ weekend: { phase: "practice_results" } }), "Practice & Setup");
 });
 
 test("playtest front door exposes the required Main Menu actions and real save endpoints", () => {

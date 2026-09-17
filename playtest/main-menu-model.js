@@ -1,3 +1,5 @@
+import { publicLabel } from "./presentation-labels.js";
+
 export const CAREER_ENTRY_STORAGE_KEY = "f1ms:career-active";
 export const REDUCED_MOTION_STORAGE_KEY = "f1ms:reduced-motion";
 
@@ -27,7 +29,7 @@ export function saveSlotStatus(row) {
     return `Race in progress · Lap ${Number(row.liveRace.currentLap ?? 0)}/${Number(row.liveRace.totalLaps ?? 0)}`;
   }
   if (row?.weekend?.phase && row.weekend.phase !== "completed") {
-    return String(row.weekend.phase).replaceAll("_", " ");
+    return publicLabel(row.weekend.phase, "Race Weekend");
   }
   return "Career save";
 }

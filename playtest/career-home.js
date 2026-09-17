@@ -1,4 +1,5 @@
 import { buildCareerHomeModel } from "/career-home-model.js";
+import { publicLabel } from "/presentation-labels.js";
 
 const APP = document.querySelector("#app");
 let rendering = false;
@@ -55,7 +56,7 @@ function inbox(model) {
 function objectives(board) {
   if (!board?.objectives?.length) return '<div class="home-empty">No active Board objectives.</div>';
   return `<div class="home-objectives">${board.objectives.slice(0, 3).map((row) => `
-    <div><span>${escapeHtml(String(row.kind ?? "objective").replaceAll("_", " "))}</span><strong>${escapeHtml(row.status ?? "pending")}</strong></div>
+    <div><span>${escapeHtml(publicLabel(row.kind ?? "objective", "Objective"))}</span><strong>${escapeHtml(publicLabel(row.status ?? "pending", "Pending"))}</strong></div>
   `).join("")}</div>`;
 }
 
@@ -113,7 +114,7 @@ function renderDashboard(model) {
 
     <section class="home-overview-grid">
       <article class="home-panel"><div class="home-panel-head"><div><div class="home-kicker">Board</div><h2>Confidence & objectives</h2></div><a href="/management.html#board">Open Board</a></div>${model.board ? `<div class="home-confidence"><strong>${Math.round(Number(model.board.confidence ?? 0))}%</strong><span>${escapeHtml(model.board.status ?? "pending")}</span></div>${objectives(model.board)}` : '<div class="home-empty">No active Board state.</div>'}</article>
-      <article class="home-panel"><div class="home-panel-head"><div><div class="home-kicker">Drivers</div><h2>Your line-up</h2></div><a href="/management.html#people">Open Team</a></div><div class="home-driver-list">${drivers.map((driver) => `<div><span><strong>${escapeHtml(driver.name)}</strong><small>${escapeHtml(driver.role)}</small></span><b>${driver.position ? `P${driver.position}` : "—"}</b><em>${driver.points} pts</em></div>`).join("") || '<div class="home-empty">No active drivers.</div>'}</div></article>
+      <article class="home-panel"><div class="home-panel-head"><div><div class="home-kicker">Drivers</div><h2>Your line-up</h2></div><a href="/management.html#people">Open Team</a></div><div class="home-driver-list">${drivers.map((driver) => `<div><span><strong>${escapeHtml(driver.name)}</strong><small>${escapeHtml(publicLabel(driver.role, "Driver"))}</small></span><b>${driver.position ? `P${driver.position}` : "—"}</b><em>${driver.points} pts</em></div>`).join("") || '<div class="home-empty">No active drivers.</div>'}</div></article>
       ${technical(model)}
       ${news(model)}
     </section>

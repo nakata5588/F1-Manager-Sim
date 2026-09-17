@@ -451,7 +451,7 @@ export class DeveloperPlaytestSession {
   }
 
   requireCareer() {
-    if (!this.saveWorld) throw new Error("No developer playtest career has been started.");
+    if (!this.saveWorld) throw new Error("No active career has been started.");
     return this.saveWorld;
   }
 

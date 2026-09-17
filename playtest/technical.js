@@ -178,7 +178,7 @@ function render() {
   const summary = technical.summary ?? {};
   root.className = "";
   root.innerHTML = `<main class="technical-shell">
-    <header class="technical-topbar"><div><span class="management-category">Phase 37</span><h1>Technical Operations</h1><div class="technical-muted">Supplier → Test → Design → Manufacture → Maintain → Race</div></div><nav class="technical-nav"><a href="/management.html">Management Hub</a><a href="/">Career</a></nav></header>
+    <header class="technical-topbar"><div><span class="management-category">Car & Development</span><h1>Technical Operations</h1><div class="technical-muted">Supplier → Test → Design → Manufacture → Maintain → Race</div></div><nav class="technical-nav"><a href="/management.html">Management Hub</a><a href="/">Career</a></nav></header>
     ${errorMessage ? `<div class="technical-error">${escapeHtml(errorMessage)}</div>` : ""}
     ${technical.responsibility !== "manager" ? '<div class="technical-alert"><strong>Car Development is delegated.</strong> The technical department uses the same supplier, testing, design, manufacturing, maintenance and fitment rules as AI teams. Return the responsibility to Manager in the Management Hub to issue direct orders.</div>' : ""}
     <div class="technical-kpis"><div class="technical-kpi"><strong>${summary.activeDesigns ?? 0}</strong><span>Active designs</span></div><div class="technical-kpi"><strong>${summary.manufacturingJobs ?? 0}</strong><span>Factory jobs</span></div><div class="technical-kpi"><strong>${summary.readySpecs ?? 0}</strong><span>Specs ready</span></div><div class="technical-kpi"><strong>${summary.facilityUpgrades ?? 0}</strong><span>Facility projects</span></div></div>

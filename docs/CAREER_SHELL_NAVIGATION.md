@@ -77,6 +77,25 @@ Every career page now receives the same persistent context bar with:
 
 The shell disappears entirely during New Game so Phase 46 retains its dedicated onboarding experience.
 
+## Player-facing presentation boundary
+
+The career workspace now has one shared presentation-label layer for internal enums. Domain and persistence values remain unchanged, while player-facing surfaces resolve them into readable English.
+
+Examples:
+
+- `main_driver` -> `First Driver`;
+- `second_driver` -> `Second Driver`;
+- `reserve_driver` -> `Reserve Driver`;
+- `technical_director` -> `Technical Director`;
+- `race_live` -> `Race`;
+- `talent_visible` -> `Scouting Visible`.
+
+The resolver is presentation-only. Contract submissions, Save World state and simulation systems continue to use canonical enum ids.
+
+The shared Career Shell also applies label resolution to dynamically inserted text nodes, so existing standalone pages receive the same public labels without rewriting their authoritative data contracts.
+
+Normal player-facing UI must not show development phase badges, `Developer Playtest` branding, internal entity ids in profile headings, or architecture terms such as `Save World` / simulation authority. Development terminology may remain in source code, tests, server logs and technical documentation where it is useful.
+
 ## Existing modules preserved
 
 Phase 47 intentionally keeps the mature module implementations intact:

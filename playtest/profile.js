@@ -1,4 +1,5 @@
 import { entityLink } from "/entity-links.js";
+import { publicLabel } from "/presentation-labels.js";
 
 const root = document.querySelector("#profile-app");
 
@@ -21,8 +22,7 @@ function humanDate(value) {
 }
 
 function human(value) {
-  if (value === null || value === undefined || value === "") return "—";
-  return String(value).replaceAll("_", " ");
+  return publicLabel(value);
 }
 
 function detail(label, value) {
@@ -58,12 +58,12 @@ function person(profile) {
   return `<main class="profile-shell">
     <section class="profile-hero">
       <div class="profile-media">${profileMedia(profile, (profile.name ?? "?").split(/\s+/).map((part) => part[0]).slice(0, 2).join(""))}</div>
-      <div><div class="profile-eyebrow">${escapeHtml(profile.type)} profile · ${escapeHtml(profile.id)}</div><h1>${escapeHtml(profile.name)}</h1><div class="profile-subtitle">${escapeHtml(profile.nationality ?? "Nationality unknown")} · ${profile.age ?? "Age unknown"} · ${team}</div></div>
+      <div><div class="profile-eyebrow">${escapeHtml(publicLabel(profile.type, "Profile"))} Profile</div><h1>${escapeHtml(profile.name)}</h1><div class="profile-subtitle">${escapeHtml(profile.nationality ?? "Nationality unknown")} · ${profile.age ?? "Age unknown"} · ${team}</div></div>
       <div class="profile-status">${escapeHtml(human(profile.visibilityState))}</div>
     </section>
     <section class="profile-grid">
       <article class="profile-card"><h2>Career Status</h2>${detail("Role", human(employment.role))}${detail("Status", human(employment.status))}${detail("Contract until", employment.contractUntil)}${profile.type === "driver" ? detail("Scouting knowledge", `${Math.round(profile.scoutingKnowledge ?? 0)}%`) : detail("Recruitment", profile.recruitment?.eligible ? "Available through staff market" : human(profile.recruitment?.reason))}</article>
-      <article class="profile-card"><h2>Current State</h2>${profile.careerState ? `${detail("Current ability", profile.careerState.currentAbility)}${detail("Potential ability", profile.careerState.potentialAbility)}${detail("Reputation", profile.careerState.reputation)}${detail("Morale", profile.careerState.morale)}` : '<p class="profile-muted">Detailed internal state is only shown for people employed by your team.</p>'}</article>
+      <article class="profile-card"><h2>Current State</h2>${profile.careerState ? `${detail("Current ability", profile.careerState.currentAbility)}${detail("Potential ability", profile.careerState.potentialAbility)}${detail("Reputation", profile.careerState.reputation)}${detail("Morale", profile.careerState.morale)}` : '<p class="profile-muted">Detailed information is available for people employed by your team.</p>'}</article>
       <article class="profile-card wide"><h2>Attributes</h2>${attributes(profile.attributes)}</article>
       ${profile.type === "driver" ? `<article class="profile-card wide"><h2>Recent Race Results</h2>${recent.length ? `<div class="profile-list">${recent.map((row) => `<div class="profile-list-row"><div><strong>${escapeHtml(row.raceName)}</strong><div class="profile-muted">${humanDate(row.date)}${row.teamId ? ` · ${entityLink("team", row.teamId, row.teamName ?? row.teamId)}` : ""}</div></div><span>P${row.position ?? "—"}</span><span>${row.points ?? 0} pts</span></div>`).join("")}</div>` : '<p class="profile-muted">No archived race results yet.</p>'}</article>` : ""}
     </section>
@@ -78,7 +78,7 @@ function team(profile) {
   return `<main class="profile-shell">
     <section class="profile-hero">
       <div class="profile-media">${profileMedia(profile, (profile.name ?? "T").split(/\s+/).map((part) => part[0]).slice(0, 2).join(""))}</div>
-      <div><div class="profile-eyebrow">Team profile · ${escapeHtml(profile.id)}</div><h1>${escapeHtml(profile.name)}</h1><div class="profile-subtitle">${escapeHtml(profile.nationality ?? "Formula One constructor")}</div></div>
+      <div><div class="profile-eyebrow">Team Profile</div><h1>${escapeHtml(profile.name)}</h1><div class="profile-subtitle">${escapeHtml(profile.nationality ?? "Formula One constructor")}</div></div>
       <div class="profile-status">${profile.controlled ? "Your team" : escapeHtml(human(profile.visibilityState))}</div>
     </section>
     <section class="profile-grid">

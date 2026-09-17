@@ -8,6 +8,7 @@ import {
   managementTabForHash,
 } from "/career-shell-model.js";
 import { buildTeamLabelMap, resolveTeamLabelsInText } from "/entity-label-model.js";
+import { publicLabel, resolvePublicLabelsInText } from "/presentation-labels.js";
 
 const SHELL_ID = "career-shell-sidebar";
 const TOPBAR_ID = "career-shell-topbar";
@@ -54,7 +55,7 @@ function navMarkup(groups) {
 
 function statusCopy(state) {
   if (state.raceWeekend && state.raceWeekend.stage !== "completed") {
-    return `${state.raceWeekend.name ?? "Race Weekend"} · ${String(state.raceWeekend.stage ?? "live").replaceAll("_", " ")}`;
+    return `${state.raceWeekend.name ?? "Race Weekend"} · ${publicLabel(state.raceWeekend.stage ?? "live")}`;
   }
   if (state.nextRace) return `Next: R${state.nextRace.round ?? "—"} ${state.nextRace.name ?? "Grand Prix"}`;
   return "Championship calendar complete";
@@ -74,7 +75,7 @@ function renderShell(state, overview = null) {
   sidebar.innerHTML = `
     <a class="career-shell-brand" href="/"><strong>F1</strong><span>MANAGER</span><em>SIM</em></a>
     <nav>${navMarkup(groups)}</nav>
-    <div class="career-shell-foot"><span>PHASE 47</span><small>Persistent Career Shell</small></div>`;
+    <div class="career-shell-foot"><span>CAREER</span><small>Formula One World</small></div>`;
 
   const topbar = document.createElement("header");
   topbar.id = TOPBAR_ID;
@@ -115,14 +116,15 @@ function shouldResolveTextNode(node) {
 }
 
 function resolveTextNode(node) {
-  if (!shouldResolveTextNode(node) || !teamLabels.size) return;
+  if (!shouldResolveTextNode(node)) return;
   const current = node.nodeValue ?? "";
-  const resolved = resolveTeamLabelsInText(current, teamLabels);
+  const withTeams = teamLabels.size ? resolveTeamLabelsInText(current, teamLabels) : current;
+  const resolved = resolvePublicLabelsInText(withTeams);
   if (resolved !== current) node.nodeValue = resolved;
 }
 
 function applyPresentationLabels(root = document.body) {
-  if (!root || !teamLabels.size) return;
+  if (!root) return;
   if (root.nodeType === Node.TEXT_NODE) {
     resolveTextNode(root);
     return;
