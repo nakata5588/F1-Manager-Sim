@@ -6,6 +6,7 @@ on:
       - playtest-corrections-pass-02
     paths:
       - scripts/oneoff-playtest-pass02.py
+      - scripts/oneoff-playtest-pass02-tests.py
       - .github/workflows/playtest-pass02-patch.yml
 
 permissions:
@@ -25,11 +26,13 @@ jobs:
         with:
           node-version: 22
       - name: Apply source patches
-        run: python scripts/oneoff-playtest-pass02.py
+        run: |
+          python scripts/oneoff-playtest-pass02.py
+          python scripts/oneoff-playtest-pass02-tests.py
       - name: Run simulation tests
         run: npm test
       - name: Remove one-off patch machinery
-        run: rm scripts/oneoff-playtest-pass02.py scripts/oneoff-playtest-pass02.mjs .github/workflows/playtest-pass02-patch.yml
+        run: rm scripts/oneoff-playtest-pass02.py scripts/oneoff-playtest-pass02-tests.py scripts/oneoff-playtest-pass02.mjs .github/workflows/playtest-pass02-patch.yml
       - name: Commit corrected implementation
         run: |
           git config user.name "github-actions[bot]"
