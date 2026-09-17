@@ -10,8 +10,8 @@ import {
 
 const legacySetup1980 = {
   season: 1980,
-  databaseVersion: "v1.2.15-1980-historical-source-enrichment-candidate",
-  releaseName: "1980 Historical Source Enrichment",
+  databaseVersion: "v1.2.16-1980-canonical-closure-audit-consistency-candidate",
+  releaseName: "F1_Manager_Sim_SeasonDefinition_1980_v1.2.16_1980_canonical_closure_audit_consistency_candidate",
   teams: [
     { id: "t_0001", name: "Williams", nationality: "British" },
     { id: "t_0002", name: "Ferrari", nationality: "Italian" },
@@ -23,9 +23,49 @@ test("legacy single-Season setup becomes an explicit Database -> Decade -> Seaso
   assert.equal(catalog.databases.length, 1);
   const database = catalog.databases[0];
   assert.equal(database.databaseVersion, legacySetup1980.databaseVersion);
+  assert.equal(database.name, "Official Historical Database");
+  assert.equal(database.versionLabel, "v1.2.16");
+  assert.equal(database.seasons[0].name, "1980 Formula One World Championship");
   assert.deepEqual(decadesForDatabase(catalog, database.id).map((row) => row.decade), [1980]);
   assert.deepEqual(seasonsForDecade(catalog, database.id, 1980).map((row) => row.season), [1980]);
   assert.deepEqual(seasonsForDecade(catalog, database.id, 1990), []);
+});
+
+
+test("technical database filenames and candidate labels never become public New Game labels", () => {
+  const catalog = buildNewGameCatalog(legacySetup1980);
+  const database = catalog.databases[0];
+  const season = database.seasons[0];
+  const publicText = [
+    database.name,
+    database.description,
+    database.versionLabel,
+    season.name,
+    season.versionLabel,
+  ].join(" ");
+
+  assert.doesNotMatch(publicText, /SeasonDefinition|canonical|closure|audit|consistency|candidate/i);
+  assert.doesNotMatch(publicText, /F1_Manager_Sim/i);
+  assert.equal(database.releaseName, legacySetup1980.releaseName, "internal metadata remains available below the presentation layer");
+  assert.equal(database.databaseVersion, legacySetup1980.databaseVersion, "source identity remains intact");
+});
+
+test("server-supplied presentation metadata can override public copy without changing internal identity", () => {
+  const catalog = buildNewGameCatalog({
+    ...legacySetup1980,
+    presentation: {
+      databaseName: "Official Historical Database",
+      databaseDescription: "Curated historical starting conditions.",
+      seasonName: "1980 Formula One World Championship",
+      versionLabel: "v1.2.16",
+    },
+  });
+  const database = catalog.databases[0];
+  assert.equal(database.name, "Official Historical Database");
+  assert.equal(database.description, "Curated historical starting conditions.");
+  assert.equal(database.versionLabel, "v1.2.16");
+  assert.equal(database.seasons[0].name, "1980 Formula One World Championship");
+  assert.equal(database.databaseVersion, legacySetup1980.databaseVersion);
 });
 
 test("New Game catalog never invents unsupported seasons or decades", () => {
@@ -71,6 +111,9 @@ test("final New Game selection validates database, decade, season, team and mana
 
   const result = validateNewGameSelection(catalog, selection);
   assert.equal(result.season, 1980);
+  assert.equal(result.seasonName, "1980 Formula One World Championship");
+  assert.equal(result.databaseName, "Official Historical Database");
+  assert.equal(result.databaseVersionLabel, "v1.2.16");
   assert.equal(result.teamId, "t_0001");
   assert.equal(result.teamName, "Williams");
   assert.equal(result.managerName, "Ricardo Nakata");
