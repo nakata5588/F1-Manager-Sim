@@ -6,13 +6,13 @@ F1 Manager Sim is a long-form Formula One management and world simulation game. 
 
 ## Current development phase
 
-**Phase 45 — Career Persistence / Save & Load**
+**Phase 46 — Integrated New Game Flow**
 
-The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market, a persistent physical technical lifecycle, dynamic governance/grid evolution, a playable season-to-season transition, renewable driver population, persistent world news/history/records, an era-safe team-organisation model and resumable career persistence.
+The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market, a persistent physical technical lifecycle, dynamic governance/grid evolution, a playable season-to-season transition, renewable driver population, persistent world news/history/records, an era-safe team-organisation model, resumable career persistence and an explicit New Game selection flow.
 
 Current career path:
 
-`New Career -> Choose Team -> Create Manager -> Career Home -> Continue -> Race Weekends -> Championship Finale -> Season Review -> Offseason Planning -> New Season -> Preseason -> Race Weekend`
+`New Game -> Database -> Decade -> Season -> Team -> Manager -> Career Home -> Continue -> Race Weekends -> Championship Finale -> Season Review -> Offseason Planning -> New Season -> Preseason -> Race Weekend`
 
 Current persistence path:
 
@@ -34,6 +34,8 @@ The staff/organisation lifecycle extends through:
 
 `Employment / Vacancy -> Functional Department -> Quality / Capacity / Workload -> Advice / Operational Effect -> Staff Change -> Updated Organisation`
 
+Phase 46 turns the Developer Playtest bootstrap into an explicit New Game wizard with Database, Decade, Season, Team and Manager stages. Because 1980 remains the only fully supported starting season, the current runtime exposes only the validated supplied Season Database rather than inventing unavailable historical options. The browser catalog contract is already structured for multiple databases and seasons, so historical expansion can add real career-ready choices without replacing the flow. Final career creation still passes through the existing server-side `createCareerFromSeasonDatabase()` boundary.
+
 Phase 45 adds filesystem save slots and Developer Playtest Save/Load on top of the existing versioned Save World serialization contract. Loading validates the starting Season Database provenance before restoring the mutable career, rebuilds the current application/system wiring without creating a new career, and does not replay `CAREER_STARTED`. A paused live race can be saved and restored into a fresh application session while preserving the deterministic final classification, timeline and championship state. The local playtest also writes a reserved `autosave` slot at key career/race milestones.
 
 Phase 44 adds persistent, Save World-derived organisation depth without inventing modern historical structures. Current staff employment roles are grouped into era-neutral gameplay functions such as Technical, Race Operations, Scouting & Recruitment, Commercial and Team Leadership. Department quality and workload are tracked separately so existing specialist staff ratings are not double-counted. Vacancies and overload can create real organisational pressure; scouting throughput reacts to organisational capacity while visibility, F1 eligibility and contract authority remain owned by their existing systems.
@@ -42,6 +44,7 @@ Phase 43 exposes the active alternative-history universe through F1 World, Histo
 
 The local Developer Playtest exposes:
 
+- Integrated New Game flow: Database -> Decade -> Season -> Team -> Manager
 - Career / Race Weekend, including manual Save/Load and race-milestone autosave
 - Management Hub, including Inbox, Board, People, Staff, Recruitment, Contracts, Commercial and responsibilities
 - Technical Operations, including suppliers, preseason, reliability, R&D, manufacturing and facilities
@@ -62,6 +65,10 @@ The project keeps five concerns separate:
 The database packaging boundary is:
 
 `Global Database -> Season Database -> Save World -> Simulation Engine / Game Systems -> UI projection`
+
+The New Game boundary is:
+
+`Validated Season Database -> Player Selection -> Server Career Bootstrap -> Independent Save World`
 
 The persistence boundary is:
 
@@ -95,7 +102,7 @@ The organisation boundary is:
 
 `Authoritative Employment / Board / Team State -> Derived Department Capacity / Quality / Workload -> Advice / Existing-System Modifier`
 
-See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/CAREER_PERSISTENCE_SAVE_LOAD.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/STAFF_ORGANISATION_DEPTH.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/REGULATIONS_GOVERNANCE_TEAM_EVOLUTION.md`, `docs/OFFSEASON_NEW_SEASON_PREPARATION.md`, `docs/TALENT_PIPELINE_GENERATED_DRIVERS.md`, `docs/WORLD_EVENTS_NEWS_HISTORY.md`, `docs/F1_WORLD_HISTORY_RECORDS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
+See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/CAREER_PERSISTENCE_SAVE_LOAD.md`, `docs/INTEGRATED_NEW_GAME_FLOW.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/STAFF_ORGANISATION_DEPTH.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/REGULATIONS_GOVERNANCE_TEAM_EVOLUTION.md`, `docs/OFFSEASON_NEW_SEASON_PREPARATION.md`, `docs/TALENT_PIPELINE_GENERATED_DRIVERS.md`, `docs/WORLD_EVENTS_NEWS_HISTORY.md`, `docs/F1_WORLD_HISTORY_RECORDS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
 
 ## Historical data policy
 
@@ -169,7 +176,7 @@ npm run playtest -- /path/to/F1_Manager_Sim_SeasonDefinition_1980_v1.2.5_1980_te
 
 Then open:
 
-- Career / Race Weekend: `http://127.0.0.1:3000`
+- New Game / Career / Race Weekend: `http://127.0.0.1:3000`
 - Management Hub: `http://127.0.0.1:3000/management.html`
 - Technical Operations: `http://127.0.0.1:3000/technical.html`
 - Governance: `http://127.0.0.1:3000/governance.html`
