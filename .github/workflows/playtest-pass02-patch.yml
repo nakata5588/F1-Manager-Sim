@@ -1,0 +1,39 @@
+name: Apply Playtest Pass 02 Corrections
+
+on:
+  push:
+    branches:
+      - playtest-corrections-pass-02
+    paths:
+      - scripts/oneoff-playtest-pass02.mjs
+      - .github/workflows/playtest-pass02-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: playtest-corrections-pass-02
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply source patches
+        run: node scripts/oneoff-playtest-pass02.mjs
+      - name: Run simulation tests
+        run: npm test
+      - name: Remove one-off patch machinery
+        run: rm scripts/oneoff-playtest-pass02.mjs .github/workflows/playtest-pass02-patch.yml
+      - name: Commit corrected implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Fix 1980 playtest ownership facilities and tyre choices"
+          git push origin HEAD:playtest-corrections-pass-02
