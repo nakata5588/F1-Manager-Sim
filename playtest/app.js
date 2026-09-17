@@ -351,7 +351,7 @@ function renderPracticeResults() {
 }
 
 function qualifyingTable(rows) {
-  return `<table><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Score</th><th>Status</th></tr></thead><tbody>${rows.map((row) => `<tr class="${row.controlled ? "controlled" : ""}"><td><strong>${row.position}</strong></td><td>${entityLink("driver", row.driverId, row.driverName)}</td><td>${entityLink("team", row.teamId, row.teamName)}</td><td>${number(row.score)}</td><td><span class="status">${escapeHtml(row.status)}</span></td></tr>`).join("")}</tbody></table>`;
+  return `<table><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Score</th><th>Status</th></tr></thead><tbody>${rows.map((row) => `<tr class="${row.controlled ? "controlled" : ""}"><td><strong>${row.position}</strong></td><td>${entityLink("driver", row.driverId, row.driverName)}</td><td>${entityLink("team", row.teamId, row.teamName)}</td><td>${number(row.score)}</td><td><span class="status">${escapeHtml(publicLabel(row.status, "Status"))}</span></td></tr>`).join("")}</tbody></table>`;
 }
 
 function renderQualifyingResults() {
