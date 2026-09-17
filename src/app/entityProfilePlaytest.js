@@ -7,6 +7,7 @@ import { ageOnDate } from "../sim/systems/careerLifecycle.js";
 import { driverScoutingKnowledge } from "../game/management/scouting.js";
 import { personProfile, personProjection } from "../game/management/people.js";
 import { staffRecruitmentEligibility } from "../game/management/staffRecruitment.js";
+import { teamVisualIdentity } from "../presentation/teamVisualIdentity.js";
 
 function requireSession(session) {
   if (!session || typeof session.requireCareer !== "function") throw new TypeError("A DeveloperPlaytestSession is required.");
@@ -199,6 +200,7 @@ function teamProfileProjection(saveWorld, id) {
     visibilityState: visible.visibility_state ?? null,
     controlled,
     media: { category: "teamLogo", entityId: String(id), status: "media_pack_pending_resolver" },
+    visualIdentity: teamVisualIdentity(saveWorld, id, { displayName: currentTeamName(saveWorld, id) }),
     championship: standingsForTeam(saveWorld, id),
     reputation: teamState.reputation ?? visible.reputation ?? visible.prestige ?? null,
     finances: controlled ? {

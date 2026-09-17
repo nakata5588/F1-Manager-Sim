@@ -85,4 +85,9 @@ test("team profile follows current dynamic brand and links visible roster identi
   assert.deepEqual(profile.drivers.map((row) => row.id), ["D1"]);
   assert.deepEqual(profile.staff.map((row) => row.id), ["S1"]);
   assert.equal(profile.finances.cash, 2500000);
+  assert.equal(profile.visualIdentity.teamId, "T1");
+  assert.equal(profile.visualIdentity.displayName, "Dynamic Team");
+  assert.equal(profile.visualIdentity.simulationAuthority, false);
+  assert.equal(profile.visualIdentity.provenance, "derived_presentation_fallback");
+  assert.deepEqual(profile.visualIdentity.media.logo, { kind: "teamLogo", entityId: "T1" });
 });

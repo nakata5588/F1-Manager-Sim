@@ -68,12 +68,20 @@ import {
 } from "../src/app/offseasonPlaytest.js";
 import { developerWorld } from "../src/app/worldPlaytest.js";
 import { developerEntityProfile } from "../src/app/entityProfilePlaytest.js";
+import {
+  builtinMediaFallbackSvg,
+  loadMediaPack,
+  mediaContentType,
+  mediaPackSummary,
+  resolveMediaAsset,
+  resolveServedMediaPath,
+} from "../src/media/mediaPack.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const STATIC_ROOT = resolve(__dirname, "../playtest");
 
 function usage() {
-  console.error("Usage: npm run playtest -- <season-db.json|json.gz> [--global-world <global.json|json.gz>] [--save-dir <directory>] [--port 3000] [--host 127.0.0.1]");
+  console.error("Usage: npm run playtest -- <season-db.json|json.gz> [--global-world <global.json|json.gz>] [--media-pack <directory>] [--save-dir <directory>] [--port 3000] [--host 127.0.0.1]");
   process.exit(1);
 }
 
@@ -87,6 +95,8 @@ function parseArgs(argv) {
   const args = {
     seasonDb: null,
     globalWorld: null,
+    mediaPack: resolve(__dirname, "../media-packs/default"),
+    mediaPackExplicit: false,
     saveDir: resolve(process.cwd(), "build/playtest-saves"),
     port: 3000,
     host: "127.0.0.1",
@@ -94,6 +104,7 @@ function parseArgs(argv) {
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
     if (value === "--global-world") args.globalWorld = argv[++index];
+    else if (value === "--media-pack") { args.mediaPack = resolve(argv[++index]); args.mediaPackExplicit = true; }
     else if (value === "--save-dir") args.saveDir = resolve(argv[++index]);
     else if (value === "--port") args.port = Number(argv[++index]);
     else if (value === "--host") args.host = argv[++index];
@@ -179,6 +190,7 @@ const seasonDatabase = readPayload(args.seasonDb);
 const globalDatabase = args.globalWorld ? readPayload(args.globalWorld) : null;
 const session = new DeveloperPlaytestSession(seasonDatabase, { globalDatabase });
 const saveStore = new FileSaveSlotStore(args.saveDir);
+const mediaPack = loadMediaPack(args.mediaPack, { required: args.mediaPackExplicit });
 
 function syncManagerControl() {
   if (!session.saveWorld) return;
@@ -195,9 +207,52 @@ function autosavedJson(response, payload) {
   return json(response, 200, payload);
 }
 
+function profileWithResolvedMedia(profile) {
+  const kind = profile.media?.category ?? (profile.type === "team" ? "teamLogo" : profile.type);
+  const projected = { ...profile, media: resolveMediaAsset(mediaPack, kind, profile.id) };
+  if (profile.visualIdentity?.media) {
+    projected.visualIdentity = {
+      ...profile.visualIdentity,
+      resolvedMedia: Object.fromEntries(Object.entries(profile.visualIdentity.media).map(([slot, descriptor]) => [
+        slot,
+        resolveMediaAsset(mediaPack, descriptor.kind, descriptor.entityId),
+      ])),
+    };
+  }
+  return projected;
+}
+
 const server = createServer(async (request, response) => {
   try {
     const url = new URL(request.url, `http://${request.headers.host ?? "localhost"}`);
+    if (request.method === "GET" && url.pathname.startsWith("/media/fallback/")) {
+      const leaf = url.pathname.slice("/media/fallback/".length);
+      if (!leaf.endsWith(".svg")) return json(response, 404, { error: "Media fallback not found" });
+      const kind = decodeURIComponent(leaf.slice(0, -4));
+      const svg = builtinMediaFallbackSvg(kind);
+      response.writeHead(200, {
+        "content-type": "image/svg+xml; charset=utf-8",
+        "content-length": Buffer.byteLength(svg),
+        "cache-control": "no-store",
+      });
+      response.end(svg);
+      return;
+    }
+    if (request.method === "GET" && url.pathname.startsWith("/media/assets/")) {
+      const encoded = url.pathname.slice("/media/assets/".length);
+      let relativePath;
+      try { relativePath = encoded.split("/").map((segment) => decodeURIComponent(segment)).join("/"); }
+      catch { return json(response, 400, { error: "Invalid media path encoding" }); }
+      const asset = resolveServedMediaPath(mediaPack, relativePath);
+      if (!asset) return json(response, 404, { error: "Media asset not found" });
+      response.writeHead(200, { "content-type": mediaContentType(asset.extension), "cache-control": "no-store" });
+      createReadStream(asset.path).pipe(response);
+      return;
+    }
+    if (url.pathname === "/api/media-pack" && request.method === "GET") return json(response, 200, mediaPackSummary(mediaPack));
+    if (url.pathname === "/api/media/resolve" && request.method === "GET") {
+      return json(response, 200, resolveMediaAsset(mediaPack, url.searchParams.get("kind"), url.searchParams.get("id")));
+    }
     if (url.pathname === "/api/setup" && request.method === "GET") return json(response, 200, session.setup());
     if (url.pathname === "/api/state" && request.method === "GET") {
       syncManagerControl();
@@ -224,7 +279,7 @@ const server = createServer(async (request, response) => {
       return json(response, 200, { deleted, slots: saveStore.list() });
     }
     if (url.pathname === "/api/profile" && request.method === "GET") {
-      return json(response, 200, developerEntityProfile(session, url.searchParams.get("type"), url.searchParams.get("id")));
+      return json(response, 200, profileWithResolvedMedia(developerEntityProfile(session, url.searchParams.get("type"), url.searchParams.get("id"))));
     }
     if (url.pathname === "/api/world" && request.method === "GET") {
       return json(response, 200, developerWorld(session, {
@@ -446,4 +501,6 @@ server.listen(args.port, args.host, () => {
   console.log(`Season Database: ${join(process.cwd(), args.seasonDb)}`);
   if (args.globalWorld) console.log(`Global Database: ${join(process.cwd(), args.globalWorld)}`);
   console.log(`Save slots: ${args.saveDir}`);
+  const media = mediaPackSummary(mediaPack);
+  console.log(`Media Pack: ${media.available ? `${media.name} (${media.id})` : `built-in fallbacks (${media.reason})`}`);
 });
