@@ -1,5 +1,6 @@
 import { createCareerFromSeasonDatabase } from "../data/careerBootstrap.js";
 import { validateSeasonDatabasePayload } from "../data/seasonDatabase.js";
+import { historicalDatabasePresentation } from "../presentation/historicalDisplayMetadata.js";
 import {
   advanceLiveRaceSession,
   applyLiveStrategyInstruction,
@@ -386,10 +387,15 @@ export class DeveloperPlaytestSession {
   }
 
   setup() {
+    const season = Number(this.seasonDatabase.season);
     return {
-      season: Number(this.seasonDatabase.season),
+      season,
       databaseVersion: this.seasonDatabase.databaseVersion ?? null,
       releaseName: this.seasonDatabase.releaseName ?? null,
+      presentation: historicalDatabasePresentation({
+        season,
+        databaseVersion: this.seasonDatabase.databaseVersion,
+      }),
       teams: listDeveloperPlaytestTeams(this.seasonDatabase),
     };
   }
