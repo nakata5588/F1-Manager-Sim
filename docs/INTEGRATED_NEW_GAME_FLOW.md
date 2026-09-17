@@ -81,6 +81,34 @@ Phase 45 Save / Load remains independent of New Game.
 - The fixed developer SAVE / LOAD dock is career-only and is not shown on the Main Menu or New Game wizard.
 - Manual Save remains available only after a career is active.
 
+## Team Selection v2
+
+The Team stage is an opening-world comparison surface, not a historical-results or power-ranking screen.
+
+Each selectable team may project:
+
+- public team name and nationality;
+- opening driver line-up;
+- car numbers when supplied by the opening entry data;
+- engine identity/manufacturer when available;
+- chassis/model identity when explicitly present in the selected Season Database;
+- presentation-only team colours and Media Pack logo.
+
+Opening driver context prefers explicit Career Start / Round 1 entry data. If that surface is absent, the UI may fall back to contracts that are already active at Career Start. Future-season contracts and later same-season start dates are excluded from the New Game card.
+
+The Team stage must not derive or expose:
+
+- championship results after Career Start;
+- historical final standings;
+- predicted finishing positions;
+- team strength rankings or overall ratings;
+- later-season driver moves;
+- hidden future teams or people.
+
+Missing source identity remains missing. For example, if a chassis model name is not present in the opening database snapshot, the UI omits the chassis row rather than inventing one from a performance index or external assumption.
+
+Visual identity and media are presentation-only and never influence simulation performance.
+
 ## Current UI stages
 
 1. **Database** — historical database identity currently supplied by the server.

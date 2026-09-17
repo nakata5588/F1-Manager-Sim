@@ -36,6 +36,22 @@ function normalizeTeams(rows = []) {
       name: text(row?.name, row?.id ?? "Unknown Team").trim(),
       nationality: row?.nationality ?? null,
       constructorName: row?.constructorName ?? null,
+      drivers: Array.isArray(row?.drivers)
+        ? row.drivers.map((driver) => ({
+          id: text(driver?.id).trim(),
+          name: text(driver?.name, driver?.id ?? "Unknown Driver").trim(),
+          role: driver?.role ?? null,
+          carNumber: driver?.carNumber ?? null,
+        })).filter((driver) => driver.id)
+        : [],
+      engine: row?.engine ? {
+        id: row.engine.id ?? null,
+        name: row.engine.name ?? null,
+        manufacturer: row.engine.manufacturer ?? null,
+      } : null,
+      chassis: row?.chassis ?? null,
+      visualIdentity: row?.visualIdentity ?? null,
+      resolvedMedia: row?.resolvedMedia ?? null,
     }))
     .filter((row) => row.id)
     .sort((a, b) => a.name.localeCompare(b.name));

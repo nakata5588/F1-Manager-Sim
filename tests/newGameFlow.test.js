@@ -76,6 +76,44 @@ test("New Game catalog never invents unsupported seasons or decades", () => {
   assert.equal(catalog.databases[0].seasons.some((row) => row.season !== 1980), false);
 });
 
+test("New Game catalog preserves Team Selection v2 presentation context", () => {
+  const catalog = buildNewGameCatalog({
+    season: 1980,
+    databaseVersion: "v1.2.16-test",
+    presentation: {
+      databaseName: "Official Historical Database",
+      seasonName: "1980 Formula One World Championship",
+      versionLabel: "v1.2.16",
+    },
+    teams: [{
+      id: "williams",
+      name: "Williams",
+      nationality: "British",
+      drivers: [
+        { id: "jones", name: "Alan Jones", role: "round_1_starter", carNumber: 27 },
+        { id: "reutemann", name: "Carlos Reutemann", role: "round_1_starter", carNumber: 28 },
+      ],
+      engine: { id: "dfv", name: "Ford Cosworth DFV", manufacturer: "Ford" },
+      chassis: "FW07B",
+      visualIdentity: {
+        colours: { primary: "#112233", secondary: "#DDEEFF", tertiary: "#000000" },
+        simulationAuthority: false,
+      },
+      resolvedMedia: {
+        logo: { url: "/media/fallback/teamLogo.svg" },
+      },
+    }],
+  });
+
+  const team = catalog.databases[0].seasons[0].teams[0];
+  assert.equal(team.name, "Williams");
+  assert.deepEqual(team.drivers.map((row) => row.name), ["Alan Jones", "Carlos Reutemann"]);
+  assert.equal(team.engine.name, "Ford Cosworth DFV");
+  assert.equal(team.chassis, "FW07B");
+  assert.equal(team.visualIdentity.simulationAuthority, false);
+  assert.equal(team.resolvedMedia.logo.url, "/media/fallback/teamLogo.svg");
+});
+
 test("catalog shape already supports multiple historical databases and seasons without changing the selection contract", () => {
   const catalog = buildNewGameCatalog({
     databases: [

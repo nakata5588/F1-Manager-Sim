@@ -63,6 +63,37 @@ function card(options) {
   </button>`;
 }
 
+function safeColour(value, fallback) {
+  const colour = String(value ?? "").trim();
+  return /^#[0-9a-f]{6}$/i.test(colour) ? colour : fallback;
+}
+
+function teamChoice(team) {
+  const primary = safeColour(team.visualIdentity?.colours?.primary, "#3C5A78");
+  const secondary = safeColour(team.visualIdentity?.colours?.secondary, "#D9E2EC");
+  const logo = team.resolvedMedia?.logo?.url
+    ? `<img src="${escapeHtml(team.resolvedMedia.logo.url)}" alt="" loading="lazy">`
+    : `<span>${escapeHtml(team.name.slice(0, 2).toUpperCase())}</span>`;
+  const drivers = team.drivers?.length
+    ? team.drivers.map((driver) => `<span class="ng-team-driver">${driver.carNumber ? `<b>#${escapeHtml(driver.carNumber)}</b>` : ""}<strong>${escapeHtml(driver.name)}</strong></span>`).join("")
+    : '<span class="ng-team-missing">Opening drivers unavailable</span>';
+  const technical = [
+    team.chassis ? `<div><span>Chassis</span><strong>${escapeHtml(team.chassis)}</strong></div>` : "",
+    team.engine?.name ? `<div><span>Engine</span><strong>${escapeHtml(team.engine.name)}</strong></div>` : "",
+  ].filter(Boolean).join("");
+
+  return `<button type="button" class="ng-team-choice ${team.id === selection.teamId ? "selected" : ""}" data-ng-team="${escapeHtml(team.id)}" style="--team-primary:${primary};--team-secondary:${secondary}">
+    <span class="ng-team-accent"></span>
+    <div class="ng-team-head">
+      <div class="ng-team-logo">${logo}</div>
+      <div class="ng-team-title"><small>${escapeHtml(team.nationality ?? "Formula One constructor")}</small><strong>${escapeHtml(team.name)}</strong>${team.constructorName && team.constructorName !== team.name ? `<em>${escapeHtml(team.constructorName)}</em>` : ""}</div>
+      <span class="ng-team-check">${team.id === selection.teamId ? "✓" : ""}</span>
+    </div>
+    <div class="ng-team-section"><span class="ng-team-label">Drivers</span><div class="ng-team-drivers">${drivers}</div></div>
+    ${technical ? `<div class="ng-team-technical">${technical}</div>` : ""}
+  </button>`;
+}
+
 function footer({ next = true, create = false } = {}) {
   const back = stepIndex > 0 ? '<button type="button" class="ng-secondary" data-ng-action="back">BACK</button>' : "<span></span>";
   const forward = create
@@ -107,14 +138,8 @@ function seasonStep() {
 
 function teamStep() {
   const season = currentSeason();
-  return `<div class="ng-step-copy"><div class="eyebrow">New Game · Team</div><h1>Choose the team you will manage.</h1><p>Every team shown belongs to the selected historical starting world. Teams that do not yet exist remain hidden.</p></div>
-    <div class="ng-team-grid">${(season?.teams ?? []).map((team) => card({
-      selected: team.id === selection.teamId,
-      title: team.name,
-      subtitle: team.nationality ?? "Formula One constructor",
-      meta: team.constructorName ?? "",
-      attrs: `data-ng-team="${escapeHtml(team.id)}"`,
-    })).join("")}</div>${footer()}`;
+  return `<div class="ng-step-copy"><div class="eyebrow">New Game · Team</div><h1>Choose the team you will manage.</h1><p>Compare each constructor's opening line-up and technical package. Everything shown comes from the selected historical starting world; later real-world results are not used.</p></div>
+    <div class="ng-team-grid">${(season?.teams ?? []).map(teamChoice).join("")}</div>${footer()}`;
 }
 
 function managerStep() {
