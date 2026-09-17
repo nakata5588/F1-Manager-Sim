@@ -1,4 +1,4 @@
-import { publicLabel } from "/presentation-labels.js";
+import { publicLabel } from "./presentation-labels.js";
 
 export const CAREER_ENTRY_STORAGE_KEY = "f1ms:career-active";
 export const REDUCED_MOTION_STORAGE_KEY = "f1ms:reduced-motion";
