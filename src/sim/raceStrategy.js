@@ -65,13 +65,82 @@ function normalizeCompound(row) {
     dryGrip,
     wetGrip,
     durabilityLaps: durabilityLaps(row),
+    dataStatus: row?.data_status ?? row?.dataStatus ?? "source_compound",
     raw: row,
   };
 }
 
+function packageLevelTyreRow(compound) {
+  if (!compound?.supplierId || !compound?.raw) return false;
+  const idMatchesSupplier = String(compound.compoundId).trim().toLowerCase() === String(compound.supplierId).trim().toLowerCase();
+  const rawTyreId = compound.raw.tyre_id ?? compound.raw.tire_id ?? null;
+  const rawName = compound.raw.tyre_name ?? compound.raw.tire_name ?? null;
+  return idMatchesSupplier && rawTyreId !== null && rawName !== null;
+}
+
+function derivedPackageDurability(compound) {
+  if (compound.durabilityLaps !== null) return compound.durabilityLaps;
+  const rating = normalizedRating(compound.raw?.durability_rating ?? compound.raw?.durability, 70);
+  return clamp(14 + rating * 0.34, 18, 48);
+}
+
+function derivedSupplierCompoundFamily(compound) {
+  const baseDurability = derivedPackageDurability(compound);
+  const brand = compound.name || compound.supplierId || "Tyre";
+  const status = "derived_gameplay_compound_family_from_supplier_package";
+  return [
+    {
+      ...compound,
+      compoundId: `${compound.compoundId}:dry-grip`,
+      name: `${brand} Dry — Grip`,
+      condition: "dry",
+      dryGrip: clamp(compound.dryGrip + 2.5, 0, 100),
+      durabilityLaps: Math.max(8, baseDurability * 0.72),
+      dataStatus: status,
+      derivedFromCompoundId: compound.compoundId,
+    },
+    {
+      ...compound,
+      compoundId: `${compound.compoundId}:dry-endurance`,
+      name: `${brand} Dry — Endurance`,
+      condition: "dry",
+      dryGrip: clamp(compound.dryGrip - 1.5, 0, 100),
+      durabilityLaps: Math.max(12, baseDurability * 1.12),
+      dataStatus: status,
+      derivedFromCompoundId: compound.compoundId,
+    },
+    {
+      ...compound,
+      compoundId: `${compound.compoundId}:wet`,
+      name: `${brand} Wet`,
+      condition: "wet",
+      dryGrip: clamp(compound.dryGrip - 22, 0, 100),
+      wetGrip: compound.wetGrip,
+      durabilityLaps: Math.max(10, baseDurability * 0.9),
+      dataStatus: status,
+      derivedFromCompoundId: compound.compoundId,
+    },
+  ];
+}
+
+export function materializedTyreCompounds(saveWorld) {
+  const normalized = (saveWorld.world?.tyres ?? []).map(normalizeCompound).filter(Boolean);
+  const grouped = new Map();
+  for (const compound of normalized) {
+    const key = compound.supplierId ?? `__compound__:${compound.compoundId}`;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(compound);
+  }
+  const output = [];
+  for (const compounds of grouped.values()) {
+    if (compounds.length === 1 && packageLevelTyreRow(compounds[0])) output.push(...derivedSupplierCompoundFamily(compounds[0]));
+    else output.push(...compounds);
+  }
+  return output;
+}
+
 export function availableTyreCompounds(saveWorld, wet = false, teamId = null) {
-  const rows = saveWorld.world?.tyres ?? [];
-  let normalized = rows.map(normalizeCompound).filter(Boolean);
+  let normalized = materializedTyreCompounds(saveWorld);
   const assignedSupplier = teamId === null || teamId === undefined
     ? null
     : saveWorld.world?.teamTyreSuppliers?.[teamId] ?? null;
@@ -205,7 +274,7 @@ export function createRaceStrategyPlan(saveWorld, weekend, entrant, options = {}
 
 function compoundById(saveWorld, id) {
   if (id === null || id === undefined) return null;
-  return (saveWorld.world?.tyres ?? []).map(normalizeCompound).find((row) => String(row?.compoundId) === String(id)) ?? null;
+  return materializedTyreCompounds(saveWorld).find((row) => String(row?.compoundId) === String(id)) ?? null;
 }
 
 function pitLaneLossSeconds(weekend) {

@@ -149,7 +149,20 @@ function renderManufacturing() {
 
 function renderFacilities() {
   const rows = technical.team?.facilities ?? [];
-  return `<section class="technical-card wide"><span class="management-category">Infrastructure</span><h2>Facilities</h2><div class="facility-grid">${rows.map((row) => `<article class="facility-card"><strong>${escapeHtml(row.label)}</strong><div>Level ${Number(row.level).toFixed(1)}</div><div class="technical-muted">${escapeHtml(row.source)}</div>${row.upgrade ? `<div class="technical-muted">Upgrade to ${row.upgrade.toLevel} · ${row.upgrade.monthsRemaining} month(s)</div>` : technical.responsibility === "manager" && Number(row.level) < 10 ? `<button data-facility="${escapeHtml(row.id)}" ${busy ? "disabled" : ""}>Upgrade</button>` : ""}</article>`).join("") || '<div class="technical-muted">No facilities recorded for this team.</div>'}</div></section>`;
+  return `<section class="technical-card wide"><span class="management-category">Infrastructure</span><h2>Facilities</h2><div class="facility-grid">${rows.map((row) => {
+    const status = row.availabilityStatus ?? (Number(row.level) > 0 ? "operational" : "available_unbuilt");
+    const locked = status === "unavailable_future_technology";
+    const levelText = locked ? "Future technology" : Number(row.level) > 0 ? `Level ${Number(row.level).toFixed(1)}` : "Not built";
+    const availabilityText = locked
+      ? row.unlockSeason ? `Available from ${row.unlockSeason}` : "Not available in this era"
+      : status === "upgrading" ? "Upgrade in progress" : label(status);
+    const action = row.upgrade
+      ? `<div class="technical-muted">Upgrade to ${row.upgrade.toLevel} · ${row.upgrade.monthsRemaining} month(s)</div>`
+      : technical.responsibility === "manager" && !locked && Number(row.level ?? 0) < 10
+        ? `<button data-facility="${escapeHtml(row.id)}" ${busy ? "disabled" : ""}>${Number(row.level ?? 0) > 0 ? "Upgrade" : "Build"}</button>`
+        : "";
+    return `<article class="facility-card"><strong>${escapeHtml(row.label)}</strong><div>${escapeHtml(levelText)}</div><div class="technical-muted">${escapeHtml(availabilityText)}</div><div class="technical-muted">${escapeHtml(row.source)}</div>${action}</article>`;
+  }).join("") || '<div class="technical-muted">No facilities recorded for this team.</div>'}</div></section>`;
 }
 
 function render() {
