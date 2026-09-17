@@ -59,7 +59,7 @@ function render(data) {
   app.innerHTML = `
     <header class="topbar">
       <div>
-        <p class="eyebrow">Developer Playtest · ${escapeHtml(data.date)}</p>
+        <p class="eyebrow">F1 World · ${escapeHtml(data.date)}</p>
         <h1>F1 World</h1>
         <p class="muted">Season ${escapeHtml(data.season)} · News, history and records are projections of the evolving Save World.</p>
       </div>
