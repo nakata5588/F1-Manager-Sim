@@ -1,6 +1,7 @@
 import { listVisibleTeams } from "../../domain/entityVisibility.js";
 import { createRng } from "../../sim/random.js";
 import { ensureBoardState, initializeBoardTeam } from "./board.js";
+import { ensureManagerProfile, managerProfileProjection } from "./managerProfile.js";
 
 export const MANAGER_EVENT = Object.freeze({
   INITIALIZED: "manager.career_initialized",
@@ -51,9 +52,7 @@ function currentTeamId(saveWorld) {
 }
 
 export function ensureManagerCareer(saveWorld) {
-  saveWorld.player ??= {};
-  saveWorld.player.manager ??= { name: "Manager" };
-  const manager = saveWorld.player.manager;
+  const manager = ensureManagerProfile(saveWorld);
   const current = currentTeamId(saveWorld);
   manager.career ??= {
     reputation: 35,
@@ -90,6 +89,7 @@ export function managerCareerProjection(saveWorld) {
   const teams = new Map((saveWorld.world?.teams ?? []).map((row) => [String(teamId(row)), row]));
   return {
     name: saveWorld.player?.manager?.name ?? "Manager",
+    profile: managerProfileProjection(saveWorld),
     reputation: career.reputation,
     status: career.status,
     currentTeamId: career.currentTeamId ?? null,
