@@ -48,7 +48,7 @@ function calendarView(championship) {
         <div class="championship-round-number"><small>ROUND</small><strong>${row.round ?? "—"}</strong></div>
         <div class="championship-round-main"><small>${humanDate(row.date)}${row.country ? ` · ${escapeHtml(row.country)}` : ""}</small><h3>${escapeHtml(row.name)}</h3><span>${escapeHtml(row.trackName)}</span></div>
         <div class="championship-round-result"><em>${statusLabel(row.status)}</em>${row.winner ? `<strong>${entityLink("driver", row.winner.driverId, row.winner.driverName)}</strong><small>${entityLink("team", row.winner.teamId, row.winner.teamName)}</small>` : `<strong>${row.laps ? `${row.laps} laps` : "—"}</strong><small>${row.championshipStatus === "championship" ? "Championship round" : escapeHtml(row.championshipStatus)}</small>`}</div>
-      </article>`).join("") || '<p class="championship-empty">No races are present in the current Save World calendar.</p>'}
+      </article>`).join("") || '<p class="championship-empty">No races are present in the current calendar.</p>'}
     </div>
   </section>`;
 }
