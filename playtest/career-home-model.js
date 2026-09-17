@@ -115,7 +115,7 @@ function attentionItems({ state = {}, management = {}, technical = {}, inbox = {
     id: "next-race",
     tone: "normal",
     label: `Next: R${state.nextRace.round ?? "—"} ${state.nextRace.name ?? "Grand Prix"}`,
-    href: "/?section=calendar",
+    href: "/championship.html#calendar",
   });
   return rows.slice(0, 6);
 }
