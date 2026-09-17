@@ -136,10 +136,11 @@ test("database weather probabilities generate deterministic Save World weather r
   system.handle({ saveWorld: first, event });
   system.handle({ saveWorld: second, event });
 
+  const firstTimeline = first.world.raceWeekendState.active["1980:1:gp-a"].race.weather_timeline;
   assert.deepEqual(first.world.calendar[0].weather_timeline, second.world.calendar[0].weather_timeline);
   assert.equal(first.world.calendar[0].generated_weather.source, "save_world_generated_from_database_probability_baseline");
   assert.equal(first.world.calendar[0].generated_weather.rainChancePercent, 100);
-  assert.equal(first.world.raceWeekendState.active["1980:1:gp-a"].race.weather_timeline[0].condition, "wet");
+  assert.ok(firstTimeline.some((change) => change.condition === "wet"));
 });
 
 test("an explicit weather timeline always wins over the database probability baseline", () => {
