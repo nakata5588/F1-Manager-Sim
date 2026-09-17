@@ -2,10 +2,10 @@
   "format": "f1-manager-sim-database-candidate-pointer",
   "schemaVersion": 1,
   "season": 1980,
-  "latestCandidate": "v1.2.15-1980-historical-source-enrichment-candidate",
-  "baselinePath": "data/database-baselines/v1.2.15-1980-historical-source-enrichment-candidate/baseline.json",
+  "latestCandidate": "v1.2.16-1980-canonical-closure-audit-consistency-candidate",
+  "baselinePath": "data/database-baselines/v1.2.16-1980-canonical-closure-audit-consistency-candidate/baseline.json",
   "canonical": false,
   "currentPromotedCanonical": "v1.2.5-1980-technical-source-lock-candidate",
-  "integrationPolicy": "latest cumulative candidate only; v1.2.15 corrective r3 supersedes repository latest v1.2.14 while preserving the cumulative 1980 lineage and conservative opening-state temporal gate",
-  "updatedAt": "2026-09-15"
+  "integrationPolicy": "latest cumulative candidate only; v1.2.16 supersedes v1.2.15 for Development runtime integration while canonical promotion remains a separate gate",
+  "updatedAt": "2026-09-17"
 }
