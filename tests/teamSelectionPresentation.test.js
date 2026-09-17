@@ -16,6 +16,7 @@ function seasonDatabase() {
         { driver_id: "D2", display_name: "Carlos Reutemann" },
         { driver_id: "D3", display_name: "Later Driver" },
         { driver_id: "D4", display_name: "Contract Fallback" },
+        { driver_id: "D5", display_name: "Midseason Driver" },
       ],
       startingRaceEntries: [
         { driver_id: "D1", team_id: "T1", car_number: 27, source_role: "round_1_starter" },
@@ -27,6 +28,7 @@ function seasonDatabase() {
         { year: 1980, driver_id: "D3", team_id: "T1", role: "reserve_driver" },
         { year: 1981, driver_id: "D3", team_id: "T2", role: "main_driver" },
         { year: 1980, driver_id: "D4", team_id: "T2", role: "main_driver" },
+        { year: 1980, driver_id: "D5", team_id: "T2", role: "second_driver", start_date: "1980-08-01" },
       ],
       teamEngines: [
         { year: 1980, team_id: "T1", engine_id: "E1" },
@@ -59,6 +61,7 @@ test("team selection safely falls back to opening-season contracts when no expli
 
   assert.deepEqual(fallback.drivers.map((row) => row.name), ["Contract Fallback"]);
   assert.equal(fallback.drivers.some((row) => row.name === "Later Driver"), false, "future-season contracts must not leak");
+  assert.equal(fallback.drivers.some((row) => row.name === "Midseason Driver"), false, "later same-season contracts must not leak into Career Start");
 });
 
 test("team selection exposes sourced technical identity without exposing performance ratings", () => {
