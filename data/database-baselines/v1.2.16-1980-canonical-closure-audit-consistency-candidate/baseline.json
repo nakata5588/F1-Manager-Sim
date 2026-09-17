@@ -1,0 +1,67 @@
+{
+  "format": "f1-manager-sim-database-baseline",
+  "schemaVersion": 1,
+  "baselineId": "v1.2.16-1980-canonical-closure-audit-consistency-candidate-2026-09-17",
+  "candidateStatus": "CUMULATIVE_1980_CANONICAL_CLOSURE_AUDIT_CONSISTENCY_CANDIDATE",
+  "canonical": false,
+  "databaseVersion": "v1.2.16-1980-canonical-closure-audit-consistency-candidate",
+  "previousDatabaseVersion": "v1.2.15-1980-historical-source-enrichment-candidate",
+  "candidateRevision": "canonical_closure_audit_consistency_r1",
+  "sourceChecksum": "9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097",
+  "receivedBundle": {
+    "filename": "F1_Manager_Sim_Database_Rebuild_v1.2.16_1980_canonical_closure_audit_consistency_candidate_Bundle(1).zip",
+    "sha256": "81866f02b6aa26e89c99af8431061ef956d2fc602cd0d60c09db92d40c179f3b"
+  },
+  "majorArtifacts": {
+    "globalJson": { "sha256": "a2d43b40f05e937dd47f42c163af4aaf6edd0c416c939ccd981cb1438f5999e1", "bytes": 26304076 },
+    "season1980Json": { "sha256": "28363504c23ad44bb83976cdae643804e5a4fd661984edf5da2b18f57f92ff0d", "bytes": 15108502 },
+    "globalSqlite": { "sha256": "abce8b9fc800c3ef0c034d2b2d834beb0b7c449fadd2f3da0c326130e0e6c75c" },
+    "season1980Sqlite": { "sha256": "4d7224f9737d3d7248bbfc26c29482d18d3bef14e88623cef7934a99b8539a70" },
+    "editorXlsx": { "sha256": "f40baf864029c16d97436754f9cb8bc754b7031f56974b6bf09ba994114bb516" },
+    "report": { "sha256": "9276f00e3987bd5ff505ff05e16e981f1d7c2e94ca95fdea3cec61588412d585" }
+  },
+  "globalCounts": {
+    "drivers": 862,
+    "staff": 63,
+    "teams": 212,
+    "sponsorCatalog": 35
+  },
+  "season1980Counts": {
+    "activeTeams": 15,
+    "driverAvailabilityRows": 66,
+    "staffContracts": 53,
+    "sponsorContracts": 15,
+    "calendarRaces": 14
+  },
+  "closure": {
+    "staffReviewRows": 57,
+    "staffCanonicalBlockers": 0,
+    "externalAvailabilityUnverified": 23,
+    "ordinarySourceSafeFreeDrivers": 0,
+    "regulationCanonicalBlockers": 0,
+    "regulationPrimaryTextResearchDebt": 2
+  },
+  "validation": {
+    "materialized": "PASS_46_OF_46",
+    "sqliteGlobal": "ok",
+    "sqliteSeason": "ok",
+    "staffClosure": "PASS_57_OF_57",
+    "externalAvailabilityUnverified": "PASS_23",
+    "ordinarySourceSafeFreeDrivers": "PASS_0"
+  },
+  "promotion": {
+    "readyForDevelopmentCandidateIntegration": true,
+    "readyForCanonicalPromotion": true,
+    "promotedCanonicalInThisRelease": false,
+    "currentPromotedCanonical": "v1.2.5-1980-technical-source-lock-candidate"
+  },
+  "runtimeIntegration": {
+    "openingDriverAvailability": "authoritative_when_surface_present",
+    "openingFinanceBaseline": "materialized_into_teamFinancials",
+    "periodCorrectCircuitLayout": "materialized_into_runtime_tracks_and_calendar",
+    "trackEvolutionBaseline": "materialized_into_runtime_track_dynamics",
+    "weatherProbabilityBaseline": "generates_save_world_weekend_weather",
+    "auditReferenceSurfaces": "quarantined_outside_mutable_world"
+  },
+  "hashPolicy": "Payload checksums internal; final ZIP SHA-256 external/non-self-referential."
+}
