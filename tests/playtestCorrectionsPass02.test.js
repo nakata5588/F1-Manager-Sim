@@ -6,6 +6,7 @@ import {
   staffRecruitmentEligibility,
 } from "../src/game/management/staffRecruitment.js";
 import {
+  advanceTechnicalMonth,
   ensureTechnicalTeam,
   facilityEraAvailability,
   startFacilityUpgrade,
@@ -90,6 +91,41 @@ test("1980 simulator is future technology and cannot leak into design efficiency
 
   const project = startTechnicalDesignProject(save, "T1", { component: "chassis_spec", focus: "balanced" });
   assert.equal(project.facilityEfficiency, 0.6, "unavailable simulator must not be averaged into chassis design efficiency");
+});
+
+test("existing saves quarantine legacy simulator state and cancel stale upgrades before monthly processing", () => {
+  const save = baseSave();
+  const team = ensureTechnicalTeam(save, "T1");
+  team.facilities.simulator = {
+    id: "simulator",
+    label: "Simulator",
+    level: 4,
+    availabilityStatus: "operational",
+    source: "save_world_upgraded",
+    sourceField: "simulator_level",
+    maintenanceDeltaAnnual: 42000,
+  };
+  team.facilityUpgrades.push({
+    upgradeId: "legacy-simulator-upgrade",
+    teamId: "T1",
+    facilityId: "simulator",
+    fromLevel: 4,
+    toLevel: 5,
+    cost: 250000,
+    status: "active",
+    startedAt: "1980-01-01",
+    durationMonths: 1,
+    monthsRemaining: 1,
+  });
+
+  const events = advanceTechnicalMonth(save, "1980-02-01");
+  assert.equal(team.facilities.simulator.availabilityStatus, "unavailable_future_technology");
+  assert.equal(team.facilities.simulator.level, null);
+  assert.equal(team.facilities.simulator.ignoredOpeningLevel, 4);
+  assert.equal(team.facilities.simulator.maintenanceDeltaAnnual, 0);
+  assert.equal(team.facilityUpgrades[0].status, "cancelled_era_unavailable");
+  assert.equal(team.facilityUpgrades[0].cancellationReason, "unavailable_future_technology");
+  assert.equal(events.some((event) => event.payload?.facility_id === "simulator"), false);
 });
 
 test("future-era facility metadata can explicitly unlock a previously unavailable simulator", () => {

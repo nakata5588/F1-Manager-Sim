@@ -207,7 +207,7 @@ function refreshFacilityAvailability(saveWorld, team) {
     const availability = facilityEraAvailability(saveWorld, id);
     const current = team.facilities?.[id] ?? null;
     if (!availability.available) {
-      if (!current) {
+      if (!current || current.availabilityStatus !== "unavailable_future_technology") {
         team.facilities[id] = {
           id,
           label: definition.label,
@@ -216,10 +216,19 @@ function refreshFacilityAvailability(saveWorld, team) {
           unlockSeason: availability.unlockSeason,
           availabilitySource: availability.source,
           source: "era_locked",
-          sourceField: null,
-          ignoredOpeningLevel: null,
+          sourceField: current?.sourceField ?? null,
+          ignoredOpeningLevel: current?.ignoredOpeningLevel ?? numeric(current?.level),
           maintenanceDeltaAnnual: 0,
         };
+      } else {
+        current.unlockSeason = availability.unlockSeason;
+        current.availabilitySource = availability.source;
+      }
+      for (const upgrade of team.facilityUpgrades ?? []) {
+        if (upgrade.facilityId !== id || upgrade.status !== "active") continue;
+        upgrade.status = "cancelled_era_unavailable";
+        upgrade.cancelledAt = saveWorld.clock?.date ?? null;
+        upgrade.cancellationReason = "unavailable_future_technology";
       }
       continue;
     }
@@ -621,6 +630,7 @@ export function releaseNextSeasonSpecifications(saveWorld, season = Number(saveW
 export function advanceTechnicalMonth(saveWorld, date = saveWorld.clock.date) {
   const events = [];
   for (const team of Object.values(ensureTechnicalWorld(saveWorld).teams)) {
+    refreshFacilityAvailability(saveWorld, team);
     for (const project of team.designProjects) {
       if (project.status !== "active") continue;
       project.monthsRemaining -= 1;
