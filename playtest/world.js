@@ -61,7 +61,7 @@ function render(data) {
       <div>
         <p class="eyebrow">F1 World · ${escapeHtml(data.date)}</p>
         <h1>F1 World</h1>
-        <p class="muted">Season ${escapeHtml(data.season)} · News, history and records are projections of the evolving Save World.</p>
+        <p class="muted">Season ${escapeHtml(data.season)} · News, history and records reflect your evolving Formula One world.</p>
       </div>
       <nav class="nav">
         <a href="/">Career</a>
