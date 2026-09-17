@@ -1,0 +1,42 @@
+name: One-off media and visual identity integration
+
+on:
+  push:
+    branches: [media-visual-identity-foundation]
+
+permissions:
+  contents: write
+
+jobs:
+  integrate-and-test:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: media-visual-identity-foundation
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Apply playtest integration
+        run: python scripts/oneoff-media-visual-identity.py
+      - name: Run simulation tests
+        run: npm test
+      - name: Run database tooling tests
+        run: python -m unittest discover -s tools/db/tests -v
+      - name: Commit integration and remove one-off tooling
+        run: |
+          rm scripts/oneoff-media-visual-identity.py
+          rm .github/workflows/oneoff-media-visual-identity.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Integrate media resolver and visual identity"
+          git push origin HEAD:media-visual-identity-foundation
