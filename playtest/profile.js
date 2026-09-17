@@ -1,4 +1,5 @@
 import { entityLink } from "/entity-links.js";
+import { publicLabel } from "/presentation-labels.js";
 
 const root = document.querySelector("#profile-app");
 
@@ -21,8 +22,7 @@ function humanDate(value) {
 }
 
 function human(value) {
-  if (value === null || value === undefined || value === "") return "—";
-  return String(value).replaceAll("_", " ");
+  return publicLabel(value);
 }
 
 function detail(label, value) {
@@ -58,7 +58,7 @@ function person(profile) {
   return `<main class="profile-shell">
     <section class="profile-hero">
       <div class="profile-media">${profileMedia(profile, (profile.name ?? "?").split(/\s+/).map((part) => part[0]).slice(0, 2).join(""))}</div>
-      <div><div class="profile-eyebrow">${escapeHtml(profile.type)} profile · ${escapeHtml(profile.id)}</div><h1>${escapeHtml(profile.name)}</h1><div class="profile-subtitle">${escapeHtml(profile.nationality ?? "Nationality unknown")} · ${profile.age ?? "Age unknown"} · ${team}</div></div>
+      <div><div class="profile-eyebrow">${escapeHtml(publicLabel(profile.type, "Profile"))} Profile</div><h1>${escapeHtml(profile.name)}</h1><div class="profile-subtitle">${escapeHtml(profile.nationality ?? "Nationality unknown")} · ${profile.age ?? "Age unknown"} · ${team}</div></div>
       <div class="profile-status">${escapeHtml(human(profile.visibilityState))}</div>
     </section>
     <section class="profile-grid">
@@ -78,7 +78,7 @@ function team(profile) {
   return `<main class="profile-shell">
     <section class="profile-hero">
       <div class="profile-media">${profileMedia(profile, (profile.name ?? "T").split(/\s+/).map((part) => part[0]).slice(0, 2).join(""))}</div>
-      <div><div class="profile-eyebrow">Team profile · ${escapeHtml(profile.id)}</div><h1>${escapeHtml(profile.name)}</h1><div class="profile-subtitle">${escapeHtml(profile.nationality ?? "Formula One constructor")}</div></div>
+      <div><div class="profile-eyebrow">Team Profile</div><h1>${escapeHtml(profile.name)}</h1><div class="profile-subtitle">${escapeHtml(profile.nationality ?? "Formula One constructor")}</div></div>
       <div class="profile-status">${profile.controlled ? "Your team" : escapeHtml(human(profile.visibilityState))}</div>
     </section>
     <section class="profile-grid">
