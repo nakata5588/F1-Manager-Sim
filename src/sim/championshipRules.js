@@ -49,6 +49,22 @@ function calendarRoundCount(world, season) {
   return seasonRows.length || rows.length;
 }
 
+function operationalCountback(world) {
+  const row = (world?.operationalRegulationFallbacks1980V1216 ?? []).find((item) => (
+    item?.domain === "championship_scoring"
+    && item?.rule_id === "op_1980_tie_break_countback"
+    && /finishing-position counts/i.test(String(item?.value ?? ""))
+  ));
+  if (!row) return null;
+  return {
+    mode: "finishing_position_countback",
+    complete: true,
+    sourceStatus: row.status ?? "operational_fallback",
+    source: "world.operationalRegulationFallbacks1980V1216",
+    historicalFactClaim: row.historical_fact_claim === true,
+  };
+}
+
 function normalizeExplicitRules(explicit, world, season) {
   if (!explicit || typeof explicit !== "object") return null;
   const pointsSystem = parsePointsSystem(explicit.pointsSystem ?? explicit.points_system ?? world?.rules?.points_system);
@@ -61,6 +77,17 @@ function normalizeExplicitRules(explicit, world, season) {
     || explicit.constructors?.all_rounds_count === true
     || explicit.constructorAllRounds === true;
   const complete = Boolean(pointsSystem.length && segments.length && constructorAllRounds);
+  const explicitTieBreak = explicit.tieBreak ?? explicit.tie_break ?? null;
+  const fallbackTieBreak = operationalCountback(world);
+  const tieBreak = explicitTieBreak
+    ? {
+        mode: explicitTieBreak.mode ?? explicitTieBreak.type ?? "explicit",
+        complete: explicit.tieBreakComplete === true || explicit.tie_break_complete === true,
+        sourceStatus: explicitTieBreak.sourceStatus ?? explicitTieBreak.source_status ?? "explicit_world_rule",
+        source: "world.championshipRules",
+        historicalFactClaim: explicitTieBreak.historicalFactClaim === true,
+      }
+    : fallbackTieBreak;
   return {
     season: Number(season),
     pointsSystem,
@@ -74,7 +101,8 @@ function normalizeExplicitRules(explicit, world, season) {
       allRoundsCount: constructorAllRounds,
     },
     complete,
-    tieBreakComplete: explicit.tieBreakComplete === true || explicit.tie_break_complete === true,
+    tieBreakComplete: Boolean(tieBreak?.complete),
+    tieBreak,
     sourceStatus: explicit.sourceStatus ?? explicit.source_status ?? "explicit_world_rule",
     source: "world.championshipRules",
   };
@@ -96,6 +124,7 @@ export function resolveChampionshipRuleSet(saveWorld, season = saveWorld?.clock?
   const constructorAllRounds = /all\s+rounds\s+counted/i.test(String(constructorText ?? ""))
     || /count\s+all\s+scoring\s+finishes/i.test(String(constructorDetail?.gameplay_interpretation ?? ""));
   const complete = Boolean(pointsSystem.length && driverSegments.length && constructorAllRounds);
+  const tieBreak = operationalCountback(world);
 
   return {
     season: Number(season),
@@ -114,7 +143,8 @@ export function resolveChampionshipRuleSet(saveWorld, season = saveWorld?.clock?
       sourceValue: constructorText,
     },
     complete,
-    tieBreakComplete: false,
+    tieBreakComplete: Boolean(tieBreak?.complete),
+    tieBreak,
     sourceStatus: complete ? "source_supported" : "partial_or_missing",
     source: details.length ? "seasonPack.rulesDetail" : "world.rules",
   };
