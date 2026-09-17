@@ -1,6 +1,7 @@
 import { createCareerFromSeasonDatabase } from "../data/careerBootstrap.js";
 import { validateSeasonDatabasePayload } from "../data/seasonDatabase.js";
 import { historicalDatabasePresentation } from "../presentation/historicalDisplayMetadata.js";
+import { projectTeamSelectionCards } from "../presentation/teamSelectionPresentation.js";
 import {
   advanceLiveRaceSession,
   applyLiveStrategyInstruction,
@@ -396,7 +397,7 @@ export class DeveloperPlaytestSession {
         season,
         databaseVersion: this.seasonDatabase.databaseVersion,
       }),
-      teams: listDeveloperPlaytestTeams(this.seasonDatabase),
+      teams: projectTeamSelectionCards(this.seasonDatabase),
     };
   }
 
