@@ -76,7 +76,7 @@ function databaseStep() {
     <div class="ng-choice-grid">${catalog.databases.map((database) => card({
       selected: database.id === selection.databaseId,
       title: database.name,
-      subtitle: database.databaseVersion ?? "Local database",
+      subtitle: `Version ${database.versionLabel}`,
       meta: `${database.seasons.length} career-ready season${database.seasons.length === 1 ? "" : "s"}`,
       attrs: `data-ng-database="${escapeHtml(database.id)}"`,
     })).join("")}</div>${footer()}`;
@@ -84,7 +84,7 @@ function databaseStep() {
 
 function decadeStep() {
   const decades = decadesForDatabase(catalog, selection.databaseId);
-  return `<div class="ng-step-copy"><div class="eyebrow">New Game · Decade</div><h1>Choose a decade.</h1><p>Only decades with a validated Season Database are selectable. No unsupported historical world is invented.</p></div>
+  return `<div class="ng-step-copy"><div class="eyebrow">New Game · Decade</div><h1>Choose a decade.</h1><p>Only decades with a validated historical starting season are selectable. Unsupported years are never invented.</p></div>
     <div class="ng-choice-grid compact">${decades.map((row) => card({
       selected: row.decade === Number(selection.decade),
       title: row.label,
@@ -98,8 +98,8 @@ function seasonStep() {
   return `<div class="ng-step-copy"><div class="eyebrow">New Game · Season</div><h1>Choose your starting season.</h1><p>History is loaded only up to Career Start. Later real-world outcomes never become scripted career events.</p></div>
     <div class="ng-choice-grid compact">${seasons.map((row) => card({
       selected: row.season === Number(selection.season),
-      title: String(row.season),
-      subtitle: row.releaseName ?? currentDatabase()?.name ?? "Season Database",
+      title: row.name,
+      subtitle: `${row.season} starting season`,
       meta: `${row.teams.length} active team${row.teams.length === 1 ? "" : "s"}`,
       attrs: `data-ng-season="${row.season}"`,
     })).join("")}</div>${footer()}`;
@@ -107,7 +107,7 @@ function seasonStep() {
 
 function teamStep() {
   const season = currentSeason();
-  return `<div class="ng-step-copy"><div class="eyebrow">New Game · Team</div><h1>Choose the team you will manage.</h1><p>All teams shown here come from the active Season Database snapshot. Hidden future teams are not exposed.</p></div>
+  return `<div class="ng-step-copy"><div class="eyebrow">New Game · Team</div><h1>Choose the team you will manage.</h1><p>Every team shown belongs to the selected historical starting world. Teams that do not yet exist remain hidden.</p></div>
     <div class="ng-team-grid">${(season?.teams ?? []).map((team) => card({
       selected: team.id === selection.teamId,
       title: team.name,
@@ -123,12 +123,14 @@ function managerStep() {
     review = validateNewGameSelection(catalog, selection);
   } catch {
     review = {
-      databaseName: currentDatabase()?.name ?? "Database",
+      databaseName: currentDatabase()?.name ?? "Historical Database",
+      databaseVersionLabel: currentDatabase()?.versionLabel ?? "Current",
       season: selection.season,
+      seasonName: currentSeason()?.name ?? `${selection.season} Formula One World Championship`,
       teamName: currentSeason()?.teams?.find((row) => row.id === selection.teamId)?.name ?? "Team",
     };
   }
-  return `<div class="ng-step-copy"><div class="eyebrow">New Game · Manager</div><h1>Create your manager.</h1><p>This creates a new independent Save World. The Historical World Database remains immutable.</p></div>
+  return `<div class="ng-step-copy"><div class="eyebrow">New Game · Manager</div><h1>Create your manager.</h1><p>This creates an independent career. Your results and decisions can diverge from real Formula One history from day one.</p></div>
     <div class="ng-manager-layout">
       <section class="ng-manager-card">
         <label for="ng-manager-name">Manager name</label>
@@ -137,7 +139,7 @@ function managerStep() {
       </section>
       <section class="ng-review-card">
         <div class="eyebrow">Career Setup</div>
-        <dl><div><dt>Database</dt><dd>${escapeHtml(review.databaseName)}</dd></div><div><dt>Decade</dt><dd>${escapeHtml(`${selection.decade}s`)}</dd></div><div><dt>Season</dt><dd>${escapeHtml(review.season)}</dd></div><div><dt>Team</dt><dd>${escapeHtml(review.teamName)}</dd></div></dl>
+        <dl><div><dt>Database</dt><dd>${escapeHtml(review.databaseName)}</dd></div><div><dt>Version</dt><dd>${escapeHtml(review.databaseVersionLabel)}</dd></div><div><dt>Decade</dt><dd>${escapeHtml(`${selection.decade}s`)}</dd></div><div><dt>Season</dt><dd>${escapeHtml(review.seasonName)}</dd></div><div><dt>Team</dt><dd>${escapeHtml(review.teamName)}</dd></div></dl>
         <div class="ng-boundary">Historical starting conditions.<br><strong>Dynamic alternative future.</strong></div>
       </section>
     </div>${footer({ create: true })}`;
