@@ -106,6 +106,38 @@ function uniquePointsLeader(standings) {
   return standings[0].id;
 }
 
+function finishingPositionCount(entry, position) {
+  return (entry?.results ?? []).filter((result) => (
+    result?.status === "FINISHED" && Number(result?.position) === Number(position)
+  )).length;
+}
+
+function resolveCountbackLeader(standings) {
+  if (!standings.length) return null;
+  const topPoints = Number(standings[0].points);
+  let tied = standings.filter((entry) => Number(entry.points) === topPoints);
+  if (tied.length === 1) return tied[0].id;
+
+  const maxPosition = Math.max(1, ...tied.flatMap((entry) => (
+    (entry.results ?? []).map((result) => Number(result.position)).filter(Number.isFinite)
+  )));
+  for (let position = 1; position <= maxPosition && tied.length > 1; position += 1) {
+    const best = Math.max(...tied.map((entry) => finishingPositionCount(entry, position)));
+    tied = tied.filter((entry) => finishingPositionCount(entry, position) === best);
+  }
+  return tied.length === 1 ? tied[0].id : null;
+}
+
+function championshipLeader(standings, ruleSet) {
+  const unique = uniquePointsLeader(standings);
+  if (unique) return { id: unique, status: "resolved_unique_points" };
+  if (ruleSet?.tieBreakComplete && ruleSet?.tieBreak?.mode === "finishing_position_countback") {
+    const id = resolveCountbackLeader(standings);
+    if (id) return { id, status: "resolved_operational_countback" };
+  }
+  return { id: null, status: "tiebreak_required" };
+}
+
 function refreshChampionshipStatus(championship, date) {
   const hasPoints = championship.pointsSystem.length > 0;
   const completeRules = championship.ruleSet?.complete === true;
@@ -129,14 +161,18 @@ function refreshChampionshipStatus(championship, date) {
     return;
   }
 
-  championship.driverChampionId = uniquePointsLeader(championship.driverStandings);
-  championship.constructorChampionId = uniquePointsLeader(championship.constructorStandings);
-  championship.driverChampionStatus = championship.driverChampionId ? "resolved_unique_points" : "tiebreak_required";
-  championship.constructorChampionStatus = championship.constructorChampionId ? "resolved_unique_points" : "tiebreak_required";
+  const driverChampion = championshipLeader(championship.driverStandings, championship.ruleSet);
+  const constructorChampion = championshipLeader(championship.constructorStandings, championship.ruleSet);
+  championship.driverChampionId = driverChampion.id;
+  championship.constructorChampionId = constructorChampion.id;
+  championship.driverChampionStatus = driverChampion.status;
+  championship.constructorChampionStatus = constructorChampion.status;
   championship.standingsStatus = championship.driverChampionId && championship.constructorChampionId
-    ? "official_final"
+    ? (driverChampion.status === "resolved_operational_countback" || constructorChampion.status === "resolved_operational_countback"
+      ? "final_operational_tiebreak_applied"
+      : "official_final")
     : "final_tiebreak_unresolved";
-  if (championship.standingsStatus === "official_final") championship.championDeclaredAt = date;
+  if (championship.driverChampionId && championship.constructorChampionId) championship.championDeclaredAt = date;
 }
 
 function ensureChampionship(saveWorld, season = saveWorld.clock.season) {
@@ -151,7 +187,7 @@ function ensureChampionship(saveWorld, season = saveWorld.clock.season) {
         : "rules_missing",
       constructorScoringMode: pointsSystem.length ? ruleSet.constructors.mode : "unscored_missing_rules",
       note: ruleSet.complete
-        ? "Era-specific championship scoring is active. Gross, counted and dropped scores are retained separately. A final champion is declared only when the season is complete and no unresolved tie-break is required."
+        ? "Era-specific championship scoring is active. Gross, counted and dropped scores are retained separately. A final champion is declared only when the season is complete and any explicitly supplied tie-break rule can resolve a tie."
         : pointsSystem.length
           ? "Gross points are retained losslessly. Era-specific counting rules are incomplete, so standings remain provisional and no official champion is declared."
           : "No race points system was supplied by the Season Database, so results are retained without inventing championship points.",
