@@ -1,12 +1,12 @@
 const FALLBACK_PALETTES = Object.freeze([
-  ["#3c5a78", "#d9e2ec", "#111820"],
-  ["#7a4b3a", "#e8d8c8", "#1a1715"],
-  ["#356859", "#d7e6dd", "#101916"],
-  ["#6a4f7d", "#e5dced", "#17131a"],
-  ["#76632f", "#ece4c6", "#19170f"],
-  ["#43506b", "#dce2ef", "#12151d"],
-  ["#6e3f52", "#ecd8e0", "#1b1216"],
-  ["#43666a", "#d8e7e8", "#11191a"],
+  ["#3C5A78", "#D9E2EC", "#111820"],
+  ["#7A4B3A", "#E8D8C8", "#1A1715"],
+  ["#356859", "#D7E6DD", "#101916"],
+  ["#6A4F7D", "#E5DCED", "#17131A"],
+  ["#76632F", "#ECE4C6", "#19170F"],
+  ["#43506B", "#DCE2EF", "#12151D"],
+  ["#6E3F52", "#ECD8E0", "#1B1216"],
+  ["#43666A", "#D8E7E8", "#11191A"],
 ]);
 
 function teamIdOf(row = {}) {
@@ -35,13 +35,37 @@ function explicitIdentity(row = {}) {
   const nested = row.visualIdentity ?? row.visual_identity ?? row.presentation?.visualIdentity ?? row.presentation?.visual_identity ?? {};
   const colours = nested.colours ?? nested.colors ?? row.colours ?? row.colors ?? {};
   const primary = firstColour(
-    nested.primaryColour, nested.primaryColor, colours.primary, row.primary_colour, row.primary_color, row.primaryColour, row.primaryColor,
+    nested.primaryColour,
+    nested.primaryColor,
+    nested.primary_colour,
+    nested.primary_color,
+    colours.primary,
+    row.primary_colour,
+    row.primary_color,
+    row.primaryColour,
+    row.primaryColor,
   );
   const secondary = firstColour(
-    nested.secondaryColour, nested.secondaryColor, colours.secondary, row.secondary_colour, row.secondary_color, row.secondaryColour, row.secondaryColor,
+    nested.secondaryColour,
+    nested.secondaryColor,
+    nested.secondary_colour,
+    nested.secondary_color,
+    colours.secondary,
+    row.secondary_colour,
+    row.secondary_color,
+    row.secondaryColour,
+    row.secondaryColor,
   );
   const tertiary = firstColour(
-    nested.tertiaryColour, nested.tertiaryColor, colours.tertiary, row.tertiary_colour, row.tertiary_color, row.tertiaryColour, row.tertiaryColor,
+    nested.tertiaryColour,
+    nested.tertiaryColor,
+    nested.tertiary_colour,
+    nested.tertiary_color,
+    colours.tertiary,
+    row.tertiary_colour,
+    row.tertiary_color,
+    row.tertiaryColour,
+    row.tertiaryColor,
   );
   const hasColour = Boolean(primary || secondary || tertiary);
   const templates = {
@@ -92,9 +116,9 @@ export function teamVisualIdentity(saveWorld, teamIdValue, { displayName = null 
     teamId,
     displayName: displayName ?? sourceRow.team_name ?? sourceRow.display_name ?? sourceRow.name ?? teamId,
     colours: {
-      primary: chosen?.primary ?? fallback[0],
-      secondary: chosen?.secondary ?? fallback[1],
-      tertiary: chosen?.tertiary ?? fallback[2],
+      primary: (chosen?.primary ?? fallback[0]).toUpperCase(),
+      secondary: (chosen?.secondary ?? fallback[1]).toUpperCase(),
+      tertiary: (chosen?.tertiary ?? fallback[2]).toUpperCase(),
     },
     templates: {
       car: chosen?.carTemplate ?? null,
