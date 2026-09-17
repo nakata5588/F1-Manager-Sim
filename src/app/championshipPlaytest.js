@@ -86,9 +86,37 @@ function championshipArchive(saveWorld, drivers, teams) {
   });
 }
 
+function activeWeekend(saveWorld) {
+  const rows = Object.values(saveWorld.world?.raceWeekendState?.active ?? {});
+  return rows.find((row) => row?.phase !== "completed") ?? null;
+}
+
+function labelledStandings(saveWorld, type, drivers, teams) {
+  const championship = saveWorld.world?.championship ?? {};
+  const source = type === "constructors"
+    ? championship.constructorStandings ?? championship.constructors ?? {}
+    : championship.driverStandings ?? championship.drivers ?? {};
+  const entries = Array.isArray(source)
+    ? source.map((row) => [type === "constructors" ? teamId(row) : driverId(row), row])
+    : Object.entries(source);
+  return entries
+    .filter(([id]) => id !== null && id !== undefined)
+    .map(([id, row]) => ({
+      id,
+      name: type === "constructors"
+        ? teamName(teams.get(id) ?? { id })
+        : driverName(drivers.get(id) ?? { id }),
+      points: Number(row?.countedPoints ?? row?.points ?? 0),
+      grossPoints: Number(row?.points ?? 0),
+      wins: Number(row?.wins ?? 0),
+    }))
+    .sort((a, b) => b.points - a.points || b.wins - a.wins || String(a.id).localeCompare(String(b.id)))
+    .map((row, index) => ({ position: index + 1, ...row }));
+}
+
 export function developerChampionship(session) {
+  if (!session || typeof session.requireCareer !== "function") throw new TypeError("A DeveloperPlaytestSession is required.");
   const saveWorld = session.requireCareer();
-  const state = session.state();
   const drivers = new Map((saveWorld.world?.drivers ?? []).map((row) => [driverId(row), row]));
   const teams = new Map((saveWorld.world?.teams ?? []).map((row) => [teamId(row), row]));
   const tracks = new Map((saveWorld.world?.tracks ?? []).map((row) => [trackId(row), {
@@ -96,7 +124,8 @@ export function developerChampionship(session) {
     name: row.track_name ?? row.display_name ?? row.name ?? trackId(row),
   }]));
   const historyRows = saveWorld.history?.races ?? [];
-  const currentGpId = state.raceWeekend?.gpId ?? null;
+  const weekend = activeWeekend(saveWorld);
+  const currentGpId = weekend?.gpId ?? weekend?.gp_id ?? null;
   const today = dateOnly(saveWorld.clock?.date);
 
   const calendar = [...(saveWorld.world?.calendar ?? [])]
@@ -134,7 +163,7 @@ export function developerChampionship(session) {
   return {
     season: number(saveWorld.clock?.season),
     date: saveWorld.clock?.date ?? null,
-    controlledTeamId: state.career?.controlledTeamId ?? null,
+    controlledTeamId: session.controlledTeamId ?? saveWorld.player?.controlledTeamIds?.[0] ?? null,
     summary: {
       totalRounds: calendar.length,
       completedRounds: completedCount,
@@ -144,8 +173,8 @@ export function developerChampionship(session) {
     },
     calendar,
     standings: {
-      drivers: (state.standings?.drivers ?? []).map((row) => ({ ...row })),
-      constructors: (state.standings?.constructors ?? []).map((row) => ({ ...row })),
+      drivers: labelledStandings(saveWorld, "drivers", drivers, teams),
+      constructors: labelledStandings(saveWorld, "constructors", drivers, teams),
     },
     archive: championshipArchive(saveWorld, drivers, teams),
   };
