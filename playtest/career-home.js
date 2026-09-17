@@ -2,7 +2,6 @@ import { buildCareerHomeModel } from "/career-home-model.js";
 
 const APP = document.querySelector("#app");
 let rendering = false;
-let lastSignature = null;
 
 async function request(path) {
   const response = await fetch(path, { headers: { "content-type": "application/json" } });
@@ -64,7 +63,7 @@ function calendar(model) {
   const next = model.calendar.nextRace;
   const timeline = model.calendar.timeline ?? [];
   return `<section id="career-calendar" class="home-section-anchor home-calendar">
-    <div class="home-section-title"><div><div class="home-kicker">Calendar</div><h2>Next Grand Prix</h2></div><span>${model.calendar.racesArchived} race${model.calendar.racesArchived === 1 ? "" : "s"} archived</span></div>
+    <div class="home-section-title"><div><div class="home-kicker">Calendar</div><h2>Next Grand Prix</h2></div><a href="/championship.html#calendar">Full calendar</a></div>
     <div class="home-calendar-grid">
       <article class="home-panel home-next-race">${next ? `<span>ROUND ${next.round ?? "—"}</span><h3>${escapeHtml(next.name)}</h3><strong>${humanDate(next.date)}</strong>` : '<span>SEASON</span><h3>Championship calendar complete</h3><strong>Offseason available</strong>'}</article>
       <article class="home-panel"><div class="home-timeline">${timeline.length ? timeline.map((row) => `<div class="${row.status}"><i></i><span>${row.round ? `R${row.round} · ` : ""}${escapeHtml(row.label)}</span><small>${humanDate(row.date)}</small></div>`).join("") : '<div class="home-empty">No race timeline yet.</div>'}</div></article>
@@ -122,7 +121,7 @@ function renderDashboard(model) {
     ${calendar(model)}
 
     <section id="career-standings" class="home-section-anchor home-standings-section">
-      <div class="home-section-title"><div><div class="home-kicker">Championship</div><h2>Standings</h2></div><a href="/?section=standings">Focus standings</a></div>
+      <div class="home-section-title"><div><div class="home-kicker">Championship</div><h2>Standings</h2></div><a href="/championship.html#standings">Full standings</a></div>
       <div class="home-standings-grid"><article class="home-panel"><h2>Drivers' Championship</h2>${standings(model.competition.topDrivers)}</article><article class="home-panel"><h2>Constructors' Championship</h2>${standings(model.competition.topConstructors)}</article></div>
     </section>
   `);
@@ -147,9 +146,8 @@ async function enhanceHome() {
       request("/api/inbox"),
     ]);
     if (state.screen !== "home") return;
-    const signature = `${state.career?.date ?? ""}|${state.career?.controlledTeamId ?? ""}|${management.inbox?.unread ?? 0}|${world.summary?.racesArchived ?? 0}`;
     const model = buildCareerHomeModel({ state, management, technical, world, inbox: inboxData });
-    if (renderDashboard(model)) lastSignature = signature;
+    renderDashboard(model);
   } catch (error) {
     console.error("Career Home dashboard could not initialize:", error);
   } finally {
