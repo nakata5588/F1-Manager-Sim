@@ -109,13 +109,41 @@ Missing source identity remains missing. For example, if a chassis model name is
 
 Visual identity and media are presentation-only and never influence simulation performance.
 
+## Manager Profile v1
+
+The Manager stage creates a persistent player identity inside Save World. It does not write any manager data back to the Historical World Database.
+
+New careers collect:
+
+- manager name;
+- nationality;
+- date of birth;
+- background / previous experience.
+
+The canonical personal profile lives under `saveWorld.player.manager`. Manager career state such as reputation, employment status, applications, job offers and career history remains nested under `saveWorld.player.manager.career`. This keeps personal identity separate from evolving career systems without creating a duplicate manager model.
+
+The v1 background catalogue is deliberately compact:
+
+- Former Driver;
+- Engineering;
+- Team Management;
+- Business & Commercial;
+- Motorsport Operations;
+- New to Formula One.
+
+Date of birth is stored as identity; age is always derived from the current Save World date. New manager creation requires the manager to be at least 18 years old at Career Start.
+
+Older saves that contain only `player.manager.name` remain loadable. Missing Profile v1 fields are normalized to `null`; the game must not invent nationality, date of birth or previous experience for legacy careers.
+
+Profile v1 is intentionally extensible. Later phases may add avatar/media, languages, management style and richer career biography while reputation and employment history continue to evolve through the existing manager career system.
+
 ## Current UI stages
 
 1. **Database** — historical database identity currently supplied by the server.
 2. **Decade** — derived only from career-ready seasons in that database.
 3. **Season** — validated Season Database starting year.
 4. **Team** — active teams from that Season Database snapshot.
-5. **Manager** — manager identity and final Career Setup review.
+5. **Manager** — persistent manager profile (name, nationality, date of birth, background) and final Career Setup review.
 
 The final action creates the career through the existing server endpoint and reloads the normal Career shell from the resulting Save World.
 
