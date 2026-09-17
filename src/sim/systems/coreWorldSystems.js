@@ -34,6 +34,7 @@ import { createOffseasonManagementSystem } from "./offseasonManagement.js";
 import { createOffseasonInboxSystem } from "./offseasonInbox.js";
 import { createRaceStrategySystem } from "./raceStrategy.js";
 import { createPerformanceCalibrationSystem } from "./performanceCalibration.js";
+import { createDatabaseWeatherSystem } from "./databaseWeather.js";
 import { createRaceWeekendSystem } from "./raceWeekend.js";
 import { createRaceTimelineSystem } from "./raceTimeline.js";
 import { createRaceControlSystem } from "./raceControl.js";
@@ -93,6 +94,9 @@ export function createCoreWorldSystems(options = {}) {
     createTechnicalInboxSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createRaceStrategySystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createPerformanceCalibrationSystem(),
+    // The Season DB provides weather probabilities, not historical outcomes.
+    // Generate the actual weekend weather into Save World before session logic.
+    createDatabaseWeatherSystem(),
     createRaceWeekendSystem(),
     createRaceTimelineSystem(),
     createRaceControlSystem(),
