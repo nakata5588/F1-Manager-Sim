@@ -238,6 +238,24 @@ function continueLatestSave() {
   return loadSaveSlot(latest.slot);
 }
 
+function setupWithResolvedMedia() {
+  const setup = session.setup();
+  return {
+    ...setup,
+    teams: (setup.teams ?? []).map((team) => ({
+      ...team,
+      resolvedMedia: {
+        logo: team.media?.logo
+          ? resolveMediaAsset(mediaPack, team.media.logo.kind, team.media.logo.entityId)
+          : null,
+        car: team.media?.car
+          ? resolveMediaAsset(mediaPack, team.media.car.kind, team.media.car.entityId)
+          : null,
+      },
+    })),
+  };
+}
+
 function profileWithResolvedMedia(profile) {
   const kind = profile.media?.category ?? (profile.type === "team" ? "teamLogo" : profile.type);
   const projected = { ...profile, media: resolveMediaAsset(mediaPack, kind, profile.id) };
@@ -284,7 +302,7 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/media/resolve" && request.method === "GET") {
       return json(response, 200, resolveMediaAsset(mediaPack, url.searchParams.get("kind"), url.searchParams.get("id")));
     }
-    if (url.pathname === "/api/setup" && request.method === "GET") return json(response, 200, session.setup());
+    if (url.pathname === "/api/setup" && request.method === "GET") return json(response, 200, setupWithResolvedMedia());
     if (url.pathname === "/api/state" && request.method === "GET") {
       syncManagerControl();
       return json(response, 200, session.state());
