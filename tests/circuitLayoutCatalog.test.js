@@ -168,6 +168,16 @@ test("1980 historical map source pack covers every assigned layout with explicit
   assert.deepEqual(summary.licenseBuckets, { CC_BY_SA: 9, PUBLIC_DOMAIN: 5 });
   assert.equal(classifyHistoricalMapLicense("CC BY-SA 4.0"), "CC_BY_SA");
   assert.equal(classifyHistoricalMapLicense("Public Domain (PD-self)"), "PUBLIC_DOMAIN");
+
+  const duplicate = structuredClone(sources);
+  duplicate.push({ ...sources[0], source_id: "duplicate-primary-source" });
+  const duplicateValidation = validateHistoricalMapSources({
+    layouts: seasonLayouts,
+    sources: duplicate,
+    requireCoverage: true,
+  });
+  assert.equal(duplicateValidation.ok, false);
+  assert.ok(duplicateValidation.issues.some((issue) => issue.includes("Multiple primary historical map sources")));
 });
 
 test("1980 uses corrected period identities for Long Beach and Montreal", async () => {
