@@ -1,5 +1,11 @@
 import { entityLink } from "/entity-links.js";
 import { publicLabel } from "/presentation-labels.js";
+import {
+  MANAGEMENT_PRIMARY_SECTIONS,
+  normalizeManagementView,
+  primarySectionForView,
+  subsectionsForView,
+} from "/management-workspace-model.js";
 
 const root = document.querySelector("#management-app");
 
@@ -20,7 +26,7 @@ let recruitmentRequest = "/api/recruitment";
 let staffRequest = "/api/staff-recruitment";
 let commercialTier = "partner";
 let commercialRequest = "/api/commercial?tier=partner";
-let activeTab = "inbox";
+let activeTab = normalizeManagementView(window.location.hash);
 let selectedNegotiation = null;
 let selectedStaffNegotiation = null;
 let selectedSponsorNegotiation = null;
@@ -111,20 +117,31 @@ async function refreshAll() {
   render();
 }
 
+function sectionBadge(id) {
+  if (id === "inbox") return Number(overview?.inbox?.unread ?? 0);
+  if (id === "drivers") return Number(overview?.contracts?.active ?? 0) + Number(overview?.market?.openOffers ?? 0);
+  if (id === "staff") return Number(overview?.staffContracts?.active ?? 0);
+  if (id === "commercial") return Number(overview?.commercial?.openNegotiations ?? 0);
+  return 0;
+}
+
 function tabs() {
-  const rows = [
-    ["inbox", `Inbox ${overview?.inbox?.unread ? `(${overview.inbox.unread})` : ""}`],
-    ["board", "Board"],
-    ["career", "Career"],
-    ["people", "People"],
-    ["staff", `Staff ${overview?.staffContracts?.active ? `(${overview.staffContracts.active})` : ""}`],
-    ["recruitment", "Drivers"],
-    ["contracts", `Driver Contracts ${overview?.contracts?.active ? `(${overview.contracts.active})` : ""}`],
-    ["market", `Driver Market ${overview?.market?.openOffers ? `(${overview.market.openOffers})` : ""}`],
-    ["commercial", `Commercial ${overview?.commercial?.openNegotiations ? `(${overview.commercial.openNegotiations})` : ""}`],
-    ["responsibilities", "Responsibilities"],
-  ];
-  return `<div class="management-tabs">${rows.map(([id, label]) => `<button class="management-tab ${activeTab === id ? "active" : ""}" data-tab="${id}">${escapeHtml(label)}</button>`).join("")}</div>`;
+  const primary = primarySectionForView(activeTab);
+  return `<div class="management-primary-nav">${MANAGEMENT_PRIMARY_SECTIONS.map((row) => {
+    const badge = sectionBadge(row.id);
+    return `<button class="management-primary-tab ${primary === row.id ? "active" : ""}" data-tab="${row.id}"><span>${escapeHtml(row.label)}</span>${badge > 0 ? `<em>${badge}</em>` : ""}</button>`;
+  }).join("")}</div>`;
+}
+
+function secondaryTabs() {
+  const rows = subsectionsForView(activeTab);
+  if (!rows.length) return "";
+  return `<div class="management-secondary-nav">${rows.map((row) => `<button class="management-secondary-tab ${activeTab === row.id ? "active" : ""}" data-tab="${row.id}">${escapeHtml(row.label)}</button>`).join("")}</div>`;
+}
+
+function syncManagementHash(view) {
+  const normalized = normalizeManagementView(view);
+  if (window.location.hash !== `#${normalized}`) history.replaceState(null, "", `#${normalized}`);
 }
 
 function renderInbox() {
@@ -181,7 +198,28 @@ function personCard(row) {
 function renderPeople() {
   const drivers = people.drivers.length ? people.drivers.map(personCard).join("") : '<div class="management-empty">No controlled-team drivers.</div>';
   const staffRows = people.staff.length ? people.staff.map(personCard).join("") : '<div class="management-empty">No controlled-team staff.</div>';
-  return `<div class="management-section-title"><div><span class="management-category">Team dynamics</span><h2>Drivers</h2></div></div><div class="people-cards">${drivers}</div><div class="management-section-title"><div><span class="management-category">Team dynamics</span><h2>Staff</h2></div></div><div class="people-cards">${staffRows}</div>`;
+  return `<div class="management-section-title"><div><span class="management-category">Team dynamics</span><h2>Drivers</h2></div><button data-tab="drivers">Driver workspace</button></div><div class="people-cards">${drivers}</div><div class="management-section-title"><div><span class="management-category">Team dynamics</span><h2>Staff</h2></div><button data-tab="staff">Staff workspace</button></div><div class="people-cards">${staffRows}</div>`;
+}
+
+function renderTeamOverview() {
+  const managerOwned = responsibilities.areas?.filter((row) => row.owner === "manager").length ?? 0;
+  const delegated = responsibilities.areas?.filter((row) => row.owner === "delegated").length ?? 0;
+  return `<section class="management-overview-grid">
+    <article class="management-overview-card"><span>Drivers</span><strong>${people.drivers.length}</strong><small>Current race team</small><button data-tab="drivers">Open Drivers</button></article>
+    <article class="management-overview-card"><span>Staff</span><strong>${people.staff.length}</strong><small>Current team staff</small><button data-tab="staff">Open Staff</button></article>
+    <article class="management-overview-card"><span>Board confidence</span><strong>${boardData.board ? Math.round(boardData.board.confidence) : "—"}</strong><small>${escapeHtml(publicLabel(boardData.board?.status, "No review"))}</small><button data-tab="board">Open Board</button></article>
+    <article class="management-overview-card"><span>Responsibilities</span><strong>${managerOwned}/${managerOwned + delegated}</strong><small>Managed directly</small><button data-tab="responsibilities">Review</button></article>
+  </section>${renderPeople()}`;
+}
+
+function renderCurrentDrivers() {
+  const rows = people.drivers.length ? people.drivers.map(personCard).join("") : '<div class="management-empty">No controlled-team drivers.</div>';
+  return `<div class="management-section-title"><div><span class="management-category">Race team</span><h2>Current drivers</h2></div><button data-tab="recruitment">Recruit drivers</button></div><div class="people-cards">${rows}</div>`;
+}
+
+function renderCurrentStaff() {
+  const rows = people.staff.length ? people.staff.map(personCard).join("") : '<div class="management-empty">No controlled-team staff.</div>';
+  return `<div class="management-section-title"><div><span class="management-category">Team organisation</span><h2>Current staff</h2></div><button data-tab="staff-market">Recruit staff</button></div><div class="people-cards">${rows}</div>`;
 }
 
 function driverInterest(row) {
@@ -276,16 +314,18 @@ function render() {
   }
   const content = activeTab === "board" ? renderBoard()
     : activeTab === "career" ? renderCareer()
-      : activeTab === "people" ? renderPeople()
-        : activeTab === "staff" ? renderStaff()
-          : activeTab === "recruitment" ? renderRecruitment()
-            : activeTab === "contracts" ? renderDriverContracts()
-              : activeTab === "market" ? renderMarket()
-                : activeTab === "commercial" ? renderCommercial()
-                  : activeTab === "responsibilities" ? renderResponsibilities()
-                    : renderInbox();
+      : activeTab === "team" ? renderTeamOverview()
+        : activeTab === "drivers" ? renderCurrentDrivers()
+          : activeTab === "staff" ? renderCurrentStaff()
+            : activeTab === "staff-market" ? renderStaff()
+              : activeTab === "recruitment" ? renderRecruitment()
+                : activeTab === "contracts" ? renderDriverContracts()
+                  : activeTab === "market" ? renderMarket()
+                    : activeTab === "commercial" ? renderCommercial()
+                      : activeTab === "responsibilities" ? renderResponsibilities()
+                        : renderInbox();
   const career = managerCareer.career ?? overview?.career ?? {};
-  root.innerHTML = `<div class="management-shell ${busy ? "busy" : ""}"><header class="management-header"><div><div class="eyebrow">Team & Management</div><h1>${escapeHtml(career.currentTeamName ?? "F1 Job Centre")}</h1><p>${escapeHtml(career.name ?? careerState.career?.managerName ?? "Manager")} · ${careerState.career?.season ?? "—"} · ${humanDate(careerState.career?.date)}</p></div><a class="management-link-button" href="/">Career / Race Weekend</a></header><section class="management-kpis"><div><span>Board</span><strong>${boardData.board ? Math.round(boardData.board.confidence) : "—"}</strong></div><div><span>Reputation</span><strong>${Math.round(career.reputation ?? 0)}</strong></div><div><span>Marketability</span><strong>${overview?.commercial?.marketability === null || overview?.commercial?.marketability === undefined ? "—" : Math.round(overview.commercial.marketability)}</strong></div><div><span>Unread</span><strong>${overview?.inbox?.unread ?? 0}</strong></div></section>${tabs()}${errorMessage ? `<div class="error">${escapeHtml(errorMessage)}</div>` : ""}<main class="management-content">${content}</main></div>`;
+  root.innerHTML = `<div class="management-shell ${busy ? "busy" : ""}"><header class="management-header"><div><div class="eyebrow">Team & Management</div><h1>${escapeHtml(career.currentTeamName ?? "F1 Job Centre")}</h1><p>${escapeHtml(career.name ?? careerState.career?.managerName ?? "Manager")} · ${careerState.career?.season ?? "—"} · ${humanDate(careerState.career?.date)}</p></div><a class="management-link-button" href="/">Career / Race Weekend</a></header><section class="management-kpis"><div><span>Board</span><strong>${boardData.board ? Math.round(boardData.board.confidence) : "—"}</strong></div><div><span>Reputation</span><strong>${Math.round(career.reputation ?? 0)}</strong></div><div><span>Marketability</span><strong>${overview?.commercial?.marketability === null || overview?.commercial?.marketability === undefined ? "—" : Math.round(overview.commercial.marketability)}</strong></div><div><span>Unread</span><strong>${overview?.inbox?.unread ?? 0}</strong></div></section>${tabs()}${secondaryTabs()}${errorMessage ? `<div class="error">${escapeHtml(errorMessage)}</div>` : ""}<main class="management-content">${content}</main></div>`;
 }
 
 async function action(fn) {
@@ -301,12 +341,14 @@ async function openDriverNegotiation(driverId, startSeason = undefined) {
   const result = await api("/api/contracts/open", { method: "POST", body: JSON.stringify({ driverId, startSeason }) });
   selectedNegotiation = result.negotiation;
   activeTab = "contracts";
+  syncManagementHash(activeTab);
 }
 
 async function openStaffNegotiation(staffId) {
   const result = await api("/api/staff-contracts/open", { method: "POST", body: JSON.stringify({ staffId }) });
   selectedStaffNegotiation = result.negotiation;
-  activeTab = "staff";
+  activeTab = "staff-market";
+  syncManagementHash(activeTab);
 }
 
 async function openSponsorNegotiation(sponsorId, tier, renewDealId = null) {
@@ -315,11 +357,12 @@ async function openSponsorNegotiation(sponsorId, tier, renewDealId = null) {
   commercialTier = result.negotiation.tier;
   commercialRequest = `/api/commercial?tier=${encodeURIComponent(commercialTier)}`;
   activeTab = "commercial";
+  syncManagementHash(activeTab);
 }
 
 root.addEventListener("click", (event) => {
   const tab = event.target.closest("[data-tab]")?.dataset.tab;
-  if (tab) { activeTab = tab; render(); return; }
+  if (tab) { activeTab = normalizeManagementView(tab); syncManagementHash(activeTab); render(); return; }
 
   const readItem = event.target.closest("[data-read-item]")?.dataset.readItem;
   if (readItem) return action(() => api("/api/inbox/read", { method: "POST", body: JSON.stringify({ itemId: readItem, read: true }) }));
@@ -427,5 +470,13 @@ root.addEventListener("click", (event) => {
 refreshAll().catch((error) => {
   errorMessage = error.message;
   careerState = { screen: "new_career" };
+  render();
+});
+
+
+window.addEventListener("hashchange", () => {
+  const next = normalizeManagementView(window.location.hash);
+  if (next === activeTab) return;
+  activeTab = next;
   render();
 });
