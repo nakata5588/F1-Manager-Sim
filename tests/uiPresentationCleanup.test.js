@@ -210,3 +210,32 @@ test("Live Race 2D v0 never fabricates a fallback circuit path", () => {
   assert.match(map, /if \(!geometry\?\.available\)/);
   assert.match(map, /No circuit drawing shown/);
 });
+
+
+test("Race Weekend UX v2 presents a unified Race Desk without adding simulation authority", () => {
+  const source = readFileSync("playtest/app.js", "utf8");
+  assert.match(source, /race-status-strip/);
+  assert.match(source, /race-control-banner/);
+  assert.match(source, /Timing Tower/);
+  assert.match(source, /Pit Wall/);
+  assert.match(source, /Event Feed/);
+  assert.match(source, /Field Detail/);
+  assert.match(source, /renderLiveRaceMap/);
+  assert.match(source, /race\.trackPositions/);
+});
+
+test("Race Weekend UX v2 keeps abstract gaps explicitly non-temporal", () => {
+  const source = readFileSync("playtest/app.js", "utf8");
+  assert.match(source, /Gap Index · simulation-relative/);
+  assert.match(source, /Gap Index is not seconds/);
+  assert.doesNotMatch(source, /gapIndex[^\n]{0,120}(seconds|metres|meters)/i);
+});
+
+test("Race Weekend UX v2 uses the same weekend progression through Results", () => {
+  const source = readFileSync("playtest/app.js", "utf8");
+  const model = readFileSync("playtest/race-weekend-ux-model.js", "utf8");
+  assert.match(source, /weekendSteps\("race"\)/);
+  assert.match(source, /weekendSteps\("race_results"\)/);
+  assert.match(model, /Grid & Strategy/);
+  assert.match(source, /strategyTimelineMarkup/);
+});
