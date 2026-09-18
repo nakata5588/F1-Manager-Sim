@@ -1,0 +1,325 @@
+{
+  "schemaVersion": 1,
+  "description": "Stable historical circuit layout registry. track_id identifies the venue; layout_id identifies a configuration.",
+  "layouts": [
+    {
+      "layout_id": "cl_tr_0018_no15_1979",
+      "track_id": "tr_0018",
+      "layout_name": "Circuit No. 15 (1979-94 configuration)",
+      "configuration_name": "Circuito Nº15",
+      "valid_from": 1979,
+      "valid_to": 1994,
+      "lap_length_km": 5.968,
+      "historical_status": "VERIFIED_LAYOUT_IDENTITY",
+      "candidate_aliases": [
+        "Buenos Aires",
+        "Autódromo Oscar y Juan Gálvez",
+        "Autódromo Municipal Ciudad de Buenos Aires"
+      ],
+      "historical_verification": [
+        {
+          "source": "RacingCircuits.info",
+          "url": "https://www.racingcircuits.info/south-america/argentina/buenos-aires.html",
+          "note": "Lists Circuit No. 15 for 1979-94 and documents F1 use of the long Circuit 15 from 1974."
+        }
+      ],
+      "notes": "The runtime baseline uses 5.968 km; RacingCircuits lists 5.959 km for its 1979-94 map. Keep the discrepancy explicit until source-lock review."
+    },
+    {
+      "layout_id": "cl_tr_0028_long_1978",
+      "track_id": "tr_0028",
+      "layout_name": "Grand Prix Circuit (1978-89 original long course)",
+      "configuration_name": "Original long Interlagos",
+      "valid_from": 1978,
+      "valid_to": 1989,
+      "lap_length_km": 7.873,
+      "historical_status": "VERIFIED_LAYOUT_IDENTITY",
+      "candidate_aliases": [
+        "Interlagos",
+        "Autódromo José Carlos Pace",
+        "Sao Paulo"
+      ],
+      "historical_verification": [
+        {
+          "source": "RacingCircuits.info",
+          "url": "https://www.racingcircuits.info/south-america/brazil/interlagos.html",
+          "note": "Lists the 1978-89 Grand Prix Circuit at about 7.874 km, before the 1990 short redesign."
+        }
+      ],
+      "notes": "1980 must never resolve to the modern 4.3 km Interlagos geometry."
+    },
+    {
+      "layout_id": "cl_tr_0067_gp_1961",
+      "track_id": "tr_0067",
+      "layout_name": "Grand Prix Circuit (1961-87)",
+      "configuration_name": "Original Kyalami",
+      "valid_from": 1961,
+      "valid_to": 1987,
+      "lap_length_km": 4.104,
+      "historical_status": "VERIFIED_LAYOUT_IDENTITY",
+      "candidate_aliases": [
+        "Kyalami",
+        "Kyalami Grand Prix Circuit",
+        "Johannesburg"
+      ],
+      "historical_verification": [
+        {
+          "source": "RacingCircuits.info",
+          "url": "https://www.racingcircuits.info/africa/south-africa/kyalami.html",
+          "note": "Lists the original Grand Prix Circuit for 1961-87 at 4.104 km."
+        }
+      ],
+      "notes": "The modern Kyalami venue is a substantially different configuration."
+    },
+    {
+      "layout_id": "cl_tr_0088_gp_1975",
+      "track_id": "tr_0088",
+      "layout_name": "Grand Prix Course (1975-81)",
+      "configuration_name": "Long Beach 1975-81",
+      "valid_from": 1975,
+      "valid_to": 1981,
+      "lap_length_km": 3.251,
+      "historical_status": "VERIFIED_LAYOUT_IDENTITY",
+      "candidate_aliases": [
+        "Long Beach",
+        "Long Beach Street Circuit"
+      ],
+      "historical_verification": [
+        {
+          "source": "RacingCircuits.info",
+          "url": "https://www.racingcircuits.info/north-america/usa/long-beach.html",
+          "note": "Lists the Grand Prix Course used from 1975-81 at 3.251 km."
+        }
+      ],
+      "notes": null
+    },
+    {
+      "layout_id": "cl_tr_0026_gp_1975",
+      "track_id": "tr_0026",
+      "layout_name": "Grand Prix Circuit (1975-81)",
+      "configuration_name": "Zolder 1975-81",
+      "valid_from": 1975,
+      "valid_to": 1981,
+      "lap_length_km": 4.262,
+      "historical_status": "VERIFIED_LAYOUT_IDENTITY",
+      "candidate_aliases": [
+        "Zolder",
+        "Circuit Zolder"
+      ],
+      "historical_verification": [
+        {
+          "source": "RacingCircuits.info",
+          "url": "https://www.racingcircuits.info/europe/belgium/zolder.html",
+          "note": "Lists the 1975-81 Grand Prix Circuit at 4.262 km."
+        }
+      ],
+      "notes": null
+    },
+    {
+      "layout_id": "cl_tr_0056_v3_1976",
+      "track_id": "tr_0056",
+      "layout_name": "Monaco 1976-85 configuration",
+      "configuration_name": "Third variation / pre-1986 harbour chicane",
+      "valid_from": 1976,
+      "valid_to": 1985,
+      "lap_length_km": 3.312,
+      "historical_status": "VERIFIED_LAYOUT_IDENTITY",
+      "candidate_aliases": [
+        "Monaco",
+        "Monte Carlo",
+        "Circuit de Monaco"
+      ],
+      "historical_verification": [
+        {
+          "source": "RacingCircuits.info",
+          "url": "https://www.racingcircuits.info/europe/monaco/monte-carlo.html",
+          "note": "Documents 1976 changes at Rascasse and Ste Dévote and the next major change in 1986."
+        }
+      ],
+      "notes": "A modern Monaco line can have a close length while still being historically wrong."
+    },
+    {
+      "layout_id": "cl_tr_0035_full_1970",
+      "track_id": "tr_0035",
+      "layout_name": "Full Grand Prix Circuit (pre-1986)",
+      "configuration_name": "Paul Ricard full course",
+      "valid_from": 1970,
+      "valid_to": 1985,
+      "lap_length_km": 5.81,
+      "historical_status": "VERIFIED_LAYOUT_IDENTITY",
+      "candidate_aliases": [
+        "Paul Ricard",
+        "Circuit Paul Ricard",
+        "Le Castellet"
+      ],
+      "historical_verification": [
+        {
+          "source": "RacingCircuits.info",
+          "url": "https://www.racingcircuits.info/europe/france/paul-ricard.html",
+          "note": "Historical circuit chronology and full-course configuration."
+        }
+      ],
+      "notes": "The upstream candidate is close in length, but geometry still requires historical shape/start-finish/pit-lane review."
+    },
+    {
+      "layout_id": "cl_tr_0081_gp_1976",
+      "track_id": "tr_0081",
+      "layout_name": "Grand Prix Circuit (1976-87)",
+      "configuration_name": "Brands Hatch GP 1976-87",
+      "valid_from": 1976,
+      "valid_to": 1987,
+      "lap_length_km": 4.207,
+      "historical_status": "VERIFIED_LAYOUT_IDENTITY",
+      "candidate_aliases": [
+        "Brands Hatch",
+        "Brands Hatch Grand Prix Circuit"
+      ],
+      "historical_verification": [
+        {
+          "source": "RacingCircuits.info",
+          "url": "https://www.racingcircuits.info/europe/united-kingdom/brands-hatch.html",
+          "note": "Lists the Grand Prix Circuit configuration for 1976-87 at 4.207 km."
+        }
+      ],
+      "notes": null
+    },
+    {
+      "layout_id": "cl_tr_0041_gp_1970",
+      "track_id": "tr_0041",
+      "layout_name": "Grand Prix Circuit (1970-80)",
+      "configuration_name": "Forest straights with 1970 chicanes, pre-Ostkurve chicane",
+      "valid_from": 1970,
+      "valid_to": 1980,
+      "lap_length_km": 6.789,
+      "historical_status": "VERIFIED_LAYOUT_IDENTITY",
+      "candidate_aliases": [
+        "Hockenheim",
+        "Hockenheimring"
+      ],
+      "historical_verification": [
+        {
+          "source": "RacingCircuits.info",
+          "url": "https://www.racingcircuits.info/europe/germany/hockenheimring.html",
+          "note": "Lists the long 1970-80 Grand Prix Circuit; the Ostkurve chicane came later."
+        }
+      ],
+      "notes": "Modern shortened Hockenheim is not a valid historical substitute."
+    },
+    {
+      "layout_id": "cl_tr_0022_gp_1977",
+      "track_id": "tr_0022",
+      "layout_name": "Österreichring Grand Prix Circuit (1977-87)",
+      "configuration_name": "Österreichring with Hella-Licht chicane",
+      "valid_from": 1977,
+      "valid_to": 1987,
+      "lap_length_km": 5.942,
+      "historical_status": "VERIFIED_LAYOUT_IDENTITY",
+      "candidate_aliases": [
+        "Österreichring",
+        "Osterreichring",
+        "Spielberg",
+        "Red Bull Ring"
+      ],
+      "historical_verification": [
+        {
+          "source": "RacingCircuits.info",
+          "url": "https://www.racingcircuits.info/europe/austria/red-bull-ring-a-1-ring-osterrichring.html",
+          "note": "Lists the 1977-87 Österreichring configuration around 5.94 km."
+        }
+      ],
+      "notes": "Red Bull Ring geometry represents the shortened venue and must not be reused for 1980."
+    },
+    {
+      "layout_id": "cl_tr_0058_gp_1980",
+      "track_id": "tr_0058",
+      "layout_name": "Grand Prix Circuit (1980-89)",
+      "configuration_name": "Zandvoort with 1980 Marlboro chicane",
+      "valid_from": 1980,
+      "valid_to": 1989,
+      "lap_length_km": 4.226,
+      "historical_status": "VERIFIED_LAYOUT_IDENTITY",
+      "candidate_aliases": [
+        "Zandvoort",
+        "Circuit Zandvoort"
+      ],
+      "historical_verification": [
+        {
+          "source": "RacingCircuits.info",
+          "url": "https://www.racingcircuits.info/europe/netherlands/zandvoort.html",
+          "note": "Lists the Grand Prix Circuit for 1980-89 at 4.226 km."
+        }
+      ],
+      "notes": "Modern banking and later reconstruction make current coordinates unsuitable without historical reconstruction."
+    },
+    {
+      "layout_id": "cl_tr_0047_gp_1974",
+      "track_id": "tr_0047",
+      "layout_name": "Imola 1974-80 configuration",
+      "configuration_name": "Variante Bassa + Variante Alta, pre-Acque Minerali chicane",
+      "valid_from": 1974,
+      "valid_to": 1980,
+      "lap_length_km": 5.04,
+      "historical_status": "VERIFIED_WITH_LENGTH_DISCREPANCY",
+      "candidate_aliases": [
+        "Imola",
+        "Autodromo Dino Ferrari",
+        "Autodromo Enzo e Dino Ferrari"
+      ],
+      "historical_verification": [
+        {
+          "source": "RacingCircuits.info",
+          "url": "https://www.racingcircuits.info/europe/italy/imola.html",
+          "note": "Documents Variante Bassa (1972), Variante Alta (1974), and the Acque Minerali chicane added for 1981 after the first F1 events."
+        }
+      ],
+      "notes": "Existing baseline says 5.040 km, while 1980 race references commonly state 5.000 km. Keep baseline unchanged in this foundation PR and flag for source-lock correction."
+    },
+    {
+      "layout_id": "cl_tr_0030_gp_1979",
+      "track_id": "tr_0030",
+      "layout_name": "Grand Prix Circuit (1979-86)",
+      "configuration_name": "Île Notre-Dame 1979-86",
+      "valid_from": 1979,
+      "valid_to": 1986,
+      "lap_length_km": 4.41,
+      "historical_status": "VERIFIED_LAYOUT_IDENTITY",
+      "candidate_aliases": [
+        "Montreal",
+        "Montréal",
+        "Circuit Île Notre-Dame",
+        "Circuit Gilles-Villeneuve"
+      ],
+      "historical_verification": [
+        {
+          "source": "RacingCircuits.info",
+          "url": "https://www.racingcircuits.info/north-america/canada/circuit-gilles-villeneuve,-montreal.html",
+          "note": "Lists the Grand Prix Circuit used from 1979-86 at about 4.409 km."
+        }
+      ],
+      "notes": "The 1978 inaugural configuration and later pit/start-finish changes are distinct."
+    },
+    {
+      "layout_id": "cl_tr_0090_gp_1975",
+      "track_id": "tr_0090",
+      "layout_name": "Grand Prix Circuit (1975-83)",
+      "configuration_name": "Watkins Glen GP with 1975 Esses chicane",
+      "valid_from": 1975,
+      "valid_to": 1983,
+      "lap_length_km": 5.435,
+      "historical_status": "VERIFIED_LAYOUT_IDENTITY",
+      "candidate_aliases": [
+        "Watkins Glen",
+        "Watkins Glen International",
+        "Dix"
+      ],
+      "historical_verification": [
+        {
+          "source": "RacingCircuits.info",
+          "url": "https://www.racingcircuits.info/north-america/usa/watkins-glen.html",
+          "note": "Lists the 1975-83 Grand Prix Circuit at 5.435 km and documents the F1 chicane at the Esses."
+        }
+      ],
+      "notes": "Length match alone is insufficient; the candidate must visibly contain the period-correct Esses treatment."
+    }
+  ]
+}
