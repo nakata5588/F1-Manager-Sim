@@ -1,4 +1,5 @@
 import { deepFreeze } from "../domain/immutable.js";
+import { validateCircuitLayoutCatalog } from "./circuitLayoutCatalog.js";
 
 const REQUIRED_SUFFIXES = [
   "Teams", "Team_Brands", "Drivers", "Driver_Ratings", "Driver_Contracts",
@@ -32,6 +33,11 @@ const ALIASES = {
 };
 const TRUE_VALUES = new Set(["true", "yes", "y", "1", "sim", "s"]);
 const FALSE_VALUES = new Set(["false", "no", "n", "0", "não", "nao"]);
+const JSON_FIELDS = new Set([
+  "candidate_aliases", "historical_verification", "configuration_requirements",
+  "centerline", "pit_lane", "start_finish", "finish_line", "timing_line", "start_grid",
+  "corners", "sectors", "reviewed_for", "not_authoritative_for", "trace_metadata",
+]);
 
 export class SeasonPackValidationError extends Error {
   constructor(message, issues = []) {
@@ -49,6 +55,10 @@ function header(value) {
 function scalar(key, value) {
   if (typeof value !== "string") return value;
   const text = value.trim();
+  if (JSON_FIELDS.has(key) && text !== "") {
+    try { return JSON.parse(text); }
+    catch { return value; }
+  }
   const lower = text.toLowerCase();
   if (TRUE_VALUES.has(lower)) return true;
   if (FALSE_VALUES.has(lower)) return false;
@@ -143,6 +153,9 @@ function contextCounts(payload, season) {
     startingRaceEntries: startEntrants(payload, season).length,
     roundEntryReference: sheet(payload, season, "Round_Entry_Reference").length,
     futureEntities: seasonPackSheetRows(payload, `Future_Entity_Queue_${season}`).length,
+    circuitLayoutRegistry: sheet(payload, season, "Circuit_Layout_Registry").length,
+    circuitLayoutAssignments: sheet(payload, season, "Circuit_Layout_Assignments").length,
+    circuitLayoutGeometry: sheet(payload, season, "Circuit_Layout_Geometry").length,
   };
 }
 
@@ -171,6 +184,23 @@ export function validateSeasonPackPayload(payload, options = {}) {
   const cars = sheet(payload, season, "Car_Performance");
   const facilities = sheet(payload, season, "Team_Facilities");
   const entrants = startEntrants(payload, season);
+
+  const circuitLayoutRegistry = sheet(payload, season, "Circuit_Layout_Registry");
+  const circuitLayoutAssignments = sheet(payload, season, "Circuit_Layout_Assignments");
+  const circuitLayoutGeometry = sheet(payload, season, "Circuit_Layout_Geometry");
+  const circuitCatalogPresent = circuitLayoutRegistry.length || circuitLayoutAssignments.length || circuitLayoutGeometry.length;
+  if (circuitCatalogPresent) {
+    if (!circuitLayoutRegistry.length) issues.push(`${season}_Circuit_Layout_Registry is required when historical circuit catalog sheets are present.`);
+    if (!circuitLayoutAssignments.length) issues.push(`${season}_Circuit_Layout_Assignments is required when historical circuit catalog sheets are present.`);
+    if (circuitLayoutRegistry.length && circuitLayoutAssignments.length) {
+      const circuitValidation = validateCircuitLayoutCatalog({
+        layouts: circuitLayoutRegistry,
+        assignments: circuitLayoutAssignments,
+        geometries: circuitLayoutGeometry,
+      });
+      for (const issue of circuitValidation.issues) issues.push(`${season} circuit layout catalog: ${issue}`);
+    }
+  }
 
   requiredColumns(`${season}_Teams`, teams, ["team_id", "team_name"], issues);
   requiredColumns(`${season}_Drivers`, drivers, ["driver_id", "driver_name", "team_id"], issues);
@@ -302,7 +332,42 @@ function futureEntities(payload, season, drivers, teams) {
 }
 function context(payload, season) {
   const get = (suffix) => sheet(payload, season, suffix);
-  return { version: payload.version ?? null, season, counts: contextCounts(payload, season), validation: get("Validation"), sourceLock: get("Source_Lock"), masterCrosswalk: get("Master_Crosswalk"), numberAudit: get("Number_Audit"), correctionsLog: get("Corrections_Log"), availabilityPool: get("Availability_Pool"), preSeasonDriverForm: get("PreSeason_Driver_Form"), teamOperatingModel: get("Team_Operating_Model"), circuitLayouts: get("Circuit_Layouts"), circuitGameplayTraits: get("Circuit_Gameplay_Traits"), fullEntrants: get("Full_Entrants"), entrantOrganizations: get("Entrant_Organizations"), roundEntryReference: get("Round_Entry_Reference"), entryMatrix: get("Entry_Matrix"), chassisCatalog: get("Chassis_Catalog"), engineCatalog: get("Engine_Catalog"), tyrePackages: get("Tyre_Packages"), raceModelParams: get("Race_Model_Params"), rulesDetail: get("Rules_Detail"), pitcrew: get("Pitcrew"), weatherProfiles: get("Weather_Profiles"), sponsors: get("Sponsors"), historicalEventsReference: get("Historical_Events_Reference"), staffAuditSummary: get("Staff_Audit_Summary"), staffVerification: get("Staff_Verification"), staffSourceLock: get("Staff_Source_Lock"), staffLoadout: get("Staff_Loadout"), staffRoleCoverage: get("Staff_Role_Coverage") };
+  return {
+    version: payload.version ?? null,
+    season,
+    counts: contextCounts(payload, season),
+    validation: get("Validation"),
+    sourceLock: get("Source_Lock"),
+    masterCrosswalk: get("Master_Crosswalk"),
+    numberAudit: get("Number_Audit"),
+    correctionsLog: get("Corrections_Log"),
+    availabilityPool: get("Availability_Pool"),
+    preSeasonDriverForm: get("PreSeason_Driver_Form"),
+    teamOperatingModel: get("Team_Operating_Model"),
+    circuitLayouts: get("Circuit_Layouts"),
+    circuitGameplayTraits: get("Circuit_Gameplay_Traits"),
+    circuitLayoutRegistry: get("Circuit_Layout_Registry"),
+    circuitLayoutAssignments: get("Circuit_Layout_Assignments"),
+    circuitLayoutGeometry: get("Circuit_Layout_Geometry"),
+    fullEntrants: get("Full_Entrants"),
+    entrantOrganizations: get("Entrant_Organizations"),
+    roundEntryReference: get("Round_Entry_Reference"),
+    entryMatrix: get("Entry_Matrix"),
+    chassisCatalog: get("Chassis_Catalog"),
+    engineCatalog: get("Engine_Catalog"),
+    tyrePackages: get("Tyre_Packages"),
+    raceModelParams: get("Race_Model_Params"),
+    rulesDetail: get("Rules_Detail"),
+    pitcrew: get("Pitcrew"),
+    weatherProfiles: get("Weather_Profiles"),
+    sponsors: get("Sponsors"),
+    historicalEventsReference: get("Historical_Events_Reference"),
+    staffAuditSummary: get("Staff_Audit_Summary"),
+    staffVerification: get("Staff_Verification"),
+    staffSourceLock: get("Staff_Source_Lock"),
+    staffLoadout: get("Staff_Loadout"),
+    staffRoleCoverage: get("Staff_Role_Coverage"),
+  };
 }
 
 export function loadSeasonPackPayload(payload, options = {}) {
@@ -343,6 +408,9 @@ export function loadSeasonPackPayload(payload, options = {}) {
     financeLedger: sheet(payload, season, "Finance_Ledger").map((row) => ({ ...row, year: season })),
     rdProjects: [],
     tyres: tyres(payload, season), teamTyreSuppliers: tyreSuppliers(entrantRows), tracks, calendar,
+    circuitLayouts: sheet(payload, season, "Circuit_Layout_Registry"),
+    seasonCircuitAssignments: sheet(payload, season, "Circuit_Layout_Assignments"),
+    circuitLayoutGeometry: sheet(payload, season, "Circuit_Layout_Geometry"),
     rules: rules(payload, season, params), qualifyingRules: qualifyingRules(payload, season, params), raceModelParams: params,
     eraSafety: { year: season, modern_safety_car: params.modern_safety_car ?? false, yellow_flags: true, red_flags: true, source: "race_model_params" },
     accidentModel: { year: season, mechanical_dnf_multiplier: params.mechanical_dnf_multiplier ?? 1, turbo_reliability_penalty: params.turbo_reliability_penalty ?? 1, source: "race_model_params" },
