@@ -1,3 +1,5 @@
+import { applyCircuitLayoutCatalog } from "./circuitLayoutCatalog.js";
+
 function numeric(value, fallback = null) {
   if (value === null || value === undefined || value === "") return fallback;
   const parsed = Number(value);
@@ -136,6 +138,12 @@ function applyCircuitBaselines(snapshot) {
   return { layouts: layouts.length, evolution: evolution.length, weather: weather.length };
 }
 
+const CIRCUIT_LAYOUT_REFERENCE_FIELDS = new Set([
+  "circuitLayouts",
+  "circuitLayoutGeometry",
+  "seasonCircuitAssignments",
+]);
+
 const OPERATIONAL_REFERENCE_EXCEPTIONS = new Set([
   "driverAvailabilitySnapshot1980",
   "driverCareerIntervalsV1213",
@@ -149,6 +157,7 @@ const OPERATIONAL_REFERENCE_EXCEPTIONS = new Set([
 ]);
 
 function referenceOnlyField(name) {
+  if (CIRCUIT_LAYOUT_REFERENCE_FIELDS.has(name)) return true;
   if (OPERATIONAL_REFERENCE_EXCEPTIONS.has(name)) return false;
   return /(?:audit|readiness|source.?manifest|source.?lock|data.?policy|materializer.*delta|unknown.*field|cumulative.*integrity|corrective.*diff|publication.*fix|supersession|canonical.*closure|canonical.*readiness|materializationAudit|databasePublicationStatus|baselineDiff|summaryCards)/i.test(name);
 }
@@ -166,11 +175,14 @@ export function extractDatabaseAuditReferenceContext(snapshot) {
 export function applyDatabaseOpeningState(snapshot) {
   if (!snapshot?.season) throw new TypeError("A season snapshot is required.");
   const financeTeams = applyFinanceBaseline(snapshot);
+  const circuitCatalog = applyCircuitLayoutCatalog(snapshot);
   const circuits = applyCircuitBaselines(snapshot);
   return {
     season: Number(snapshot.season),
     financeTeams,
     circuitLayouts: circuits.layouts,
+    historicalLayoutAssignments: circuitCatalog.assignments,
+    reviewedCircuitGeometries: circuitCatalog.reviewedGeometries,
     trackEvolutionProfiles: circuits.evolution,
     weatherProbabilityProfiles: circuits.weather,
   };
