@@ -22,6 +22,7 @@ let responsibilities = { teamId: null, areas: [] };
 let staffRecruitment = { summary: {}, candidates: [] };
 let staffContracts = { summary: {}, negotiations: [] };
 let commercial = { summary: {}, team: null, market: [], negotiations: [] };
+let teamProfile = null;
 let recruitmentRequest = "/api/recruitment";
 let staffRequest = "/api/staff-recruitment";
 let commercialTier = "partner";
@@ -97,7 +98,8 @@ async function refreshAll() {
     render();
     return;
   }
-  [overview, inbox, recruitment, contracts, people, market, boardData, managerCareer, responsibilities, staffRecruitment, staffContracts, commercial] = await Promise.all([
+  const teamId = careerState.career?.controlledTeamId ?? null;
+  [overview, inbox, recruitment, contracts, people, market, boardData, managerCareer, responsibilities, staffRecruitment, staffContracts, commercial, teamProfile] = await Promise.all([
     api("/api/management"),
     api("/api/inbox"),
     api(recruitmentRequest),
@@ -110,6 +112,7 @@ async function refreshAll() {
     api(staffRequest),
     api("/api/staff-contracts"),
     api(commercialRequest),
+    teamId ? api(`/api/profile?type=team&id=${encodeURIComponent(teamId)}`).catch(() => null) : Promise.resolve(null),
   ]);
   selectedNegotiation = contracts.negotiations.find((row) => row.id === selectedNegotiation?.id) ?? null;
   selectedStaffNegotiation = staffContracts.negotiations.find((row) => row.id === selectedStaffNegotiation?.id) ?? null;
@@ -287,9 +290,16 @@ function sponsorInterest(row) {
 function renderCommercial() {
   if (!commercial.team) return '<div class="management-empty">Commercial management becomes available when you control a team.</div>';
   const team = commercial.team;
+  const finances = teamProfile?.finances ?? null;
   const pending = team.pendingActivities ?? [];
   const slots = team.slotUsage ?? {};
-  return `<div class="commercial-hero"><div><span class="management-category">Commercial department</span><h2>Marketability ${Math.round(team.marketability ?? 0)}/100</h2><p>${escapeHtml(team.era?.id?.replaceAll("-", " ") ?? "era model")} · sponsor income ${money(team.monthlySponsorIncome)}/month</p></div><div class="commercial-slot-summary"><span>Title ${slots.title?.used ?? 0}/${slots.title?.capacity ?? 0}</span><span>Major ${slots.major?.used ?? 0}/${slots.major?.capacity ?? 0}</span><span>Partner ${slots.partner?.used ?? 0}/${slots.partner?.capacity ?? 0}</span></div></div>
+  const financeSummary = finances ? `<section class="finance-summary-grid">
+    <article><span>Cash balance</span><strong>${money(finances.cash)}</strong><small>${escapeHtml(publicLabel(finances.financialStatus, "Financial status"))}</small></article>
+    <article><span>Monthly income</span><strong>${money(finances.monthlyIncome)}</strong><small>Current team projection</small></article>
+    <article><span>Monthly expenses</span><strong>${money(finances.monthlyExpenses)}</strong><small>Current team projection</small></article>
+    <article><span>Monthly net</span><strong class="${Number(finances.monthlyNet ?? 0) < 0 ? "negative" : ""}">${money(finances.monthlyNet)}</strong><small>Income minus expenses</small></article>
+  </section>` : "";
+  return `${financeSummary}<div class="commercial-hero"><div><span class="management-category">Commercial department</span><h2>Marketability ${Math.round(team.marketability ?? 0)}/100</h2><p>${escapeHtml(team.era?.id?.replaceAll("-", " ") ?? "era model")} · sponsor income ${money(team.monthlySponsorIncome)}/month</p></div><div class="commercial-slot-summary"><span>Title ${slots.title?.used ?? 0}/${slots.title?.capacity ?? 0}</span><span>Major ${slots.major?.used ?? 0}/${slots.major?.capacity ?? 0}</span><span>Partner ${slots.partner?.used ?? 0}/${slots.partner?.capacity ?? 0}</span></div></div>
   ${pending.length ? `<div class="management-section-title"><div><span class="management-category">Commitments</span><h2>Sponsor activities</h2></div></div><div class="objective-grid">${pending.map((row) => `<article class="objective-card"><strong>${escapeHtml(row.sponsorName)}</strong><p>Commercial activation is due.</p><div class="management-actions compact"><button class="primary" data-commercial-activity="${escapeHtml(row.id)}" data-fulfilled="true">Fulfil</button><button data-commercial-activity="${escapeHtml(row.id)}" data-fulfilled="false">Skip</button></div></article>`).join("")}</div>` : ""}
   <div class="management-section-title"><div><span class="management-category">Portfolio</span><h2>Current partners</h2></div></div>
   ${team.activeDeals.length ? `<div class="management-table-wrap"><table><thead><tr><th>Sponsor</th><th>Tier</th><th>Category</th><th>Annual value</th><th>Satisfaction</th><th>End</th><th>Source</th><th></th></tr></thead><tbody>${team.activeDeals.map((deal) => `<tr><td><strong>${escapeHtml(deal.sponsorName)}</strong></td><td>${escapeHtml(deal.tier)}</td><td>${escapeHtml(deal.categoryLabel)}</td><td>${money(deal.annualValue)}</td><td>${Math.round(deal.satisfaction)}/100</td><td>${deal.endSeason}</td><td><span class="muted small">${escapeHtml(deal.valueSource)}</span></td><td>${deal.renewalEligible ? `<button data-renew-sponsor="${escapeHtml(deal.sponsorId)}" data-renew-deal="${escapeHtml(deal.id)}" data-sponsor-tier="${escapeHtml(deal.tier)}">Renew</button>` : ""}</td></tr>`).join("")}</tbody></table></div>` : '<div class="management-empty">No active sponsor agreements.</div>'}
