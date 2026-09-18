@@ -193,6 +193,44 @@ test("interactive weekend runs Practice -> setup -> Qualifying -> Pre-Race -> li
   assert.ok(state.standings.drivers.length > 0);
 });
 
+test("race weekend projection exposes explicit circuit geometry without making it simulation authority", () => {
+  const payload = seasonDatabase();
+  payload.snapshot.tracks[0].geometry = {
+    source: "test_geometry",
+    dataStatus: "reviewed",
+    centerline: [[0, 0], [4, 0], [4, 2], [0, 2]],
+    startFinish: { centerlineIndex: 1 },
+    pitLane: [[3.5, -0.25], [0.5, -0.25]],
+    corners: [{ id: "C1", number: 1, lapFraction: 0.25 }],
+  };
+
+  const session = new DeveloperPlaytestSession(payload);
+  session.startCareer({ managerName: "Geometry Test", teamId: "T1", seed: "geometry-projection" });
+  const state = session.continue();
+
+  assert.equal(state.screen, "practice");
+  assert.equal(state.raceWeekend.geometry.available, true);
+  assert.equal(state.raceWeekend.geometry.schemaVersion, 1);
+  assert.equal(state.raceWeekend.geometry.source, "test_geometry");
+  assert.equal(state.raceWeekend.geometry.dataStatus, "reviewed");
+  assert.equal(state.raceWeekend.geometry.pathOriginFraction, state.raceWeekend.geometry.startFinish.pathFraction);
+  assert.equal(state.raceWeekend.geometry.startFinish.lapFraction, 0);
+  assert.equal(state.raceWeekend.geometry.centerline.length, 4);
+  assert.equal(state.raceWeekend.geometry.pitLane.length, 2);
+  assert.equal(state.raceWeekend.geometry.corners.length, 1);
+});
+
+test("race weekend projection marks coordinate-free tracks as unavailable rather than inventing geometry", () => {
+  const session = new DeveloperPlaytestSession(seasonDatabase());
+  session.startCareer({ managerName: "No Geometry", teamId: "T1", seed: "no-geometry" });
+  const state = session.continue();
+
+  assert.equal(state.raceWeekend.geometry.available, false);
+  assert.equal(state.raceWeekend.geometry.dataStatus, "geometry_unavailable");
+  assert.equal(state.raceWeekend.geometry.reason, "no_explicit_centerline");
+  assert.deepEqual(state.raceWeekend.geometry.centerline, []);
+});
+
 test("weekend stage guards prevent skipping straight from calendar into live race", () => {
   const session = new DeveloperPlaytestSession(seasonDatabase());
   session.startCareer({ managerName: "Guard Test", teamId: "T1", seed: "stage-guards" });
