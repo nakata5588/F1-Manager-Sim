@@ -21,15 +21,24 @@ test("career shell exposes one stable navigation model across the playable modul
   assert.equal(items.every((row) => row.href.startsWith("/")), true);
   assert.equal(items.find((row) => row.id === "calendar").href, "/championship.html#calendar");
   assert.equal(items.find((row) => row.id === "standings").href, "/championship.html#standings");
+  assert.equal(items.find((row) => row.id === "team").href, "/management.html#team");
+  assert.equal(items.find((row) => row.id === "drivers").href, "/management.html#drivers");
+  assert.equal(items.find((row) => row.id === "staff").href, "/management.html#staff");
 });
 
 test("management deep links resolve existing tabs without creating duplicate screens", () => {
   assert.equal(managementTabForHash("#inbox"), "inbox");
+  assert.equal(managementTabForHash("#team"), "team");
+  assert.equal(managementTabForHash("#drivers"), "drivers");
   assert.equal(managementTabForHash("#recruitment"), "recruitment");
   assert.equal(managementTabForHash("#staff"), "staff");
+  assert.equal(managementTabForHash("#staff-market"), "staff-market");
+  assert.equal(managementTabForHash("#people"), "team");
   assert.equal(managementTabForHash("#commercial"), "commercial");
   assert.equal(managementTabForHash("#not-a-tab"), null);
 
+  assert.equal(activeCareerNavId({ pathname: "/management.html", hash: "#team" }), "team");
+  assert.equal(activeCareerNavId({ pathname: "/management.html", hash: "#drivers" }), "drivers");
   assert.equal(activeCareerNavId({ pathname: "/management.html", hash: "#recruitment" }), "drivers");
   assert.equal(activeCareerNavId({ pathname: "/management.html", hash: "#commercial" }), "commercial");
   assert.equal(activeCareerNavId({ pathname: "/technical.html" }), "technical");
@@ -74,6 +83,29 @@ test("Career Shell v2 derives stable page labels for navigation and entity profi
     id: "profile",
     label: "Profile",
     group: "F1 World",
+  });
+});
+
+test("management workspace detail labels remain specific inside the global Career Shell", () => {
+  assert.deepEqual(careerPageLabel({ pathname: "/management.html", hash: "#board" }), {
+    id: "team",
+    label: "Board",
+    group: "Team",
+  });
+  assert.deepEqual(careerPageLabel({ pathname: "/management.html", hash: "#contracts" }), {
+    id: "drivers",
+    label: "Driver Contracts",
+    group: "Team",
+  });
+  assert.deepEqual(careerPageLabel({ pathname: "/management.html", hash: "#staff-market" }), {
+    id: "staff",
+    label: "Staff Recruitment & Contracts",
+    group: "Team",
+  });
+  assert.deepEqual(careerPageLabel({ pathname: "/management.html", hash: "#commercial" }), {
+    id: "commercial",
+    label: "Finances & Sponsors",
+    group: "Operations",
   });
 });
 
