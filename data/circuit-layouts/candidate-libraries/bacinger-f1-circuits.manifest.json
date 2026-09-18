@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "library_id": "bacinger-f1-circuits",
+  "repository": "bacinger/f1-circuits",
+  "repository_url": "https://github.com/bacinger/f1-circuits",
+  "commit": "394d8fbe70ef2c0b0c8d23ff7bee61fa09606055",
+  "license": "MIT",
+  "original_source_note": "Upstream README credits an initial Google Maps custom map and Wikipedia circuit list. Treat every line as a geometry candidate, not as historical proof.",
+  "retrieved_at": "2026-09-18",
+  "aggregate_source_url": "https://raw.githubusercontent.com/bacinger/f1-circuits/394d8fbe70ef2c0b0c8d23ff7bee61fa09606055/f1-circuits.geojson",
+  "upstream_candidate_count": 40,
+  "scope_note": "This committed manifest records the candidates relevant to the 1980 pilot. The importer is generic and can ingest the complete upstream FeatureCollection for later seasons.",
+  "candidates": [
+    {
+      "candidate_id": "bacinger:ar-1952",
+      "upstream_id": "ar-1952",
+      "location": "Buenos Aires",
+      "name": "Autódromo Oscar y Juan Gálvez",
+      "source_path": "circuits/ar-1952.geojson",
+      "declared_length_km": 4.322,
+      "computed_length_km": 4.294,
+      "point_count": 90,
+      "geometry_status": "candidate_only"
+    },
+    {
+      "candidate_id": "bacinger:br-1940",
+      "upstream_id": "br-1940",
+      "location": "Sao Paulo",
+      "name": "Autódromo José Carlos Pace - Interlagos",
+      "source_path": "circuits/br-1940.geojson",
+      "declared_length_km": 4.309,
+      "computed_length_km": 4.298,
+      "point_count": 171,
+      "geometry_status": "candidate_only"
+    },
+    {
+      "candidate_id": "bacinger:za-1961",
+      "upstream_id": "za-1961",
+      "location": "Johannesburg",
+      "name": "Kyalami Grand Prix Circuit",
+      "source_path": "circuits/za-1961.geojson",
+      "declared_length_km": 4.529,
+      "computed_length_km": 4.521,
+      "point_count": 86,
+      "geometry_status": "candidate_only"
+    },
+    {
+      "candidate_id": "bacinger:mc-1929",
+      "upstream_id": "mc-1929",
+      "location": "Monaco",
+      "name": "Circuit de Monaco",
+      "source_path": "circuits/mc-1929.geojson",
+      "declared_length_km": 3.337,
+      "computed_length_km": 3.324,
+      "point_count": 160,
+      "geometry_status": "candidate_only"
+    },
+    {
+      "candidate_id": "bacinger:fr-1969",
+      "upstream_id": "fr-1969",
+      "location": "Le Castellet",
+      "name": "Circuit Paul Ricard",
+      "source_path": "circuits/fr-1969.geojson",
+      "declared_length_km": 5.842,
+      "computed_length_km": 5.818,
+      "point_count": 203,
+      "geometry_status": "candidate_only"
+    },
+    {
+      "candidate_id": "bacinger:de-1932",
+      "upstream_id": "de-1932",
+      "location": "Hockenheim",
+      "name": "Hockenheimring",
+      "source_path": "circuits/de-1932.geojson",
+      "declared_length_km": 4.574,
+      "computed_length_km": 4.554,
+      "point_count": 119,
+      "geometry_status": "candidate_only"
+    },
+    {
+      "candidate_id": "bacinger:at-1969",
+      "upstream_id": "at-1969",
+      "location": "Spielberg",
+      "name": "Red Bull Ring",
+      "source_path": "circuits/at-1969.geojson",
+      "declared_length_km": 4.318,
+      "computed_length_km": 4.302,
+      "point_count": 81,
+      "geometry_status": "candidate_only"
+    },
+    {
+      "candidate_id": "bacinger:nl-1948",
+      "upstream_id": "nl-1948",
+      "location": "Zandvoort",
+      "name": "Circuit Zandvoort",
+      "source_path": "circuits/nl-1948.geojson",
+      "declared_length_km": 4.259,
+      "computed_length_km": 4.255,
+      "point_count": 119,
+      "geometry_status": "candidate_only"
+    },
+    {
+      "candidate_id": "bacinger:it-1953",
+      "upstream_id": "it-1953",
+      "location": "Imola",
+      "name": "Autodromo Enzo e Dino Ferrari",
+      "source_path": "circuits/it-1953.geojson",
+      "declared_length_km": 4.909,
+      "computed_length_km": 4.898,
+      "point_count": 84,
+      "geometry_status": "candidate_only"
+    },
+    {
+      "candidate_id": "bacinger:ca-1978",
+      "upstream_id": "ca-1978",
+      "location": "Montreal",
+      "name": "Circuit Gilles-Villeneuve",
+      "source_path": "circuits/ca-1978.geojson",
+      "declared_length_km": 4.361,
+      "computed_length_km": 4.365,
+      "point_count": 102,
+      "geometry_status": "candidate_only"
+    },
+    {
+      "candidate_id": "bacinger:us-1956",
+      "upstream_id": "us-1956",
+      "location": "Dix",
+      "name": "Watkins Glen International",
+      "source_path": "circuits/us-1956.geojson",
+      "declared_length_km": 5.43,
+      "computed_length_km": 5.448,
+      "point_count": 86,
+      "geometry_status": "candidate_only"
+    }
+  ]
+}
