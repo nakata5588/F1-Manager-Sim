@@ -17,6 +17,8 @@
     "seasonpack:materialize": "node scripts/materialize-season-pack.js",
     "save:from-season-pack": "node scripts/materialize-season-pack.js",
     "save:from-season-db": "node scripts/materialize-career-save.js",
-    "playtest": "node scripts/playtest-server.js"
+    "playtest": "node scripts/playtest-server.js",
+    "circuit:audit": "node scripts/audit-circuit-layouts.js",
+    "circuit:import:geojson": "node scripts/import-circuit-geojson.js"
   }
 }
