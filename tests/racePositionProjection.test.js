@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import { resolveCircuitGeometry } from "../src/sim/circuitGeometry.js";
 import { projectRacePositions } from "../src/presentation/racePositionProjection.js";
@@ -197,4 +198,10 @@ test("all explicit telemetry produces explicit mode", () => {
   assert.equal(projection.summary.exactOrSectorProgress, 2);
   assert.equal(projection.summary.approximate, 0);
   assert.equal(projection.summary.mapPositionsAvailable, 2);
+});
+
+
+test("race position projection source never treats abstract race/gap indexes as physical distance", () => {
+  const source = readFileSync("src/presentation/racePositionProjection.js", "utf8");
+  assert.doesNotMatch(source, /elapsedIndex|raceIndex|gapIndex/);
 });
