@@ -145,6 +145,8 @@ Live pit calls continue to use `applyLiveStrategyInstruction()` at paused lap bo
 
 ## Pit Wall / live race
 
+Race Weekend UX v2 presents the live session as one Race Desk with a persistent status strip, Race Control banner, Live Race 2D, compact Timing Tower, Pit Wall strategy timelines, event feed and separate engineering detail.
+
 The current Race View exposes:
 
 - position/order;
