@@ -33,7 +33,7 @@ function humanDate(value) {
 
 function entityChips(rows = []) {
   if (!rows.length) return "";
-  return `<div class="world-entities">${rows.map((row) => entityLink(row.type, row.id, row.name ?? row.id)).join("")}</div>`;
+  return `<div class="world-entities">${rows.map((row) => ["driver", "team", "staff"].includes(String(row.type)) ? entityLink(row.type, row.id, row.name ?? row.id) : `<span>${escapeHtml(row.name ?? publicLabel(row.type, "World"))}</span>`).join("")}</div>`;
 }
 
 function storyCard(row, compact = false) {
@@ -173,7 +173,7 @@ function recordsView(data) {
     </section>
     <section class="world-panel">
       <div class="world-panel-head"><div><span>Milestones</span><h2>Career Records & Firsts</h2></div><strong>${milestones.length}</strong></div>
-      <div class="world-milestones">${milestones.length ? milestones.map((row) => `<article><time>${humanDate(row.date)}</time><div><span>${escapeHtml(publicLabel(row.recordType, "Milestone"))}</span><strong>${escapeHtml(row.title)}</strong></div>${row.entityType && row.entityId ? entityLink(row.entityType, row.entityId, row.title) : ""}</article>`).join("") : '<p class="world-empty">No milestones recorded yet.</p>'}</div>
+      <div class="world-milestones">${milestones.length ? milestones.map((row) => `<article><time>${humanDate(row.date)}</time><div><span>${escapeHtml(publicLabel(row.recordType, "Milestone"))}</span><strong>${escapeHtml(row.title)}</strong></div>${row.entityType && row.entityId && ["driver", "team", "staff"].includes(String(row.entityType)) ? entityLink(row.entityType, row.entityId, "View profile") : ""}</article>`).join("") : '<p class="world-empty">No milestones recorded yet.</p>'}</div>
     </section>`;
 }
 
