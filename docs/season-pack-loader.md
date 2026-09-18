@@ -77,3 +77,34 @@ The real-payload integration test requires a new 1980 Save World to begin with:
 - empty mutable career history.
 
 The same test verifies that the historical snapshot is frozen while the Save World can change independently.
+
+## Optional historical circuit catalog
+
+A Season Pack may expose reviewed historical circuit data without making it part of the legacy required-sheet contract:
+
+```text
+<season>_Circuit_Layout_Registry
+<season>_Circuit_Layout_Assignments
+<season>_Circuit_Layout_Geometry
+```
+
+If any historical catalog sheets are present, the registry and assignments are validated relationally. Geometry remains optional and only explicitly reviewed geometry is materialized into the active track/calendar rows.
+
+Global historical IDs remain stable. Overlay assignments may carry `runtime_gp_id` and `runtime_track_id` aliases to match older Season Pack identifiers such as `RACE198004` and `CIR0043`.
+
+## Stacked overlays
+
+The materializer accepts repeated `--overlay` arguments and applies them in order. This avoids rebuilding or duplicating a large Season Pack when one historical subsystem advances independently.
+
+The 1980 chain after the circuit foundation is:
+
+```bash
+npm run seasonpack:materialize -- \
+  --season-pack data/season-packs/1980/season-pack-1980.v0.7.json \
+  --overlay data/season-packs/1980/season-pack-1980.v0.8.overlay.json.gz \
+  --overlay data/season-packs/1980/season-pack-1980.v0.9.circuit-layout.overlay.json \
+  --out tmp/1980-v09.save.json \
+  --seed 1980-v09
+```
+
+The v0.9 circuit overlay contains 14 stable layout identities and assignments plus only the reviewed geometry currently available. Long Beach 1978-1981 is the first reviewed schematic geometry; other circuits remain safely unavailable.
