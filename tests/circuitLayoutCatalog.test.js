@@ -10,6 +10,11 @@ import {
 } from "../src/data/circuitLayoutCatalog.js";
 import { buildCircuitLayoutCoverage } from "../tools/circuits/audit.js";
 import {
+  classifyHistoricalMapLicense,
+  summarizeHistoricalMapSources,
+  validateHistoricalMapSources,
+} from "../tools/circuits/historicalMapSources.js";
+import {
   automaticCandidateStatus,
   geoJsonPolylineLengthKm,
   importGeoJsonFeature,
@@ -119,17 +124,83 @@ test("candidate ranking rejects same-venue modern layouts by length without inve
   assert.equal(automaticCandidateStatus(match), "CANDIDATE_LENGTH_MISMATCH");
 });
 
-test("1980 coverage audit resolves 14 layouts and 11 available bacinger venue candidates", async () => {
+test("1980 source-lock audit resolves 14 layouts, 14 historical maps and zero reviewed runtime geometries", async () => {
   const layouts = (await json("layouts.json")).layouts;
   const assignments = (await json("season-assignments/1980.json")).assignments;
   const candidates = (await json("candidate-libraries/bacinger-f1-circuits.manifest.json")).candidates;
   const curated = (await json("audits/1980.json")).rows;
-  const report = buildCircuitLayoutCoverage({ season: 1980, layouts, assignments, candidates, curatedRows: curated });
+  const historicalMapSources = (await json("historical-map-sources/1980.json")).sources;
+  const report = buildCircuitLayoutCoverage({
+    season: 1980,
+    layouts,
+    assignments,
+    candidates,
+    curatedRows: curated,
+    historicalMapSources,
+  });
 
   assert.equal(report.summary.assignments, 14);
   assert.equal(report.summary.identifiedLayouts, 14);
   assert.equal(report.summary.candidatesFound, 11);
+  assert.equal(report.summary.historicalMapSourcesReady, 14);
+  assert.equal(report.summary.runtimeGeometryReviewed, 0);
   assert.equal(report.summary.reviewedGeometry, 0);
   assert.equal(report.summary.statusCounts.GEOMETRY_MISSING, 3);
-  assert.equal(report.summary.statusCounts.MATCHED_NEEDS_REVIEW, 2);
+  assert.equal(report.summary.statusCounts.CANDIDATE_CONFIGURATION_MISMATCH, 2);
+  assert.equal(report.summary.statusCounts.MATCHED_NEEDS_REVIEW ?? 0, 0);
+});
+
+test("1980 historical map source pack covers every assigned layout with explicit reusable licensing", async () => {
+  const layouts = (await json("layouts.json")).layouts;
+  const assignments = (await json("season-assignments/1980.json")).assignments;
+  const assigned = new Set(assignments.map((row) => row.layout_id));
+  const seasonLayouts = layouts.filter((row) => assigned.has(row.layout_id));
+  const sources = (await json("historical-map-sources/1980.json")).sources;
+
+  assert.deepEqual(
+    validateHistoricalMapSources({ layouts: seasonLayouts, sources, requireCoverage: true }),
+    { ok: true, issues: [] },
+  );
+  const summary = summarizeHistoricalMapSources({ layouts: seasonLayouts, sources });
+  assert.equal(summary.coveredLayouts, 14);
+  assert.equal(summary.missingLayouts, 0);
+  assert.equal(summary.extractionReadyCount, 14);
+  assert.deepEqual(summary.licenseBuckets, { CC_BY_SA: 9, PUBLIC_DOMAIN: 5 });
+  assert.equal(classifyHistoricalMapLicense("CC BY-SA 4.0"), "CC_BY_SA");
+  assert.equal(classifyHistoricalMapLicense("Public Domain (PD-self)"), "PUBLIC_DOMAIN");
+
+  const duplicate = structuredClone(sources);
+  duplicate.push({ ...sources[0], source_id: "duplicate-primary-source" });
+  const duplicateValidation = validateHistoricalMapSources({
+    layouts: seasonLayouts,
+    sources: duplicate,
+    requireCoverage: true,
+  });
+  assert.equal(duplicateValidation.ok, false);
+  assert.ok(duplicateValidation.issues.some((issue) => issue.includes("Multiple primary historical map sources")));
+});
+
+test("1980 uses corrected period identities for Long Beach and Montreal", async () => {
+  const layouts = (await json("layouts.json")).layouts;
+  const assignments = (await json("season-assignments/1980.json")).assignments;
+  const longBeachAssignment = assignments.find((row) => row.gp_id === "gp_148");
+  const longBeach = layouts.find((row) => row.layout_id === longBeachAssignment.layout_id);
+  const montreal = layouts.find((row) => row.layout_id === "cl_tr_0030_gp_1979");
+
+  assert.equal(longBeachAssignment.layout_id, "cl_tr_0088_gp_1978");
+  assert.equal(longBeach.valid_from, 1978);
+  assert.equal(longBeach.valid_to, 1981);
+  assert.equal(montreal.valid_from, 1979);
+  assert.equal(montreal.valid_to, 1981);
+});
+
+test("near-equal lap length does not hide known historical topology mismatches", async () => {
+  const audit = await json("audits/1980.json");
+  const paulRicard = audit.rows.find((row) => row.gp_id === "gp_151");
+  const watkinsGlen = audit.rows.find((row) => row.gp_id === "gp_158");
+
+  assert.equal(paulRicard.geometry_status, "CANDIDATE_CONFIGURATION_MISMATCH");
+  assert.match(paulRicard.notes, /Mistral Straight/);
+  assert.equal(watkinsGlen.geometry_status, "CANDIDATE_CONFIGURATION_MISMATCH");
+  assert.match(watkinsGlen.notes, /Esses chicane/);
 });

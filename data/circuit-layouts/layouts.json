@@ -72,11 +72,11 @@
       "notes": "The modern Kyalami venue is a substantially different configuration."
     },
     {
-      "layout_id": "cl_tr_0088_gp_1975",
+      "layout_id": "cl_tr_0088_gp_1978",
       "track_id": "tr_0088",
-      "layout_name": "Grand Prix Course (1975-81)",
-      "configuration_name": "Long Beach 1975-81",
-      "valid_from": 1975,
+      "layout_name": "Grand Prix Course (1978-81)",
+      "configuration_name": "Long Beach 1978-81",
+      "valid_from": 1978,
       "valid_to": 1981,
       "lap_length_km": 3.251,
       "historical_status": "VERIFIED_LAYOUT_IDENTITY",
@@ -88,10 +88,10 @@
         {
           "source": "RacingCircuits.info",
           "url": "https://www.racingcircuits.info/north-america/usa/long-beach.html",
-          "note": "Lists the Grand Prix Course used from 1975-81 at 3.251 km."
+          "note": "1980 uses the 1978-1981 Grand Prix route; period-specific Commons references confirm this configuration."
         }
       ],
-      "notes": null
+      "notes": "1980 uses the 1978-1981 street route. Earlier Long Beach F1 configurations must receive separate layout IDs when those seasons are added."
     },
     {
       "layout_id": "cl_tr_0026_gp_1975",
@@ -159,7 +159,17 @@
           "note": "Historical circuit chronology and full-course configuration."
         }
       ],
-      "notes": "The upstream candidate is close in length, but geometry still requires historical shape/start-finish/pit-lane review."
+      "notes": "The 1980 full course has an uninterrupted ~1.8 km Mistral Straight. The bacinger candidate's longest near-straight run is only about 1.03 km, so it is not the 1980 configuration.",
+      "configuration_requirements": {
+        "continuous_mistral_straight_min_km": 1.7,
+        "required_features": [
+          "full_pre_1986_course",
+          "uninterrupted_mistral_straight"
+        ],
+        "forbidden_features": [
+          "mistral_chicane"
+        ]
+      }
     },
     {
       "layout_id": "cl_tr_0081_gp_1976",
@@ -203,7 +213,17 @@
           "note": "Lists the long 1970-80 Grand Prix Circuit; the Ostkurve chicane came later."
         }
       ],
-      "notes": "Modern shortened Hockenheim is not a valid historical substitute."
+      "notes": "Modern shortened Hockenheim is not a valid historical substitute.",
+      "configuration_requirements": {
+        "required_features": [
+          "long_forest_section",
+          "1970_chicanes"
+        ],
+        "forbidden_features": [
+          "ostkurve_chicane_1982",
+          "modern_shortcut_2002"
+        ]
+      }
     },
     {
       "layout_id": "cl_tr_0022_gp_1977",
@@ -227,7 +247,13 @@
           "note": "Lists the 1977-87 Österreichring configuration around 5.94 km."
         }
       ],
-      "notes": "Red Bull Ring geometry represents the shortened venue and must not be reused for 1980."
+      "notes": "Red Bull Ring geometry represents the shortened venue and must not be reused for 1980.",
+      "configuration_requirements": {
+        "required_features": [
+          "full_osterreichring",
+          "hella_licht_chicane_1977"
+        ]
+      }
     },
     {
       "layout_id": "cl_tr_0058_gp_1980",
@@ -249,7 +275,12 @@
           "note": "Lists the Grand Prix Circuit for 1980-89 at 4.226 km."
         }
       ],
-      "notes": "Modern banking and later reconstruction make current coordinates unsuitable without historical reconstruction."
+      "notes": "Modern banking and later reconstruction make current coordinates unsuitable without historical reconstruction.",
+      "configuration_requirements": {
+        "required_features": [
+          "marlboro_chicane_1980_1989"
+        ]
+      }
     },
     {
       "layout_id": "cl_tr_0047_gp_1974",
@@ -272,15 +303,25 @@
           "note": "Documents Variante Bassa (1972), Variante Alta (1974), and the Acque Minerali chicane added for 1981 after the first F1 events."
         }
       ],
-      "notes": "Existing baseline says 5.040 km, while 1980 race references commonly state 5.000 km. Keep baseline unchanged in this foundation PR and flag for source-lock correction."
+      "notes": "Existing baseline says 5.040 km, while 1980 race references commonly state 5.000 km. Keep baseline unchanged in this foundation PR and flag for source-lock correction.",
+      "configuration_requirements": {
+        "required_features": [
+          "variante_bassa",
+          "variante_alta"
+        ],
+        "forbidden_features": [
+          "acque_minerali_chicane_1981",
+          "post_1994_reprofile"
+        ]
+      }
     },
     {
       "layout_id": "cl_tr_0030_gp_1979",
       "track_id": "tr_0030",
-      "layout_name": "Grand Prix Circuit (1979-86)",
-      "configuration_name": "Île Notre-Dame 1979-86",
+      "layout_name": "Grand Prix Circuit (1979-81)",
+      "configuration_name": "Île Notre-Dame 1979-81",
       "valid_from": 1979,
-      "valid_to": 1986,
+      "valid_to": 1981,
       "lap_length_km": 4.41,
       "historical_status": "VERIFIED_LAYOUT_IDENTITY",
       "candidate_aliases": [
@@ -296,7 +337,7 @@
           "note": "Lists the Grand Prix Circuit used from 1979-86 at about 4.409 km."
         }
       ],
-      "notes": "The 1978 inaugural configuration and later pit/start-finish changes are distinct."
+      "notes": "Treat 1982 onward as a separate layout identity because pit/start-finish placement changed; the 1980 season belongs to the 1979-1981 configuration."
     },
     {
       "layout_id": "cl_tr_0090_gp_1975",
@@ -319,7 +360,16 @@
           "note": "Lists the 1975-83 Grand Prix Circuit at 5.435 km and documents the F1 chicane at the Esses."
         }
       ],
-      "notes": "Length match alone is insufficient; the candidate must visibly contain the period-correct Esses treatment."
+      "notes": "The 1980 F1 layout requires the temporary Esses chicane introduced in 1975. A same-length modern GP line without that chicane is not sufficient.",
+      "configuration_requirements": {
+        "required_features": [
+          "temporary_esses_chicane_1975_1983",
+          "grand_prix_boot"
+        ],
+        "forbidden_features": [
+          "inner_loop_1992"
+        ]
+      }
     }
   ]
 }

@@ -26,13 +26,13 @@ This is deliberately compatible with src/sim/circuitGeometry.js. Unreviewed/miss
     Global venue
       -> known historical layouts
       -> season usage
-      -> geometry candidate libraries
-      -> venue match
-      -> lap-length comparison
-      -> historical shape comparison
-      -> direction / S/F / pit-lane verification
-      -> coordinate conversion and simplification
-      -> geometry hash + provenance
+      -> licensed period-correct historical map
+      -> historical topology lock
+      -> vector / centerline extraction
+      -> geometry candidate libraries as optional cross-checks
+      -> direction + S/F + pit-lane verification
+      -> coordinate normalization / simplification
+      -> geometry hash + provenance + license lock
       -> MATCHED_REVIEWED
       -> runtime CircuitLayoutGeometry
 
@@ -52,24 +52,34 @@ Example for a local checkout of bacinger/f1-circuits:
 
 The filename year in that repository is not treated as a layout-validity year. Upstream geometry is always candidate_only on import.
 
+### Historical map source-lock
+
+historical-map-sources/<year>.json records the period-correct map used to establish a layout's shape before any runtime geometry is created. Each source must carry a layout ID, URL, reuse license, source role and readiness status. Historical map readiness is not geometry readiness: a raster/SVG reference still needs extraction and review.
+
+Public-domain sources are preferred when equivalent. CC BY / CC BY-SA sources remain usable but attribution and share-alike obligations must stay attached to derived geometry.
+
 ### Coverage audit
 
-scripts/audit-circuit-layouts.js --season 1980 validates the stable layout registry and assignments, ranks same-venue candidates and reports length differences. Candidate ranking cannot promote a line to reviewed.
+scripts/audit-circuit-layouts.js --season 1980 validates stable layout IDs, season assignments and historical map-source coverage, then ranks generic same-venue candidates as an independent cross-check. Candidate ranking cannot promote a line to reviewed.
 
 ## 1980 findings
 
-The required historical layout has been identified for all 14 rounds. The upstream bacinger/f1-circuits library is useful for candidate discovery, but its 1980 venue coverage is mostly modern geometry:
+The required historical layout and a licensed period-correct map source are now identified for all 14 rounds. Runtime geometry is still 0/14 reviewed; that is intentional.
+
+The generic bacinger/f1-circuits library remains useful for candidate discovery, but its 1980 venue coverage is mostly modern geometry:
 
 - clear length/layout mismatches: Buenos Aires, Interlagos, Kyalami, Hockenheim and Österreichring;
-- no venue candidate: Long Beach, Zolder and Brands Hatch;
+- no same-venue candidate: Long Beach, Zolder and Brands Hatch;
 - modern/current-only despite superficially close length: Monaco, Zandvoort, Imola and Montréal;
-- promising but still unreviewed: Paul Ricard and Watkins Glen.
+- configuration mismatches despite close length: Paul Ricard and Watkins Glen.
 
-No 1980 circuit is marked MATCHED_REVIEWED in this first pass. This is intentional.
+Paul Ricard demonstrates why length matching is insufficient: the 1980 full course requires an uninterrupted roughly 1.8 km Mistral Straight, while the generic candidate has no comparable continuous straight. Watkins Glen likewise requires the temporary Formula One Esses chicane introduced in 1975.
+
+The source pack also tightens two historical identities: Long Beach 1980 belongs to the 1978-1981 route, and Montréal 1980 belongs to the 1979-1981 configuration. Later configurations receive separate stable layout IDs when those seasons are added.
 
 ## Historical verification notes
 
-The first 1980 layout identity pass uses circuit-history references including RacingCircuits.info pages for Buenos Aires, Interlagos, Kyalami, Long Beach, Zolder, Monaco, Paul Ricard, Brands Hatch, Hockenheim, Österreichring, Zandvoort, Imola, Montréal and Watkins Glen. These pages are historical verification sources only; their maps are not silently copied into the game as geometry.
+The first 1980 layout identity pass uses circuit-history references including RacingCircuits.info, while the map source-lock uses explicitly licensed period maps, primarily Wikimedia Commons. These source assets are references for geometry extraction; they are never silently treated as runtime centerlines.
 
 One database discrepancy is explicitly retained for follow-up: the current Imola 1980 baseline says 5.040 km, while period/race references commonly give about 5.000 km. The pipeline flags the conflict rather than silently rewriting the baseline.
 
