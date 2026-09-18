@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "season": 1980,
+  "assignments": [
+    {
+      "season": 1980,
+      "round": 1,
+      "gp_id": "gp_145",
+      "track_id": "tr_0018",
+      "layout_id": "cl_tr_0018_no15_1979"
+    },
+    {
+      "season": 1980,
+      "round": 2,
+      "gp_id": "gp_146",
+      "track_id": "tr_0028",
+      "layout_id": "cl_tr_0028_long_1978"
+    },
+    {
+      "season": 1980,
+      "round": 3,
+      "gp_id": "gp_147",
+      "track_id": "tr_0067",
+      "layout_id": "cl_tr_0067_gp_1961"
+    },
+    {
+      "season": 1980,
+      "round": 4,
+      "gp_id": "gp_148",
+      "track_id": "tr_0088",
+      "layout_id": "cl_tr_0088_gp_1975"
+    },
+    {
+      "season": 1980,
+      "round": 5,
+      "gp_id": "gp_149",
+      "track_id": "tr_0026",
+      "layout_id": "cl_tr_0026_gp_1975"
+    },
+    {
+      "season": 1980,
+      "round": 6,
+      "gp_id": "gp_150",
+      "track_id": "tr_0056",
+      "layout_id": "cl_tr_0056_v3_1976"
+    },
+    {
+      "season": 1980,
+      "round": 7,
+      "gp_id": "gp_151",
+      "track_id": "tr_0035",
+      "layout_id": "cl_tr_0035_full_1970"
+    },
+    {
+      "season": 1980,
+      "round": 8,
+      "gp_id": "gp_152",
+      "track_id": "tr_0081",
+      "layout_id": "cl_tr_0081_gp_1976"
+    },
+    {
+      "season": 1980,
+      "round": 9,
+      "gp_id": "gp_153",
+      "track_id": "tr_0041",
+      "layout_id": "cl_tr_0041_gp_1970"
+    },
+    {
+      "season": 1980,
+      "round": 10,
+      "gp_id": "gp_154",
+      "track_id": "tr_0022",
+      "layout_id": "cl_tr_0022_gp_1977"
+    },
+    {
+      "season": 1980,
+      "round": 11,
+      "gp_id": "gp_155",
+      "track_id": "tr_0058",
+      "layout_id": "cl_tr_0058_gp_1980"
+    },
+    {
+      "season": 1980,
+      "round": 12,
+      "gp_id": "gp_156",
+      "track_id": "tr_0047",
+      "layout_id": "cl_tr_0047_gp_1974"
+    },
+    {
+      "season": 1980,
+      "round": 13,
+      "gp_id": "gp_157",
+      "track_id": "tr_0030",
+      "layout_id": "cl_tr_0030_gp_1979"
+    },
+    {
+      "season": 1980,
+      "round": 14,
+      "gp_id": "gp_158",
+      "track_id": "tr_0090",
+      "layout_id": "cl_tr_0090_gp_1975"
+    }
+  ]
+}
