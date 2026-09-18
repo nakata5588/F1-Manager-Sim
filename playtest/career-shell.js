@@ -107,7 +107,7 @@ function renderShell(state, overview = null, teamProfile = null) {
   topbar.style.setProperty("--career-team-secondary", secondary);
   topbar.innerHTML = `
     <div class="career-shell-page"><span>${escapeHtml(context.page.group)}</span><strong>${escapeHtml(context.page.label)}</strong></div>
-    <div class="career-shell-event"><span>${escapeHtml(publicLabel(context.event.eyebrow, context.event.eyebrow))}</span><strong>${escapeHtml(context.event.title)}</strong><small>${escapeHtml(context.event.meta)}</small></div>
+    <div class="career-shell-event"><span>${escapeHtml(context.event.eyebrow)} · ${escapeHtml(publicLabel(context.event.status, "Upcoming"))}</span><strong>${escapeHtml(context.event.title)}</strong><small>${escapeHtml(context.event.meta)}${context.event.date ? ` · ${humanDate(context.event.date)}` : ""}</small></div>
     <div class="career-shell-manager"><strong>${escapeHtml(context.manager.name)}</strong><span>${escapeHtml(context.manager.nationality ?? context.team.name)}</span></div>
     <div class="career-shell-date"><strong>${humanDate(context.date)}</strong><span>${escapeHtml(context.season ? `Season ${context.season}` : "Career")}</span></div>
     ${intent.visible ? `<button type="button" class="career-shell-continue" data-shell-continue data-kind="${escapeHtml(intent.kind)}" data-href="${escapeHtml(intent.href ?? "/")}">${escapeHtml(intent.label)}</button>` : ""}`;
