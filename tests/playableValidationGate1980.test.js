@@ -195,6 +195,11 @@ test("Playable Validation Gate #1 completes New Game -> Williams -> Argentine GP
   assert.equal(state.screen, "pre_race");
   assert.ok(state.raceWeekend.grid.length > 0);
   assert.equal(state.liveRace.currentLap, 0);
+  assert.equal(state.liveRace.trackPositions.schemaVersion, 1);
+  assert.equal(state.liveRace.trackPositions.geometryAvailable, false);
+  assert.equal(state.liveRace.trackPositions.telemetryMode, "lap_boundary_only");
+  assert.equal(state.liveRace.trackPositions.summary.mapPositionsAvailable, 0);
+  assert.ok(state.liveRace.trackPositions.cars.every((row) => row.x === null && row.y === null));
   assert.equal(session.saveWorld.history.races.length, 0, "race history must remain empty before lights out");
 
   state = session.startRace();
