@@ -1,4 +1,4 @@
-import { normalizeManagementView } from "./management-workspace-model.js";
+import { managementViewForHash, normalizeManagementView } from "./management-workspace-model.js";
 
 export const CAREER_NAV_GROUPS = Object.freeze([
   {
@@ -73,8 +73,8 @@ function cleanHash(hash) {
 }
 
 export function managementTabForHash(hash) {
-  const tab = normalizeManagementView(hash);
-  return MANAGEMENT_TABS.has(tab) ? tab : null;
+  const tab = managementViewForHash(hash);
+  return tab && MANAGEMENT_TABS.has(tab) ? tab : null;
 }
 
 export function activeCareerNavId(location = {}) {
