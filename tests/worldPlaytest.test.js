@@ -32,6 +32,27 @@ function save() {
     qualifyingRules: {},
   }, { seed: "world-playtest", startDate: "1980-01-01" });
 
+  saveWorld.world.employment = {
+    drivers: {
+      D1: { teamId: "T1", role: "main_driver", status: "employed" },
+      D2: { teamId: "T2", role: "second_driver", status: "employed" },
+    },
+    staff: {},
+    futureAssignments: { drivers: {}, staff: {} },
+    freeAgents: { drivers: [], staff: [] },
+    vacancies: [],
+  };
+  saveWorld.world.championship = {
+    driverStandings: {
+      D1: { points: 9, countedPoints: 9, wins: 1 },
+      D2: { points: 6, countedPoints: 6, wins: 0 },
+    },
+    constructorStandings: {
+      T1: { points: 9, countedPoints: 9, wins: 1 },
+      T2: { points: 6, countedPoints: 6, wins: 0 },
+    },
+  };
+
   saveWorld.history.races.push({
     key: "1980:1:GP1",
     season: 1980,
@@ -97,6 +118,26 @@ test("F1 World projection exposes only the active world and never leaks hidden f
   assert.deepEqual(projection.activeTeams.map((row) => row.teamId), ["T1", "T2"]);
   assert.doesNotMatch(JSON.stringify(projection), /Hidden Future Star/);
   assert.doesNotMatch(JSON.stringify(projection), /Hidden Future Team/);
+});
+
+test("F1 World active directory joins current employment and championship context without hidden pools", () => {
+  const projection = developerWorld(sessionFrom(save()));
+  const alex = projection.activeDrivers.find((row) => row.driverId === "D1");
+  const aurora = projection.activeTeams.find((row) => row.teamId === "T1");
+
+  assert.equal(alex.teamId, "T1");
+  assert.equal(alex.teamName, "Aurora Racing");
+  assert.equal(alex.role, "main_driver");
+  assert.equal(alex.championshipPosition, 1);
+  assert.equal(alex.championshipPoints, 9);
+  assert.equal(alex.championshipWins, 1);
+
+  assert.equal(aurora.activeDriverCount, 1);
+  assert.equal(aurora.championshipPosition, 1);
+  assert.equal(aurora.championshipPoints, 9);
+  assert.equal(aurora.championshipWins, 1);
+  assert.doesNotMatch(JSON.stringify(projection.activeDrivers), /Hidden Future Star/);
+  assert.doesNotMatch(JSON.stringify(projection.activeTeams), /Hidden Future Team/);
 });
 
 test("F1 World records are derived from authoritative Save World race/championship history", () => {
