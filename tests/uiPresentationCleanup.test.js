@@ -53,3 +53,39 @@ test("Career Shell resolves known public labels for dynamically inserted page co
   assert.match(shell, /resolvePublicLabelsInText/);
   assert.doesNotMatch(shell, /Persistent Career Shell|PHASE 47/i);
 });
+
+
+test("Career Shell v2 renders persistent team identity, page context and central Continue", () => {
+  const shell = readFileSync("playtest/career-shell.js", "utf8");
+  assert.match(shell, /career-shell-team-logo/);
+  assert.match(shell, /career-shell-team-copy/);
+  assert.match(shell, /data-shell-page-label/);
+  assert.match(shell, /career-shell-event/);
+  assert.match(shell, /career-shell-manager/);
+  assert.match(shell, /career-shell-date/);
+  assert.match(shell, /data-shell-continue/);
+  assert.match(shell, /\/api\/profile\?type=team/);
+});
+
+test("Career Shell v2 uses Save World team profile media before setup fallback media", () => {
+  const shell = readFileSync("playtest/career-shell.js", "utf8");
+  const profileRequest = shell.indexOf("/api/profile?type=team");
+  const fallback = shell.indexOf("setup?.teams?.find");
+  assert.ok(profileRequest >= 0);
+  assert.ok(fallback > profileRequest);
+});
+
+test("Career Shell v2 neutralizes legacy page chrome and double offsets", () => {
+  const css = readFileSync("playtest/career-shell.css", "utf8");
+  assert.match(css, /body\.career-shell-active \.management-header\{display:none!important\}/);
+  assert.match(css, /body\.career-shell-active \.profile-shell\{padding:28px!important/);
+  assert.match(css, /body\.career-shell-active \.championship-shell\{margin:0 auto!important/);
+});
+
+test("Career Shell v2 derives its team colours from presentation identity only", () => {
+  const shell = readFileSync("playtest/career-shell.js", "utf8");
+  assert.match(shell, /context\.team\.colours\?\.primary/);
+  assert.match(shell, /context\.team\.colours\?\.secondary/);
+  assert.match(shell, /safeColour/);
+  assert.doesNotMatch(shell, /carPerformance|overall|rating|strength/i);
+});
