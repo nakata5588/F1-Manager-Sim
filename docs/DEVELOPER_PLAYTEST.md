@@ -238,6 +238,6 @@ The highest-value remaining vertical-slice gaps are now:
 - full pre-race stint editor rather than starting-compound-only control;
 - richer Practice programmes and Qualifying session management;
 - calibrated absolute timing/gaps rather than abstract race-index gaps;
-- finer-grained telemetry (`lapProgress` / sector progress) and circuit geometry for a moving track map.
+- finer-grained telemetry (`lapProgress` / intra-sector progress) projected onto the Circuit Geometry Model for a moving track map.
 
 The next product work should favour closing these vertical-slice usability gaps over adding disconnected visual screens. Simulation and Save World remain authoritative throughout.

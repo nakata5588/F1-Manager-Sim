@@ -179,6 +179,9 @@ test("Playable Validation Gate #1 completes New Game -> Williams -> Argentine GP
   assert.equal(state.career.date, "1980-01-13");
   assert.equal(state.raceWeekend.name, "Argentine Grand Prix");
   assert.equal(state.raceWeekend.round, 1);
+  assert.equal(state.raceWeekend.geometry.available, false, "current 1980 runtime must not fabricate deferred circuit coordinates");
+  assert.equal(state.raceWeekend.geometry.dataStatus, "geometry_unavailable");
+  assert.equal(state.raceWeekend.geometry.reason, "no_explicit_centerline");
 
   state = session.advanceWeekend();
   assert.equal(state.screen, "practice_results");

@@ -38,9 +38,9 @@ Some database rows are not already in the shape consumed by the simulation. `dat
 
 The database marks these values as gameplay/abstract baselines where historical monetary evidence is unavailable. The game must not present an `abstract_index` as a sourced historical currency amount.
 
-#### Period-correct circuit geometry
+#### Period-correct circuit layout baselines
 
-`circuitLayoutBaseline1980` overrides modern/global track geometry for the 1980 runtime season. It can supply:
+`circuitLayoutBaseline1980` overrides modern/global lap-length/layout references and gameplay traits for the 1980 runtime season. It does **not** provide coordinate geometry. It can supply:
 
 - period-correct lap length;
 - scheduled laps and race distance;
@@ -48,6 +48,8 @@ The database marks these values as gameplay/abstract baselines where historical 
 - power/aero/brake/tyre/overtaking/incident sensitivity baselines where present.
 
 This changes only the season-scoped runtime copy. It never rewrites the Global Database track identity.
+
+Exact 1980 centerline / pit-lane / corner coordinates remain deferred research. The separate Circuit Geometry Model must report geometry as unavailable until explicit reviewed coordinates are supplied; it must not infer a historical-looking map from these performance/layout baselines.
 
 #### Track evolution
 
