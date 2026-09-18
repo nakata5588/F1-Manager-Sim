@@ -322,7 +322,16 @@ export function resolveCircuitGeometry(track = {}, options = {}) {
   ));
   if (rawCenterline.length < 3) return unavailableGeometry(track, "invalid_centerline");
 
-  const bounds = boundsFor(rawCenterline);
+  const auxiliaryPoints = [
+    ...rawPointList(payload.pitLane ?? payload.pit_lane ?? payload.pitlane),
+    ...(Array.isArray(parseJson(payload.corners ?? payload.turns ?? payload.cornerMarkers ?? payload.corner_markers))
+      ? parseJson(payload.corners ?? payload.turns ?? payload.cornerMarkers ?? payload.corner_markers).map((row) => rawPoint(row)).filter(Boolean)
+      : []),
+  ];
+  const startCoordinate = rawPoint(parseJson(payload.startFinish ?? payload.start_finish));
+  if (startCoordinate) auxiliaryPoints.push(startCoordinate);
+
+  const bounds = boundsFor([...rawCenterline, ...auxiliaryPoints]);
   if (!bounds) return unavailableGeometry(track, "degenerate_centerline");
   const transform = normalizationTransform(bounds);
   const centerline = rawCenterline.map((row, index) => normalizePoint(row, transform, index));
