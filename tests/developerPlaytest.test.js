@@ -163,6 +163,11 @@ test("interactive weekend runs Practice -> setup -> Qualifying -> Pre-Race -> li
   assert.equal(state.liveRace.currentLap, 0);
   assert.equal(state.liveRace.totalLaps, 8);
   assert.equal(state.liveRace.order.filter((row) => row.controlled).length, 2);
+  assert.equal(state.liveRace.trackPositions.schemaVersion, 1);
+  assert.equal(state.liveRace.trackPositions.geometryAvailable, false);
+  assert.equal(state.liveRace.trackPositions.telemetryMode, "lap_boundary_only");
+  assert.equal(state.liveRace.trackPositions.cars.length, 4);
+  assert.equal(state.liveRace.trackPositions.summary.mapPositionsAvailable, 0);
   assert.equal(session.saveWorld.history.races.length, 0);
 
   const weekend = session.saveWorld.world.raceWeekendState.active[state.raceWeekend.key];
@@ -182,6 +187,10 @@ test("interactive weekend runs Practice -> setup -> Qualifying -> Pre-Race -> li
   assert.equal(state.screen, "race");
   assert.equal(state.liveRace.currentLap, 2);
   assert.equal(state.liveRace.order.length, 4);
+  assert.equal(state.liveRace.trackPositions.currentLap, 2);
+  assert.ok(state.liveRace.trackPositions.cars
+    .filter((row) => row.status === "RUNNING")
+    .every((row) => row.precision === "lap_boundary_only"));
 
   state = session.finishRace();
   assert.equal(state.screen, "race_results");
@@ -219,6 +228,18 @@ test("race weekend projection exposes explicit circuit geometry without making i
   assert.equal(state.raceWeekend.geometry.pitLane.available, true);
   assert.equal(state.raceWeekend.geometry.pitLane.points.length, 2);
   assert.equal(state.raceWeekend.geometry.corners.length, 1);
+
+  session.advanceWeekend();
+  session.advanceWeekend();
+  state = session.advanceWeekend();
+  assert.equal(state.screen, "pre_race");
+  assert.equal(state.liveRace.trackPositions.geometryAvailable, true);
+  assert.equal(state.liveRace.trackPositions.telemetryMode, "lap_boundary_only");
+  assert.equal(state.liveRace.trackPositions.cars.length, 4);
+  assert.equal(state.liveRace.trackPositions.summary.mapPositionsAvailable, 4);
+  assert.ok(state.liveRace.trackPositions.cars.every((row) => row.source === "start_grid_anchor"));
+  assert.ok(state.liveRace.trackPositions.cars.every((row) => row.driverName));
+  assert.ok(state.liveRace.trackPositions.cars.every((row) => row.teamName));
 });
 
 test("race weekend projection marks coordinate-free tracks as unavailable rather than inventing geometry", () => {
