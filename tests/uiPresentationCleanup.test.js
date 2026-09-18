@@ -89,3 +89,41 @@ test("Career Shell v2 derives its team colours from presentation identity only",
   assert.match(shell, /safeColour/);
   assert.doesNotMatch(shell, /carPerformance|overall|rating|strength/i);
 });
+
+
+test("Career Home v2 is an actionable dashboard backed by existing projections", () => {
+  const source = readFileSync("playtest/career-home.js", "utf8");
+  assert.match(source, /home-race-focus/);
+  assert.match(source, /Needs attention/);
+  assert.match(source, /Decisions & messages/);
+  assert.match(source, /Confidence & objectives/);
+  assert.match(source, /Your drivers/);
+  assert.match(source, /Technical programme/);
+  assert.match(source, /Commercial position/);
+  assert.match(source, /Latest news/);
+  assert.match(source, /Current standings/);
+  assert.match(source, /\/api\/profile\?type=team/);
+  assert.match(source, /entityLink/);
+});
+
+test("Career Home v2 links operational panels to their existing authoritative screens", () => {
+  const source = readFileSync("playtest/career-home.js", "utf8");
+  for (const href of [
+    "/management.html#inbox",
+    "/management.html#board",
+    "/management.html#people",
+    "/technical.html",
+    "/management.html#commercial",
+    "/world.html",
+    "/championship.html#standings",
+    "/championship.html#calendar",
+  ]) {
+    assert.equal(source.includes(href), true, href);
+  }
+});
+
+test("Career Home v2 no longer uses the old phase-specific dashboard marker", () => {
+  const source = readFileSync("playtest/career-home.js", "utf8");
+  assert.doesNotMatch(source, /phase48Home|Phase 48/i);
+  assert.match(source, /careerHomeVersion = "2"/);
+});
