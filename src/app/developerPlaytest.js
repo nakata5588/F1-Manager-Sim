@@ -18,6 +18,7 @@ import { createRaceStartBaseline } from "../sim/raceStartBaseline.js";
 import { availableTyreCompounds } from "../sim/raceStrategy.js";
 import { currentStrategyStint } from "../sim/liveStrategy.js";
 import { adjustWeekendSetup } from "../sim/weekendSetup.js";
+import { resolveCircuitGeometry } from "../sim/circuitGeometry.js";
 import { advanceDays, dispatchSimulationEvents, initializeSimulation, SIM_EVENT } from "../sim/timeEngine.js";
 import { createCoreWorldSystems } from "../sim/systems/coreWorldSystems.js";
 import { createRaceWeekendSystem, RACE_EVENT } from "../sim/systems/raceWeekend.js";
@@ -91,6 +92,10 @@ function driverLookup(saveWorld) {
 
 function teamLookup(saveWorld) {
   return new Map((saveWorld.world?.teams ?? []).map((row) => [teamId(row), row]));
+}
+
+function trackById(saveWorld, id) {
+  return (saveWorld.world?.tracks ?? []).find((row) => row.track_id === id || row.circuit_id === id || row.id === id) ?? {};
 }
 
 function activeTeamDrivers(saveWorld, controlledTeamId) {
@@ -328,6 +333,7 @@ function projectLiveRace(saveWorld, controlledTeamId) {
 function projectWeekend(saveWorld, weekend, controlledTeamId) {
   if (!weekend) return null;
   const live = getLiveRaceSession(saveWorld);
+  const currentTrack = trackById(saveWorld, weekend.trackId ?? weekend.race?.track_id ?? weekend.race?.circuit_id);
   return {
     key: weekend.key,
     stage: weekend.phase,
@@ -337,6 +343,7 @@ function projectWeekend(saveWorld, weekend, controlledTeamId) {
     date: weekend.date,
     trackId: weekend.trackId,
     trackName: weekend.trackName,
+    geometry: resolveCircuitGeometry(currentTrack),
     weather: weekend.race?.weather_condition ?? weekend.race?.weather ?? null,
     practice: projectPractice(saveWorld, weekend, controlledTeamId),
     qualifying: projectQualifying(saveWorld, weekend, controlledTeamId),
