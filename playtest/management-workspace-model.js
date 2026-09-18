@@ -48,10 +48,15 @@ function cleanHash(hash) {
   return String(hash ?? "").replace(/^#/, "").trim().toLowerCase();
 }
 
-export function normalizeManagementView(hash) {
+export function managementViewForHash(hash) {
   const raw = cleanHash(hash);
+  if (!raw) return "inbox";
   const aliased = LEGACY_ALIASES[raw] ?? raw;
-  return Object.hasOwn(VIEW_TO_PRIMARY, aliased) ? aliased : "inbox";
+  return Object.hasOwn(VIEW_TO_PRIMARY, aliased) ? aliased : null;
+}
+
+export function normalizeManagementView(hash) {
+  return managementViewForHash(hash) ?? "inbox";
 }
 
 export function primarySectionForView(view) {
