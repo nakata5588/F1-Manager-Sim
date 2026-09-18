@@ -109,6 +109,27 @@ test("management workspace detail labels remain specific inside the global Caree
   });
 });
 
+test("F1 World subviews remain one global nav destination with specific page labels", () => {
+  assert.equal(activeCareerNavId({ pathname: "/world.html", hash: "#drivers" }), "world");
+  assert.equal(activeCareerNavId({ pathname: "/world.html", hash: "#records" }), "world");
+
+  assert.deepEqual(careerPageLabel({ pathname: "/world.html", hash: "#news" }), {
+    id: "world",
+    label: "News",
+    group: "F1 World",
+  });
+  assert.deepEqual(careerPageLabel({ pathname: "/world.html", hash: "#drivers" }), {
+    id: "world",
+    label: "Drivers",
+    group: "F1 World",
+  });
+  assert.deepEqual(careerPageLabel({ pathname: "/world.html", hash: "#records" }), {
+    id: "world",
+    label: "Records",
+    group: "F1 World",
+  });
+});
+
 test("Career Shell v2 projects manager, current team identity and active weekend context", () => {
   const state = {
     screen: "practice_results",
