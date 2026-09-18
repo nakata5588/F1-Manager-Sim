@@ -215,7 +215,7 @@ test("race weekend projection exposes explicit circuit geometry without making i
 
   const session = new DeveloperPlaytestSession(payload);
   session.startCareer({ managerName: "Geometry Test", teamId: "T1", seed: "geometry-projection" });
-  const state = session.continue();
+  let state = session.continue();
 
   assert.equal(state.screen, "practice");
   assert.equal(state.raceWeekend.geometry.available, true);
