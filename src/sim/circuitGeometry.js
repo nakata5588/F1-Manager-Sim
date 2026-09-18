@@ -183,41 +183,84 @@ function pointOnGeometry(centerline, segments, lapFraction) {
   };
 }
 
-function explicitStartFinish(raw, transform, centerline, segments) {
+function wrapFraction(value) {
+  return ((numeric(value, 0) % 1) + 1) % 1;
+}
+
+function startFinishDescriptor(raw, transform, centerline, segments) {
   const value = parseJson(raw);
   if (value && typeof value === "object") {
-    const fraction = numeric(value.lapFraction ?? value.lap_fraction ?? value.fraction);
+    const fraction = numeric(value.pathFraction ?? value.path_fraction ?? value.lapFraction ?? value.lap_fraction ?? value.fraction);
     if (fraction !== null) {
+      const originFraction = wrapFraction(fraction);
+      const projected = pointOnGeometry(centerline, segments, originFraction);
       return {
-        ...pointOnGeometry(centerline, segments, fraction),
-        source: "explicit_lap_fraction",
+        originFraction,
+        point: {
+          x: projected.x,
+          y: projected.y,
+          lapFraction: 0,
+          pathFraction: projected.lapFraction,
+          segmentIndex: projected.segmentIndex,
+          source: "explicit_path_fraction",
+        },
       };
     }
     const centerlineIndex = numeric(value.centerlineIndex ?? value.centerline_index ?? value.pointIndex ?? value.point_index);
     if (centerlineIndex !== null && centerline.length) {
       const index = ((Math.round(centerlineIndex) % centerline.length) + centerline.length) % centerline.length;
       const segment = segments.find((row) => row.fromIndex === index) ?? segments[0];
+      const originFraction = segment?.startFraction ?? 0;
       return {
-        ...centerline[index],
-        lapFraction: segment?.startFraction ?? 0,
-        segmentIndex: segment?.index ?? index,
-        source: "explicit_centerline_index",
+        originFraction,
+        point: {
+          ...centerline[index],
+          lapFraction: 0,
+          pathFraction: originFraction,
+          segmentIndex: segment?.index ?? index,
+          source: "explicit_centerline_index",
+        },
       };
     }
     const point = rawPoint(value);
     if (point) {
       const normalized = normalizePoint(point, transform);
       return {
-        ...normalized,
-        lapFraction: null,
-        segmentIndex: null,
-        source: "explicit_coordinate",
+        originFraction: 0,
+        point: {
+          ...normalized,
+          lapFraction: 0,
+          pathFraction: null,
+          segmentIndex: null,
+          source: "explicit_coordinate_unanchored",
+        },
       };
     }
   }
+  const projected = pointOnGeometry(centerline, segments, 0);
   return {
-    ...pointOnGeometry(centerline, segments, 0),
-    source: "centerline_origin",
+    originFraction: 0,
+    point: {
+      x: projected.x,
+      y: projected.y,
+      lapFraction: 0,
+      pathFraction: 0,
+      segmentIndex: projected.segmentIndex,
+      source: "centerline_origin",
+    },
+  };
+}
+
+function pointAtRaceFraction(centerline, segments, lapFraction, originFraction = 0) {
+  const raceFraction = wrapFraction(lapFraction);
+  const pathFraction = wrapFraction(raceFraction + originFraction);
+  const projected = pointOnGeometry(centerline, segments, pathFraction);
+  return {
+    x: projected.x,
+    y: projected.y,
+    lapFraction: round(raceFraction, 8),
+    pathFraction: round(pathFraction, 8),
+    segmentIndex: projected.segmentIndex,
   };
 }
 
@@ -260,14 +303,14 @@ function sectorRows(payload, track) {
   });
 }
 
-function cornerRows(payload, transform, centerline, segments) {
+function cornerRows(payload, transform, centerline, segments, originFraction = 0) {
   const rows = parseJson(payload?.corners ?? payload?.turns ?? payload?.cornerMarkers ?? payload?.corner_markers);
   if (!Array.isArray(rows)) return [];
   return rows.map((row, index) => {
     const fraction = numeric(row?.lapFraction ?? row?.lap_fraction ?? row?.fraction);
     const coordinate = rawPoint(row);
     const projected = fraction !== null
-      ? pointOnGeometry(centerline, segments, fraction)
+      ? pointAtRaceFraction(centerline, segments, fraction, originFraction)
       : coordinate
         ? normalizePoint(coordinate, transform)
         : null;
@@ -297,7 +340,9 @@ function unavailableGeometry(track, reason = "no_explicit_centerline") {
     source: null,
     dataStatus: "geometry_unavailable",
     reason,
+    schemaVersion: 1,
     coordinateSystem: "normalized_unit_box",
+    pathOriginFraction: 0,
     closed: true,
     centerline: [],
     segments: [],
@@ -350,13 +395,17 @@ export function resolveCircuitGeometry(track = {}, options = {}) {
     ?? track.geometryDataStatus
     ?? "explicit_geometry";
 
+  const startFinish = startFinishDescriptor(payload.startFinish ?? payload.start_finish, transform, centerline, built.segments);
+
   return {
     available: true,
+    schemaVersion: 1,
     trackId: trackId(track),
     trackName: trackName(track),
     source,
     dataStatus,
     coordinateSystem: "normalized_unit_box",
+    pathOriginFraction: round(startFinish.originFraction, 8),
     closed: true,
     originalBounds: {
       minX: round(bounds.minX),
@@ -369,9 +418,9 @@ export function resolveCircuitGeometry(track = {}, options = {}) {
     centerline,
     segments: built.segments,
     normalizedPathLength: built.total,
-    startFinish: explicitStartFinish(payload.startFinish ?? payload.start_finish, transform, centerline, built.segments),
+    startFinish: startFinish.point,
     sectors: sectorRows(payload, track),
-    corners: cornerRows(payload, transform, centerline, built.segments),
+    corners: cornerRows(payload, transform, centerline, built.segments, startFinish.originFraction),
     pitLane: pitLaneRows(payload, transform),
     lapLengthKm: numeric(
       payload.lapLengthKm
@@ -384,7 +433,7 @@ export function resolveCircuitGeometry(track = {}, options = {}) {
 
 export function pointAtLapFraction(geometry, lapFraction) {
   if (!geometry?.available) return null;
-  return pointOnGeometry(geometry.centerline, geometry.segments, lapFraction);
+  return pointAtRaceFraction(geometry.centerline, geometry.segments, lapFraction, geometry.pathOriginFraction ?? 0);
 }
 
 export function sectorAtLapFraction(geometry, lapFraction) {
