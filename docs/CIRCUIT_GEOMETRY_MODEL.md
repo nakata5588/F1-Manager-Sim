@@ -213,6 +213,6 @@ Race state
   -> x/y track position
 ```
 
-Stage 13 can render `raceWeekend.geometry` plus `liveRace.trackPositions` in SVG/Canvas without changing the simulation model.
+Stage 13 now renders `raceWeekend.geometry` plus `liveRace.trackPositions` as Live Race 2D v0 without changing the simulation model. Coordinate-free circuits use an explicit no-map fallback.
 
 This separation means different resolutions, zoom levels or UI renderers can all consume the same geometry and race-position projection.
