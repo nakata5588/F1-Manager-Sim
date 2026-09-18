@@ -122,3 +122,49 @@ test("future queue excludes already-active entities and Save World preserves Sea
   assert.equal(save.world.sourcePackage.version, "0.7");
   assert.equal(save.world.calendar[0].laps, 40);
 });
+test("optional historical circuit sheets materialize reviewed geometry without replacing Season Pack IDs", () => {
+  const source = payload();
+  source.sheets["1980_Circuit_Layout_Registry"] = matrix(
+    ["layout_id", "track_id", "layout_name", "valid_from", "valid_to", "lap_length_km", "historical_status"],
+    ["layout_interlagos_1980", "tr_global_interlagos", "Original Interlagos", 1978, 1989, 7.873, "VERIFIED_LAYOUT_IDENTITY"],
+  );
+  source.sheets["1980_Circuit_Layout_Assignments"] = matrix(
+    ["season", "round", "gp_id", "track_id", "layout_id", "runtime_gp_id", "runtime_track_id"],
+    [1980, 2, "gp_global_brazil", "tr_global_interlagos", "layout_interlagos_1980", "RACE2", "CIR18"],
+  );
+  source.sheets["1980_Circuit_Layout_Geometry"] = matrix(
+    ["layout_id", "track_id", "geometry_status", "historical_status", "geometry_source", "source_url", "license", "geometry_hash", "lap_length_km", "precision", "reviewed_for", "not_authoritative_for", "centerline", "finish_line", "start_grid"],
+    [
+      "layout_interlagos_1980",
+      "tr_global_interlagos",
+      "MATCHED_REVIEWED_SCHEMATIC",
+      "VERIFIED_LAYOUT_IDENTITY",
+      "test_historical_trace",
+      "https://example.test/interlagos",
+      "Public Domain",
+      "test-geometry-hash",
+      7.873,
+      "schematic_historical_trace",
+      JSON.stringify(["2d_track_presentation"]),
+      JSON.stringify(["car_performance"]),
+      JSON.stringify([[0, 0], [4, 0], [4, 2], [0, 2]]),
+      JSON.stringify({ centerlineIndex: 0 }),
+      JSON.stringify({ centerlineIndex: 2 }),
+    ],
+  );
+
+  const snapshot = loadSeasonPackPayload(source);
+  assert.equal(snapshot.circuitLayouts.length, 1);
+  assert.equal(snapshot.seasonCircuitAssignments[0].runtime_track_id, "CIR18");
+  assert.deepEqual(snapshot.circuitLayoutGeometry[0].centerline, [[0, 0], [4, 0], [4, 2], [0, 2]]);
+  assert.deepEqual(snapshot.circuitLayoutGeometry[0].reviewed_for, ["2d_track_presentation"]);
+
+  const save = createSaveWorld(snapshot, { seed: "historical-geometry" });
+  assert.equal(save.world.tracks[0].track_id, "CIR18", "Season Pack runtime ID remains authoritative for the loaded row");
+  assert.equal(save.world.tracks[0].layout_id, "layout_interlagos_1980");
+  assert.equal(save.world.tracks[0].layout_geometry.dataStatus, "MATCHED_REVIEWED_SCHEMATIC");
+  assert.equal(save.meta.databaseOpeningState.historicalLayoutAssignments, 1);
+  assert.equal(save.meta.databaseOpeningState.reviewedCircuitGeometries, 1);
+  assert.equal(save.world.circuitLayouts, undefined);
+  assert.equal(save.reference.databaseContext.circuitLayouts.length, 1);
+});
