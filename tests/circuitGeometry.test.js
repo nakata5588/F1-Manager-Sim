@@ -61,7 +61,7 @@ test("circuit geometry normalizes an explicit closed centerline without inventin
 test("circuit geometry preserves aspect ratio while fitting centerline, pit lane and markers into unit space", () => {
   const geometry = resolveCircuitGeometry(explicitTrack());
 
-  for (const point of [...geometry.centerline, ...geometry.pitLane, ...geometry.corners]) {
+  for (const point of [...geometry.centerline, ...geometry.pitLane.points, ...geometry.corners]) {
     assert.ok(point.x >= 0 && point.x <= 1);
     assert.ok(point.y >= 0 && point.y <= 1);
   }
