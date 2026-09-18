@@ -1,3 +1,4 @@
+import { normalizeWorldView, worldViewLabel } from "./world-workspace-model.js";
 import { managementViewForHash, normalizeManagementView } from "./management-workspace-model.js";
 
 export const CAREER_NAV_GROUPS = Object.freeze([
@@ -152,6 +153,11 @@ export function careerPageLabel(location = {}) {
       career: ["team", "Manager Career", "Career"],
     }[view];
     if (detail) return { id: detail[0], label: detail[1], group: detail[2] };
+  }
+
+  if (path === "/world.html") {
+    const view = normalizeWorldView(location.hash);
+    return { id: "world", label: worldViewLabel(view), group: "F1 World" };
   }
 
   const activeId = activeCareerNavId(location);
