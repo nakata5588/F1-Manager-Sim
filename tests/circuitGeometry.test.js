@@ -69,7 +69,8 @@ test("circuit geometry preserves aspect ratio while fitting centerline, pit lane
   const width = Math.max(...geometry.centerline.map((row) => row.x)) - Math.min(...geometry.centerline.map((row) => row.x));
   const height = Math.max(...geometry.centerline.map((row) => row.y)) - Math.min(...geometry.centerline.map((row) => row.y));
   assert.ok(width > height, "the 4:2 source rectangle must not be stretched into a square");
-  assert.equal(geometry.pitLane.length, 2);
+  assert.equal(geometry.pitLane.available, true);
+  assert.equal(geometry.pitLane.points.length, 2);
   assert.equal(geometry.corners.length, 2);
 });
 
@@ -86,6 +87,35 @@ test("lap-fraction interpolation is deterministic and wraps around the closed pa
   assert.ok(firstCorner);
   assert.equal(firstCorner.segmentIndex, 1);
   assert.equal(firstCorner.lapFraction, Number((1 / 3).toFixed(8)));
+});
+
+test("lap fraction zero is anchored to the explicit start finish rather than raw point order", () => {
+  const track = explicitTrack();
+  track.geometry.startFinish = { centerlineIndex: 1 };
+
+  const geometry = resolveCircuitGeometry(track);
+  const start = pointAtLapFraction(geometry, 0);
+
+  assert.equal(geometry.pathOriginFraction, geometry.startFinish.pathFraction);
+  assert.equal(geometry.startFinish.lapFraction, 0);
+  assert.equal(start.x, geometry.startFinish.x);
+  assert.equal(start.y, geometry.startFinish.y);
+  assert.equal(start.pathFraction, geometry.startFinish.pathFraction);
+});
+
+test("pit lane object form preserves explicit entry and exit lap fractions", () => {
+  const track = explicitTrack();
+  track.geometry.pitLane = {
+    points: [[0.5, -0.5], [3.5, -0.5]],
+    entryFraction: 0.82,
+    exitFraction: 0.12,
+  };
+
+  const geometry = resolveCircuitGeometry(track);
+  assert.equal(geometry.pitLane.available, true);
+  assert.equal(geometry.pitLane.points.length, 2);
+  assert.equal(geometry.pitLane.entryFraction, 0.82);
+  assert.equal(geometry.pitLane.exitFraction, 0.12);
 });
 
 test("explicit geometry sectors resolve by lap fraction", () => {
@@ -123,7 +153,7 @@ test("tracks without explicit coordinates report unavailable geometry instead of
   assert.equal(geometry.dataStatus, "geometry_unavailable");
   assert.equal(geometry.reason, "no_explicit_centerline");
   assert.deepEqual(geometry.centerline, []);
-  assert.deepEqual(geometry.pitLane, []);
+  assert.deepEqual(geometry.pitLane, { available: false, points: [], entryFraction: null, exitFraction: null });
   assert.deepEqual(geometry.corners, []);
   assert.equal(geometry.lapLengthKm, 5.968);
   assert.deepEqual(track, before, "geometry projection must not mutate the track row");
