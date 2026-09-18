@@ -191,3 +191,22 @@ test("F1 World presentation explicitly frames history as career-generated altern
   assert.match(source, /Only events created by this career are recorded here/);
   assert.match(source, /Real-world future results are not part of the archive/);
 });
+
+
+test("Live Race 2D v0 consumes geometry and Race Position Projection without owning race state", () => {
+  const source = readFileSync("playtest/app.js", "utf8");
+  const map = readFileSync("playtest/live-race-map.js", "utf8");
+  assert.match(source, /renderLiveRaceMap/);
+  assert.match(source, /geometry: weekend\?\.geometry/);
+  assert.match(source, /positions: race\.trackPositions/);
+  assert.match(map, /live-race-map-svg/);
+  assert.match(map, /Circuit map unavailable/);
+  assert.doesNotMatch(map, /elapsedIndex|raceIndex|gapIndex/);
+});
+
+test("Live Race 2D v0 never fabricates a fallback circuit path", () => {
+  const map = readFileSync("playtest/live-race-map.js", "utf8");
+  assert.doesNotMatch(map, /ellipse|synthetic.*track|fallback.*path/i);
+  assert.match(map, /if \(!geometry\?\.available\)/);
+  assert.match(map, /No circuit drawing shown/);
+});

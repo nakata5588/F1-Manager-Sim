@@ -157,6 +157,8 @@ The current Race View exposes:
 - pit-stop count;
 - current weather;
 - active Race Control state;
+- Live Race 2D v0 circuit map when reviewed geometry and drawable position telemetry are available;
+- explicit no-map / low-precision fallbacks when those inputs are unavailable;
 - recent incidents, retirements, damage, weather changes and Race Control events;
 - pit-wall tyre calls for the controlled team.
 
@@ -238,6 +240,6 @@ The highest-value remaining vertical-slice gaps are now:
 - full pre-race stint editor rather than starting-compound-only control;
 - richer Practice programmes and Qualifying session management;
 - calibrated absolute timing/gaps rather than abstract race-index gaps;
-- finer-grained persisted telemetry (`lapProgress` / intra-sector progress) to upgrade the current Race Position Projection from lap-boundary-only to precise moving markers.
+- finer-grained persisted telemetry (`lapProgress` / intra-sector progress) to upgrade Live Race 2D from lap-boundary-only/withheld markers to precise moving markers.
 
 The next product work should favour closing these vertical-slice usability gaps over adding disconnected visual screens. Simulation and Save World remain authoritative throughout.

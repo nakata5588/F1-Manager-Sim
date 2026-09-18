@@ -278,7 +278,7 @@ The game must not produce x/y coordinates for 1980 merely to make the map look c
 
 ## Next stage
 
-Stage 13 — Live Race 2D v0 can consume:
+Stage 13 — Live Race 2D v0 now consumes:
 
 ```text
 raceWeekend.geometry
@@ -286,7 +286,7 @@ liveRace.trackPositions
 liveRace.order
 ```
 
-without reading or mutating simulation internals.
+without reading or mutating simulation internals. The v0 renderer deliberately withholds individual markers for `lap_boundary_only` / `start_grid_anchor` precision rather than visually overstating spatial knowledge.
 
 For explicit geometry + explicit telemetry:
 
