@@ -23,9 +23,19 @@ function rowSeason(row) {
 function assignmentScore(row, context) {
   if (rowSeason(row) !== numeric(context.season)) return -1;
   let score = 0;
-  if (context.gpId && id(row.gp_id ?? row.gpId) === id(context.gpId)) score += 8;
+  const gpIds = [
+    row.gp_id, row.gpId,
+    row.runtime_gp_id, row.runtimeGpId,
+    row.season_gp_id, row.seasonGpId,
+  ].map(id).filter(Boolean);
+  const trackIds = [
+    row.track_id, row.trackId,
+    row.runtime_track_id, row.runtimeTrackId,
+    row.season_track_id, row.seasonTrackId,
+  ].map(id).filter(Boolean);
+  if (context.gpId && gpIds.includes(id(context.gpId))) score += 8;
   if (context.round !== null && context.round !== undefined && numeric(row.round) === numeric(context.round)) score += 4;
-  if (context.trackId && id(row.track_id ?? row.trackId) === id(context.trackId)) score += 2;
+  if (context.trackId && trackIds.includes(id(context.trackId))) score += 2;
   return score;
 }
 
@@ -186,11 +196,16 @@ export function applyCircuitLayoutCatalog(snapshot) {
 
   const assignmentsByTrack = new Map();
   for (const row of assignments) {
-    const trackId = id(row.track_id ?? row.trackId);
-    if (!trackId) continue;
-    const rows = assignmentsByTrack.get(trackId) ?? [];
-    rows.push(row);
-    assignmentsByTrack.set(trackId, rows);
+    const trackIds = [
+      row.track_id, row.trackId,
+      row.runtime_track_id, row.runtimeTrackId,
+      row.season_track_id, row.seasonTrackId,
+    ].map(id).filter(Boolean);
+    for (const trackId of new Set(trackIds)) {
+      const rows = assignmentsByTrack.get(trackId) ?? [];
+      rows.push(row);
+      assignmentsByTrack.set(trackId, rows);
+    }
   }
 
   snapshot.tracks = (snapshot.tracks ?? []).map((source) => {
