@@ -202,7 +202,7 @@ The only connection in Stage 11 is that an explicit geometry can reuse the exist
 
 ## Next stages
 
-Stage 12 can map live race state onto this contract:
+Stage 12 now maps live race state onto this contract through `Race Position Projection`:
 
 ```text
 Race state
@@ -213,6 +213,6 @@ Race state
   -> x/y track position
 ```
 
-Stage 13 can render those normalized positions in SVG/Canvas without changing the simulation model.
+Stage 13 can render `raceWeekend.geometry` plus `liveRace.trackPositions` in SVG/Canvas without changing the simulation model.
 
 This separation means different resolutions, zoom levels or UI renderers can all consume the same geometry and race-position projection.
