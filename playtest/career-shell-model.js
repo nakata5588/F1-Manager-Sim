@@ -154,20 +154,26 @@ export function careerShellContext(state = {}, teamProfile = null, location = {}
 
   let event = {
     eyebrow: "Season",
+    status: "offseason",
     title: "Championship calendar complete",
     meta: "Offseason available",
+    date: null,
   };
   if (weekend && weekend.stage && weekend.stage !== "completed") {
     event = {
-      eyebrow: `Round ${weekend.round ?? "—"} · ${weekend.stage}`,
+      eyebrow: `Round ${weekend.round ?? "—"}`,
+      status: weekend.stage,
       title: weekend.name ?? "Race Weekend",
-      meta: weekend.trackName ?? weekend.date ?? "Active race weekend",
+      meta: weekend.trackName ?? "Active race weekend",
+      date: weekend.date ?? null,
     };
   } else if (nextRace) {
     event = {
       eyebrow: `Next · Round ${nextRace.round ?? "—"}`,
+      status: "upcoming",
       title: nextRace.name ?? "Grand Prix",
-      meta: nextRace.date ?? "Upcoming race",
+      meta: "Upcoming race",
+      date: nextRace.date ?? null,
     };
   }
 
@@ -181,7 +187,7 @@ export function careerShellContext(state = {}, teamProfile = null, location = {}
       id: teamId,
       name: teamName,
       nationality: teamProfile?.nationality ?? null,
-      logoUrl: teamProfile?.media?.url ?? null,
+      logoUrl: teamProfile?.media?.url ?? teamProfile?.resolvedMedia?.logo?.url ?? null,
       colours: teamProfile?.visualIdentity?.colours ?? null,
     },
     season: career.season ?? null,
