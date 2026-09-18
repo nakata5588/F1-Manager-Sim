@@ -165,3 +165,29 @@ test("Finances & Sponsors combines Team Profile finances with the existing Comme
   assert.match(source, /Monthly net/);
   assert.match(source, /commercial\.team/);
 });
+
+
+test("F1 World consolidates overview, news, drivers, teams, history and records into one workspace", () => {
+  const source = readFileSync("playtest/world.js", "utf8");
+  assert.match(source, /WORLD_VIEWS/);
+  assert.match(source, /overviewView/);
+  assert.match(source, /newsView/);
+  assert.match(source, /driversView/);
+  assert.match(source, /teamsView/);
+  assert.match(source, /historyView/);
+  assert.match(source, /recordsView/);
+});
+
+test("F1 World active directories link only to current driver/team profiles", () => {
+  const source = readFileSync("playtest/world.js", "utf8");
+  assert.match(source, /\/profile\.html\?type=driver/);
+  assert.match(source, /\/profile\.html\?type=team/);
+  assert.doesNotMatch(source, /futureDrivers|futureTeams|futureStaff|futureSponsors/);
+});
+
+test("F1 World presentation explicitly frames history as career-generated alternative history", () => {
+  const source = readFileSync("playtest/world.js", "utf8");
+  assert.match(source, /Alternative history/);
+  assert.match(source, /Only events created by this career are recorded here/);
+  assert.match(source, /Real-world future results are not part of the archive/);
+});
