@@ -326,10 +326,37 @@ function cornerRows(payload, transform, centerline, segments, originFraction = 0
   }).filter(Boolean);
 }
 
-function pitLaneRows(payload, transform) {
-  const rows = rawPointList(payload?.pitLane ?? payload?.pit_lane ?? payload?.pitlane);
-  if (rows.length < 2) return [];
-  return rows.map((row, index) => normalizePoint(row, transform, index));
+function pitLanePayload(payload = {}) {
+  const raw = parseJson(payload.pitLane ?? payload.pit_lane ?? payload.pitlane);
+  if (Array.isArray(raw)) return { points: raw };
+  if (raw && typeof raw === "object") return raw;
+  return {};
+}
+
+function pitLaneProjection(payload, transform) {
+  const raw = pitLanePayload(payload);
+  const rows = rawPointList(raw.points ?? raw.centerline ?? raw.path);
+  const points = rows.length >= 2
+    ? rows.map((row, index) => normalizePoint(row, transform, index))
+    : [];
+  const entryFraction = numeric(
+    raw.entryFraction
+      ?? raw.entry_fraction
+      ?? payload.pitLaneEntryFraction
+      ?? payload.pit_lane_entry_fraction,
+  );
+  const exitFraction = numeric(
+    raw.exitFraction
+      ?? raw.exit_fraction
+      ?? payload.pitLaneExitFraction
+      ?? payload.pit_lane_exit_fraction,
+  );
+  return {
+    available: points.length >= 2,
+    points,
+    entryFraction: entryFraction === null ? null : round(clamp(entryFraction), 8),
+    exitFraction: exitFraction === null ? null : round(clamp(exitFraction), 8),
+  };
 }
 
 function unavailableGeometry(track, reason = "no_explicit_centerline") {
@@ -348,7 +375,7 @@ function unavailableGeometry(track, reason = "no_explicit_centerline") {
     segments: [],
     sectors: [],
     corners: [],
-    pitLane: [],
+    pitLane: { available: false, points: [], entryFraction: null, exitFraction: null },
     startFinish: null,
     lapLengthKm: numeric(track.lap_length_km ?? track.lapLengthKm),
   };
@@ -367,8 +394,9 @@ export function resolveCircuitGeometry(track = {}, options = {}) {
   ));
   if (rawCenterline.length < 3) return unavailableGeometry(track, "invalid_centerline");
 
+  const rawPitLane = pitLanePayload(payload);
   const auxiliaryPoints = [
-    ...rawPointList(payload.pitLane ?? payload.pit_lane ?? payload.pitlane),
+    ...rawPointList(rawPitLane.points ?? rawPitLane.centerline ?? rawPitLane.path),
     ...(Array.isArray(parseJson(payload.corners ?? payload.turns ?? payload.cornerMarkers ?? payload.corner_markers))
       ? parseJson(payload.corners ?? payload.turns ?? payload.cornerMarkers ?? payload.corner_markers).map((row) => rawPoint(row)).filter(Boolean)
       : []),
@@ -421,7 +449,7 @@ export function resolveCircuitGeometry(track = {}, options = {}) {
     startFinish: startFinish.point,
     sectors: sectorRows(payload, track),
     corners: cornerRows(payload, transform, centerline, built.segments, startFinish.originFraction),
-    pitLane: pitLaneRows(payload, transform),
+    pitLane: pitLaneProjection(payload, transform),
     lapLengthKm: numeric(
       payload.lapLengthKm
         ?? payload.lap_length_km
