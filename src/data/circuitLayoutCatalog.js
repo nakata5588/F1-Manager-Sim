@@ -1,5 +1,6 @@
 const REVIEWED_GEOMETRY_STATUSES = new Set([
   "MATCHED_REVIEWED",
+  "MATCHED_REVIEWED_SCHEMATIC",
   "REVIEWED",
   "reviewed",
   "source_locked_geometry",
@@ -121,6 +122,9 @@ function geometryPayload(row) {
     centerline: structuredClone(row.centerline ?? row.geometry?.centerline ?? []),
     pitLane: structuredClone(row.pit_lane ?? row.pitLane ?? row.geometry?.pitLane ?? null),
     startFinish: structuredClone(row.start_finish ?? row.startFinish ?? row.geometry?.startFinish ?? null),
+    finishLine: structuredClone(row.finish_line ?? row.finishLine ?? row.geometry?.finishLine ?? null),
+    timingLine: structuredClone(row.timing_line ?? row.timingLine ?? row.geometry?.timingLine ?? null),
+    startGrid: structuredClone(row.start_grid ?? row.startGrid ?? row.start_line ?? row.startLine ?? row.geometry?.startGrid ?? null),
     corners: structuredClone(row.corners ?? row.geometry?.corners ?? []),
     sectors: structuredClone(row.sectors ?? row.geometry?.sectors ?? []),
     source,
@@ -134,6 +138,9 @@ function geometryPayload(row) {
       retrievedAt: row.retrieved_at ?? row.retrievedAt ?? null,
       geometryHash: row.geometry_hash ?? row.geometryHash ?? null,
       historicalStatus: row.historical_status ?? row.historicalStatus ?? null,
+      precision: row.precision ?? row.geometry_precision ?? row.geometryPrecision ?? null,
+      reviewedFor: structuredClone(row.reviewed_for ?? row.reviewedFor ?? []),
+      notAuthoritativeFor: structuredClone(row.not_authoritative_for ?? row.notAuthoritativeFor ?? []),
     },
   };
 }
