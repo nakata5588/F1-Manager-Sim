@@ -153,3 +153,15 @@ test("Management UI separates current staff from staff recruitment and contracts
   assert.match(source, /activeTab === "staff-market" \? renderStaff\(\)/);
   assert.match(source, /data-tab="staff-market"/);
 });
+
+
+test("Finances & Sponsors combines Team Profile finances with the existing Commercial system", () => {
+  const source = readFileSync("playtest/management.js", "utf8");
+  assert.match(source, /\/api\/profile\?type=team/);
+  assert.match(source, /finance-summary-grid/);
+  assert.match(source, /Cash balance/);
+  assert.match(source, /Monthly income/);
+  assert.match(source, /Monthly expenses/);
+  assert.match(source, /Monthly net/);
+  assert.match(source, /commercial\.team/);
+});
