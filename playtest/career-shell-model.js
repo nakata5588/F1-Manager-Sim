@@ -1,3 +1,5 @@
+import { managementViewForHash, normalizeManagementView } from "./management-workspace-model.js";
+
 export const CAREER_NAV_GROUPS = Object.freeze([
   {
     id: "career",
@@ -12,8 +14,8 @@ export const CAREER_NAV_GROUPS = Object.freeze([
     id: "team",
     label: "Team",
     items: [
-      { id: "team", label: "Team", href: "/management.html#people" },
-      { id: "drivers", label: "Drivers", href: "/management.html#recruitment" },
+      { id: "team", label: "Team", href: "/management.html#team" },
+      { id: "drivers", label: "Drivers", href: "/management.html#drivers" },
       { id: "staff", label: "Staff", href: "/management.html#staff" },
     ],
   },
@@ -45,15 +47,18 @@ export const CAREER_NAV_GROUPS = Object.freeze([
 
 const MANAGEMENT_HASH_TO_NAV = Object.freeze({
   inbox: "inbox",
+  team: "team",
   board: "team",
   career: "team",
   people: "team",
-  staff: "staff",
+  responsibilities: "team",
+  drivers: "drivers",
   recruitment: "drivers",
   contracts: "drivers",
   market: "drivers",
+  staff: "staff",
+  "staff-market": "staff",
   commercial: "commercial",
-  responsibilities: "team",
 });
 
 const MANAGEMENT_TABS = new Set(Object.keys(MANAGEMENT_HASH_TO_NAV));
@@ -68,8 +73,8 @@ function cleanHash(hash) {
 }
 
 export function managementTabForHash(hash) {
-  const tab = cleanHash(hash);
-  return MANAGEMENT_TABS.has(tab) ? tab : null;
+  const tab = managementViewForHash(hash);
+  return tab && MANAGEMENT_TABS.has(tab) ? tab : null;
 }
 
 export function activeCareerNavId(location = {}) {
@@ -129,12 +134,31 @@ export function homeSectionTarget(location = {}) {
 }
 
 export function careerPageLabel(location = {}) {
+  const path = cleanPath(location.pathname);
+  if (path === "/management.html") {
+    const view = normalizeManagementView(location.hash);
+    const detail = {
+      inbox: ["inbox", "Inbox", "Career"],
+      team: ["team", "Team", "Team"],
+      responsibilities: ["team", "Responsibilities", "Team"],
+      drivers: ["drivers", "Drivers", "Team"],
+      recruitment: ["drivers", "Driver Recruitment", "Team"],
+      contracts: ["drivers", "Driver Contracts", "Team"],
+      market: ["drivers", "Market Activity", "Team"],
+      staff: ["staff", "Staff", "Team"],
+      "staff-market": ["staff", "Staff Recruitment & Contracts", "Team"],
+      board: ["team", "Board", "Team"],
+      commercial: ["commercial", "Finances & Sponsors", "Operations"],
+      career: ["team", "Manager Career", "Career"],
+    }[view];
+    if (detail) return { id: detail[0], label: detail[1], group: detail[2] };
+  }
+
   const activeId = activeCareerNavId(location);
   for (const group of CAREER_NAV_GROUPS) {
     const item = group.items.find((row) => row.id === activeId);
     if (item) return { id: item.id, label: item.label, group: group.label };
   }
-  const path = cleanPath(location.pathname);
   if (path === "/profile.html") return { id: "profile", label: "Profile", group: "F1 World" };
   return { id: activeId ?? "career", label: "Career", group: "Career" };
 }

@@ -127,3 +127,41 @@ test("Career Home v2 no longer uses the old phase-specific dashboard marker", ()
   assert.doesNotMatch(source, /phase48Home|Phase 48/i);
   assert.match(source, /careerHomeVersion = "2"/);
 });
+
+
+test("Management UI consolidates flat technical tabs into player-facing workspaces", () => {
+  const source = readFileSync("playtest/management.js", "utf8");
+  assert.match(source, /MANAGEMENT_PRIMARY_SECTIONS/);
+  assert.match(source, /management-primary-nav/);
+  assert.match(source, /management-secondary-nav/);
+  assert.match(source, /renderTeamOverview/);
+  assert.match(source, /renderCurrentDrivers/);
+  assert.match(source, /renderCurrentStaff/);
+  assert.doesNotMatch(source, /\["people",\s*"People"\]/);
+});
+
+test("Management UI initializes and synchronizes its actual content from deep-link hashes", () => {
+  const source = readFileSync("playtest/management.js", "utf8");
+  assert.match(source, /normalizeManagementView\(window\.location\.hash\)/);
+  assert.match(source, /syncManagementHash/);
+  assert.match(source, /window\.addEventListener\("hashchange"/);
+});
+
+test("Management UI separates current staff from staff recruitment and contracts", () => {
+  const source = readFileSync("playtest/management.js", "utf8");
+  assert.match(source, /activeTab === "staff" \? renderCurrentStaff\(\)/);
+  assert.match(source, /activeTab === "staff-market" \? renderStaff\(\)/);
+  assert.match(source, /data-tab="staff-market"/);
+});
+
+
+test("Finances & Sponsors combines Team Profile finances with the existing Commercial system", () => {
+  const source = readFileSync("playtest/management.js", "utf8");
+  assert.match(source, /\/api\/profile\?type=team/);
+  assert.match(source, /finance-summary-grid/);
+  assert.match(source, /Cash balance/);
+  assert.match(source, /Monthly income/);
+  assert.match(source, /Monthly expenses/);
+  assert.match(source, /Monthly net/);
+  assert.match(source, /commercial\.team/);
+});

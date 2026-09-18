@@ -1,5 +1,11 @@
 import { entityLink } from "/entity-links.js";
 import { publicLabel } from "/presentation-labels.js";
+import {
+  MANAGEMENT_PRIMARY_SECTIONS,
+  normalizeManagementView,
+  primarySectionForView,
+  subsectionsForView,
+} from "/management-workspace-model.js";
 
 const root = document.querySelector("#management-app");
 
@@ -16,11 +22,12 @@ let responsibilities = { teamId: null, areas: [] };
 let staffRecruitment = { summary: {}, candidates: [] };
 let staffContracts = { summary: {}, negotiations: [] };
 let commercial = { summary: {}, team: null, market: [], negotiations: [] };
+let teamProfile = null;
 let recruitmentRequest = "/api/recruitment";
 let staffRequest = "/api/staff-recruitment";
 let commercialTier = "partner";
 let commercialRequest = "/api/commercial?tier=partner";
-let activeTab = "inbox";
+let activeTab = normalizeManagementView(window.location.hash);
 let selectedNegotiation = null;
 let selectedStaffNegotiation = null;
 let selectedSponsorNegotiation = null;
@@ -91,7 +98,8 @@ async function refreshAll() {
     render();
     return;
   }
-  [overview, inbox, recruitment, contracts, people, market, boardData, managerCareer, responsibilities, staffRecruitment, staffContracts, commercial] = await Promise.all([
+  const teamId = careerState.career?.controlledTeamId ?? null;
+  [overview, inbox, recruitment, contracts, people, market, boardData, managerCareer, responsibilities, staffRecruitment, staffContracts, commercial, teamProfile] = await Promise.all([
     api("/api/management"),
     api("/api/inbox"),
     api(recruitmentRequest),
@@ -104,6 +112,7 @@ async function refreshAll() {
     api(staffRequest),
     api("/api/staff-contracts"),
     api(commercialRequest),
+    teamId ? api(`/api/profile?type=team&id=${encodeURIComponent(teamId)}`).catch(() => null) : Promise.resolve(null),
   ]);
   selectedNegotiation = contracts.negotiations.find((row) => row.id === selectedNegotiation?.id) ?? null;
   selectedStaffNegotiation = staffContracts.negotiations.find((row) => row.id === selectedStaffNegotiation?.id) ?? null;
@@ -111,20 +120,31 @@ async function refreshAll() {
   render();
 }
 
+function sectionBadge(id) {
+  if (id === "inbox") return Number(overview?.inbox?.unread ?? 0);
+  if (id === "drivers") return Number(overview?.contracts?.active ?? 0) + Number(overview?.market?.openOffers ?? 0);
+  if (id === "staff") return Number(overview?.staffContracts?.active ?? 0);
+  if (id === "commercial") return Number(overview?.commercial?.openNegotiations ?? 0);
+  return 0;
+}
+
 function tabs() {
-  const rows = [
-    ["inbox", `Inbox ${overview?.inbox?.unread ? `(${overview.inbox.unread})` : ""}`],
-    ["board", "Board"],
-    ["career", "Career"],
-    ["people", "People"],
-    ["staff", `Staff ${overview?.staffContracts?.active ? `(${overview.staffContracts.active})` : ""}`],
-    ["recruitment", "Drivers"],
-    ["contracts", `Driver Contracts ${overview?.contracts?.active ? `(${overview.contracts.active})` : ""}`],
-    ["market", `Driver Market ${overview?.market?.openOffers ? `(${overview.market.openOffers})` : ""}`],
-    ["commercial", `Commercial ${overview?.commercial?.openNegotiations ? `(${overview.commercial.openNegotiations})` : ""}`],
-    ["responsibilities", "Responsibilities"],
-  ];
-  return `<div class="management-tabs">${rows.map(([id, label]) => `<button class="management-tab ${activeTab === id ? "active" : ""}" data-tab="${id}">${escapeHtml(label)}</button>`).join("")}</div>`;
+  const primary = primarySectionForView(activeTab);
+  return `<div class="management-primary-nav">${MANAGEMENT_PRIMARY_SECTIONS.map((row) => {
+    const badge = sectionBadge(row.id);
+    return `<button class="management-primary-tab ${primary === row.id ? "active" : ""}" data-tab="${row.id}"><span>${escapeHtml(row.label)}</span>${badge > 0 ? `<em>${badge}</em>` : ""}</button>`;
+  }).join("")}</div>`;
+}
+
+function secondaryTabs() {
+  const rows = subsectionsForView(activeTab);
+  if (!rows.length) return "";
+  return `<div class="management-secondary-nav">${rows.map((row) => `<button class="management-secondary-tab ${activeTab === row.id ? "active" : ""}" data-tab="${row.id}">${escapeHtml(row.label)}</button>`).join("")}</div>`;
+}
+
+function syncManagementHash(view) {
+  const normalized = normalizeManagementView(view);
+  if (window.location.hash !== `#${normalized}`) history.replaceState(null, "", `#${normalized}`);
 }
 
 function renderInbox() {
@@ -181,7 +201,28 @@ function personCard(row) {
 function renderPeople() {
   const drivers = people.drivers.length ? people.drivers.map(personCard).join("") : '<div class="management-empty">No controlled-team drivers.</div>';
   const staffRows = people.staff.length ? people.staff.map(personCard).join("") : '<div class="management-empty">No controlled-team staff.</div>';
-  return `<div class="management-section-title"><div><span class="management-category">Team dynamics</span><h2>Drivers</h2></div></div><div class="people-cards">${drivers}</div><div class="management-section-title"><div><span class="management-category">Team dynamics</span><h2>Staff</h2></div></div><div class="people-cards">${staffRows}</div>`;
+  return `<div class="management-section-title"><div><span class="management-category">Team dynamics</span><h2>Drivers</h2></div><button data-tab="drivers">Driver workspace</button></div><div class="people-cards">${drivers}</div><div class="management-section-title"><div><span class="management-category">Team dynamics</span><h2>Staff</h2></div><button data-tab="staff">Staff workspace</button></div><div class="people-cards">${staffRows}</div>`;
+}
+
+function renderTeamOverview() {
+  const managerOwned = responsibilities.areas?.filter((row) => row.owner === "manager").length ?? 0;
+  const delegated = responsibilities.areas?.filter((row) => row.owner === "delegated").length ?? 0;
+  return `<section class="management-overview-grid">
+    <article class="management-overview-card"><span>Drivers</span><strong>${people.drivers.length}</strong><small>Current race team</small><button data-tab="drivers">Open Drivers</button></article>
+    <article class="management-overview-card"><span>Staff</span><strong>${people.staff.length}</strong><small>Current team staff</small><button data-tab="staff">Open Staff</button></article>
+    <article class="management-overview-card"><span>Board confidence</span><strong>${boardData.board ? Math.round(boardData.board.confidence) : "—"}</strong><small>${escapeHtml(publicLabel(boardData.board?.status, "No review"))}</small><button data-tab="board">Open Board</button></article>
+    <article class="management-overview-card"><span>Responsibilities</span><strong>${managerOwned}/${managerOwned + delegated}</strong><small>Managed directly</small><button data-tab="responsibilities">Review</button></article>
+  </section>${renderPeople()}`;
+}
+
+function renderCurrentDrivers() {
+  const rows = people.drivers.length ? people.drivers.map(personCard).join("") : '<div class="management-empty">No controlled-team drivers.</div>';
+  return `<div class="management-section-title"><div><span class="management-category">Race team</span><h2>Current drivers</h2></div><button data-tab="recruitment">Recruit drivers</button></div><div class="people-cards">${rows}</div>`;
+}
+
+function renderCurrentStaff() {
+  const rows = people.staff.length ? people.staff.map(personCard).join("") : '<div class="management-empty">No controlled-team staff.</div>';
+  return `<div class="management-section-title"><div><span class="management-category">Team organisation</span><h2>Current staff</h2></div><button data-tab="staff-market">Recruit staff</button></div><div class="people-cards">${rows}</div>`;
 }
 
 function driverInterest(row) {
@@ -249,9 +290,16 @@ function sponsorInterest(row) {
 function renderCommercial() {
   if (!commercial.team) return '<div class="management-empty">Commercial management becomes available when you control a team.</div>';
   const team = commercial.team;
+  const finances = teamProfile?.finances ?? null;
   const pending = team.pendingActivities ?? [];
   const slots = team.slotUsage ?? {};
-  return `<div class="commercial-hero"><div><span class="management-category">Commercial department</span><h2>Marketability ${Math.round(team.marketability ?? 0)}/100</h2><p>${escapeHtml(team.era?.id?.replaceAll("-", " ") ?? "era model")} · sponsor income ${money(team.monthlySponsorIncome)}/month</p></div><div class="commercial-slot-summary"><span>Title ${slots.title?.used ?? 0}/${slots.title?.capacity ?? 0}</span><span>Major ${slots.major?.used ?? 0}/${slots.major?.capacity ?? 0}</span><span>Partner ${slots.partner?.used ?? 0}/${slots.partner?.capacity ?? 0}</span></div></div>
+  const financeSummary = finances ? `<section class="finance-summary-grid">
+    <article><span>Cash balance</span><strong>${money(finances.cash)}</strong><small>${escapeHtml(publicLabel(finances.financialStatus, "Financial status"))}</small></article>
+    <article><span>Monthly income</span><strong>${money(finances.monthlyIncome)}</strong><small>Current team projection</small></article>
+    <article><span>Monthly expenses</span><strong>${money(finances.monthlyExpenses)}</strong><small>Current team projection</small></article>
+    <article><span>Monthly net</span><strong class="${Number(finances.monthlyNet ?? 0) < 0 ? "negative" : ""}">${money(finances.monthlyNet)}</strong><small>Income minus expenses</small></article>
+  </section>` : "";
+  return `${financeSummary}<div class="commercial-hero"><div><span class="management-category">Commercial department</span><h2>Marketability ${Math.round(team.marketability ?? 0)}/100</h2><p>${escapeHtml(team.era?.id?.replaceAll("-", " ") ?? "era model")} · sponsor income ${money(team.monthlySponsorIncome)}/month</p></div><div class="commercial-slot-summary"><span>Title ${slots.title?.used ?? 0}/${slots.title?.capacity ?? 0}</span><span>Major ${slots.major?.used ?? 0}/${slots.major?.capacity ?? 0}</span><span>Partner ${slots.partner?.used ?? 0}/${slots.partner?.capacity ?? 0}</span></div></div>
   ${pending.length ? `<div class="management-section-title"><div><span class="management-category">Commitments</span><h2>Sponsor activities</h2></div></div><div class="objective-grid">${pending.map((row) => `<article class="objective-card"><strong>${escapeHtml(row.sponsorName)}</strong><p>Commercial activation is due.</p><div class="management-actions compact"><button class="primary" data-commercial-activity="${escapeHtml(row.id)}" data-fulfilled="true">Fulfil</button><button data-commercial-activity="${escapeHtml(row.id)}" data-fulfilled="false">Skip</button></div></article>`).join("")}</div>` : ""}
   <div class="management-section-title"><div><span class="management-category">Portfolio</span><h2>Current partners</h2></div></div>
   ${team.activeDeals.length ? `<div class="management-table-wrap"><table><thead><tr><th>Sponsor</th><th>Tier</th><th>Category</th><th>Annual value</th><th>Satisfaction</th><th>End</th><th>Source</th><th></th></tr></thead><tbody>${team.activeDeals.map((deal) => `<tr><td><strong>${escapeHtml(deal.sponsorName)}</strong></td><td>${escapeHtml(deal.tier)}</td><td>${escapeHtml(deal.categoryLabel)}</td><td>${money(deal.annualValue)}</td><td>${Math.round(deal.satisfaction)}/100</td><td>${deal.endSeason}</td><td><span class="muted small">${escapeHtml(deal.valueSource)}</span></td><td>${deal.renewalEligible ? `<button data-renew-sponsor="${escapeHtml(deal.sponsorId)}" data-renew-deal="${escapeHtml(deal.id)}" data-sponsor-tier="${escapeHtml(deal.tier)}">Renew</button>` : ""}</td></tr>`).join("")}</tbody></table></div>` : '<div class="management-empty">No active sponsor agreements.</div>'}
@@ -276,16 +324,18 @@ function render() {
   }
   const content = activeTab === "board" ? renderBoard()
     : activeTab === "career" ? renderCareer()
-      : activeTab === "people" ? renderPeople()
-        : activeTab === "staff" ? renderStaff()
-          : activeTab === "recruitment" ? renderRecruitment()
-            : activeTab === "contracts" ? renderDriverContracts()
-              : activeTab === "market" ? renderMarket()
-                : activeTab === "commercial" ? renderCommercial()
-                  : activeTab === "responsibilities" ? renderResponsibilities()
-                    : renderInbox();
+      : activeTab === "team" ? renderTeamOverview()
+        : activeTab === "drivers" ? renderCurrentDrivers()
+          : activeTab === "staff" ? renderCurrentStaff()
+            : activeTab === "staff-market" ? renderStaff()
+              : activeTab === "recruitment" ? renderRecruitment()
+                : activeTab === "contracts" ? renderDriverContracts()
+                  : activeTab === "market" ? renderMarket()
+                    : activeTab === "commercial" ? renderCommercial()
+                      : activeTab === "responsibilities" ? renderResponsibilities()
+                        : renderInbox();
   const career = managerCareer.career ?? overview?.career ?? {};
-  root.innerHTML = `<div class="management-shell ${busy ? "busy" : ""}"><header class="management-header"><div><div class="eyebrow">Team & Management</div><h1>${escapeHtml(career.currentTeamName ?? "F1 Job Centre")}</h1><p>${escapeHtml(career.name ?? careerState.career?.managerName ?? "Manager")} · ${careerState.career?.season ?? "—"} · ${humanDate(careerState.career?.date)}</p></div><a class="management-link-button" href="/">Career / Race Weekend</a></header><section class="management-kpis"><div><span>Board</span><strong>${boardData.board ? Math.round(boardData.board.confidence) : "—"}</strong></div><div><span>Reputation</span><strong>${Math.round(career.reputation ?? 0)}</strong></div><div><span>Marketability</span><strong>${overview?.commercial?.marketability === null || overview?.commercial?.marketability === undefined ? "—" : Math.round(overview.commercial.marketability)}</strong></div><div><span>Unread</span><strong>${overview?.inbox?.unread ?? 0}</strong></div></section>${tabs()}${errorMessage ? `<div class="error">${escapeHtml(errorMessage)}</div>` : ""}<main class="management-content">${content}</main></div>`;
+  root.innerHTML = `<div class="management-shell ${busy ? "busy" : ""}"><header class="management-header"><div><div class="eyebrow">Team & Management</div><h1>${escapeHtml(career.currentTeamName ?? "F1 Job Centre")}</h1><p>${escapeHtml(career.name ?? careerState.career?.managerName ?? "Manager")} · ${careerState.career?.season ?? "—"} · ${humanDate(careerState.career?.date)}</p></div><a class="management-link-button" href="/">Career / Race Weekend</a></header><section class="management-kpis"><div><span>Board</span><strong>${boardData.board ? Math.round(boardData.board.confidence) : "—"}</strong></div><div><span>Reputation</span><strong>${Math.round(career.reputation ?? 0)}</strong></div><div><span>Marketability</span><strong>${overview?.commercial?.marketability === null || overview?.commercial?.marketability === undefined ? "—" : Math.round(overview.commercial.marketability)}</strong></div><div><span>Unread</span><strong>${overview?.inbox?.unread ?? 0}</strong></div></section>${tabs()}${secondaryTabs()}${errorMessage ? `<div class="error">${escapeHtml(errorMessage)}</div>` : ""}<main class="management-content">${content}</main></div>`;
 }
 
 async function action(fn) {
@@ -301,12 +351,14 @@ async function openDriverNegotiation(driverId, startSeason = undefined) {
   const result = await api("/api/contracts/open", { method: "POST", body: JSON.stringify({ driverId, startSeason }) });
   selectedNegotiation = result.negotiation;
   activeTab = "contracts";
+  syncManagementHash(activeTab);
 }
 
 async function openStaffNegotiation(staffId) {
   const result = await api("/api/staff-contracts/open", { method: "POST", body: JSON.stringify({ staffId }) });
   selectedStaffNegotiation = result.negotiation;
-  activeTab = "staff";
+  activeTab = "staff-market";
+  syncManagementHash(activeTab);
 }
 
 async function openSponsorNegotiation(sponsorId, tier, renewDealId = null) {
@@ -315,11 +367,12 @@ async function openSponsorNegotiation(sponsorId, tier, renewDealId = null) {
   commercialTier = result.negotiation.tier;
   commercialRequest = `/api/commercial?tier=${encodeURIComponent(commercialTier)}`;
   activeTab = "commercial";
+  syncManagementHash(activeTab);
 }
 
 root.addEventListener("click", (event) => {
   const tab = event.target.closest("[data-tab]")?.dataset.tab;
-  if (tab) { activeTab = tab; render(); return; }
+  if (tab) { activeTab = normalizeManagementView(tab); syncManagementHash(activeTab); render(); return; }
 
   const readItem = event.target.closest("[data-read-item]")?.dataset.readItem;
   if (readItem) return action(() => api("/api/inbox/read", { method: "POST", body: JSON.stringify({ itemId: readItem, read: true }) }));
@@ -427,5 +480,13 @@ root.addEventListener("click", (event) => {
 refreshAll().catch((error) => {
   errorMessage = error.message;
   careerState = { screen: "new_career" };
+  render();
+});
+
+
+window.addEventListener("hashchange", () => {
+  const next = normalizeManagementView(window.location.hash);
+  if (next === activeTab) return;
+  activeTab = next;
   render();
 });
