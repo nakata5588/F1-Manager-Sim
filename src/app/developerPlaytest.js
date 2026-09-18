@@ -19,6 +19,7 @@ import { availableTyreCompounds } from "../sim/raceStrategy.js";
 import { currentStrategyStint } from "../sim/liveStrategy.js";
 import { adjustWeekendSetup } from "../sim/weekendSetup.js";
 import { resolveCircuitGeometry } from "../sim/circuitGeometry.js";
+import { projectRacePositions } from "../presentation/racePositionProjection.js";
 import { advanceDays, dispatchSimulationEvents, initializeSimulation, SIM_EVENT } from "../sim/timeEngine.js";
 import { createCoreWorldSystems } from "../sim/systems/coreWorldSystems.js";
 import { createRaceWeekendSystem, RACE_EVENT } from "../sim/systems/raceWeekend.js";
@@ -312,6 +313,25 @@ function projectLiveRace(saveWorld, controlledTeamId) {
   const attention = session.latestAttentionEvents?.at?.(-1)
     ?? session.latestAttentionEvents?.[session.latestAttentionEvents.length - 1]
     ?? null;
+  const order = liveOrder(saveWorld, session, controlledTeamId);
+  const track = trackById(
+    saveWorld,
+    session.weekend?.trackId
+      ?? session.weekend?.race?.track_id
+      ?? session.weekend?.race?.circuit_id,
+  );
+  const geometry = resolveCircuitGeometry(track);
+  const orderByDriver = new Map(order.map((row) => [String(row.driverId), row]));
+  const trackPositions = projectRacePositions({ geometry, session });
+  trackPositions.cars = trackPositions.cars.map((row) => {
+    const context = orderByDriver.get(String(row.driverId)) ?? {};
+    return {
+      ...row,
+      driverName: context.driverName ?? row.driverId,
+      teamName: context.teamName ?? row.teamId,
+      controlled: Boolean(context.controlled),
+    };
+  });
   return {
     status: session.status,
     currentLap: session.currentLap,
@@ -324,7 +344,8 @@ function projectLiveRace(saveWorld, controlledTeamId) {
     attentionRequired: Boolean(attention),
     attentionToken: attention ? `${attention.lap ?? session.currentLap}:${attention.type}:${attention.driverId ?? attention.control ?? ""}` : null,
     latestEvents: projectRaceEvents(saveWorld, session),
-    order: liveOrder(saveWorld, session, controlledTeamId),
+    order,
+    trackPositions,
     strategies: strategyRows(saveWorld, null, session, controlledTeamId),
     tyreOptions: compoundsForTeam(saveWorld, controlledTeamId),
   };
