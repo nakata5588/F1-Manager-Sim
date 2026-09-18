@@ -3,6 +3,7 @@ import { CAREER_ENTRY_STORAGE_KEY } from "/main-menu-model.js";
 import {
   activeCareerNavId,
   buildCareerNavigation,
+  careerPageLabel,
   careerShellContext,
   continueIntent,
   homeSectionTarget,
@@ -106,7 +107,7 @@ function renderShell(state, overview = null, teamProfile = null) {
   topbar.style.setProperty("--career-team-primary", primary);
   topbar.style.setProperty("--career-team-secondary", secondary);
   topbar.innerHTML = `
-    <div class="career-shell-page"><span>${escapeHtml(context.page.group)}</span><strong>${escapeHtml(context.page.label)}</strong></div>
+    <div class="career-shell-page"><span data-shell-page-group>${escapeHtml(context.page.group)}</span><strong data-shell-page-label>${escapeHtml(context.page.label)}</strong></div>
     <div class="career-shell-event"><span>${escapeHtml(context.event.eyebrow)} · ${escapeHtml(publicLabel(context.event.status, "Upcoming"))}</span><strong>${escapeHtml(context.event.title)}</strong><small>${escapeHtml(context.event.meta)}${context.event.date ? ` · ${humanDate(context.event.date)}` : ""}</small></div>
     <div class="career-shell-manager"><strong>${escapeHtml(context.manager.name)}</strong><span>${escapeHtml(context.manager.nationality ?? context.team.name)}</span></div>
     <div class="career-shell-date"><strong>${humanDate(context.date)}</strong><span>${escapeHtml(context.season ? `Season ${context.season}` : "Career")}</span></div>
@@ -118,7 +119,10 @@ function renderShell(state, overview = null, teamProfile = null) {
 
 function syncActiveNavigation() {
   const active = activeCareerNavId(window.location);
-  document.body.dataset.careerPage = active ?? "career";
+  const page = careerPageLabel(window.location);
+  document.body.dataset.careerPage = active ?? page.id ?? "career";
+  document.querySelector("[data-shell-page-group]")?.replaceChildren(document.createTextNode(page.group));
+  document.querySelector("[data-shell-page-label]")?.replaceChildren(document.createTextNode(page.label));
   document.querySelectorAll("[data-career-nav]").forEach((link) => {
     link.classList.toggle("active", link.dataset.careerNav === active);
   });
