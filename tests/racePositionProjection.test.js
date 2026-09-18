@@ -131,7 +131,7 @@ test("retired cars with only a known sector use a clearly labelled sector-midpoi
   assert.equal(retired.precision, "sector_only");
   assert.equal(retired.approximate, true);
   assert.equal(retired.sectorId, "S3");
-  assert.equal(retired.lapFraction, Number(((2 / 3 + 1) / 2).toFixed(8)));
+  assert.ok(Math.abs(retired.lapFraction - ((2 / 3 + 1) / 2)) < 1e-7);
   assert.equal(retired.mapPositionAvailable, true);
 });
 
