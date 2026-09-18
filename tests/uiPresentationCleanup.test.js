@@ -233,8 +233,9 @@ test("Race Weekend UX v2 keeps abstract gaps explicitly non-temporal", () => {
 
 test("Race Weekend UX v2 uses the same weekend progression through Results", () => {
   const source = readFileSync("playtest/app.js", "utf8");
+  const model = readFileSync("playtest/race-weekend-ux-model.js", "utf8");
   assert.match(source, /weekendSteps\("race"\)/);
   assert.match(source, /weekendSteps\("race_results"\)/);
-  assert.match(source, /Grid & Strategy/);
+  assert.match(model, /Grid & Strategy/);
   assert.match(source, /strategyTimelineMarkup/);
 });
