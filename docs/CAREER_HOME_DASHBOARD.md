@@ -1,57 +1,101 @@
-# Phase 48 — Career Home / Dashboard & Calendar Experience
+# Career Home v2 — Operational Dashboard
 
 ## Goal
 
-Phase 48 turns Career Home into an actual management dashboard instead of a small collection of static race and championship cards.
+Career Home v2 makes Home the daily operational centre of a career rather than a passive collection of status cards.
 
-The dashboard remains a **read-only UI projection**. It does not own simulation state, time progression, Board confidence, Inbox decisions, technical development, standings or world news.
+The dashboard remains a **read-only presentation projection**. It does not own simulation state, time progression, Board confidence, Inbox decisions, technical development, finances, standings or world news.
 
-## Dashboard inputs
+## Inputs
 
-Career Home aggregates existing Developer Playtest projections:
+Career Home reuses existing projections:
 
 - `/api/state` — manager/team/date, active weekend, drivers, next race and standings;
 - `/api/management` — Inbox summary, Board state and Commercial summary;
 - `/api/inbox` — current actionable messages and decisions;
 - `/api/technical` — development/manufacturing/facility status;
-- `/api/world` — current alternative-history news and archived world events.
+- `/api/world` — current alternative-history news and archived world events;
+- `/api/profile?type=team` — controlled-team presentation identity and current financial projection.
 
-No new mutable Career Home state is introduced.
+No new mutable Home state is introduced.
 
-## Player-facing sections
+## Operational hierarchy
 
-Career Home now presents:
+The dashboard is deliberately ordered by what the manager may need to act on.
 
-- **Needs Attention** — pending decisions, unread Inbox, Board pressure, ready technical specifications and current race context;
-- **Inbox priorities** — the highest-priority current messages, with pending decisions surfaced first;
-- **Board** — confidence and current objectives;
-- **Drivers** — the controlled team's current line-up with championship position/points;
-- **Car & Development** — active designs, manufacturing, ready specifications and facility upgrades;
-- **F1 World News** — latest simulation-owned news stories;
-- **Calendar** — recent completed race history plus the next authoritative Grand Prix;
-- **Standings** — current top driver and constructor championship positions.
+### 1. Career command strip
 
-## Calendar boundary
+Shows the controlled team, manager/date and high-level current status:
 
-The dashboard deliberately does not fabricate future races that are unavailable from the current runtime projection. It shows archived race history and the next race already exposed by the authoritative career state. Historical expansion or a later dedicated calendar projection can widen this without changing the dashboard architecture.
+- Constructors' position and points;
+- Board confidence;
+- cash balance / financial status;
+- active sponsors and monthly sponsor income.
+
+Team colours come from the current presentation-only Team Visual Identity.
+
+### 2. Race focus
+
+The leading event card resolves one of three states from current career data:
+
+- active Race Weekend — stage, circuit/weather/date and direct return to the weekend;
+- next Grand Prix — round/date and Calendar link;
+- completed calendar — direct Offseason link.
+
+It does not invent future race data.
+
+### 3. Needs Attention / Inbox
+
+Actionable conditions link directly to their existing systems:
+
+- pending Inbox decisions;
+- unread messages;
+- Board pressure;
+- financial distress;
+- specifications ready for manufacture;
+- pending sponsor activities;
+- current/next race context.
+
+No decision is resolved from Home itself.
+
+### 4. Team operations
+
+Home exposes compact operational summaries for:
+
+- **Board** — confidence, objective target text and status;
+- **Drivers** — current line-up, championship position/points and entity profiles;
+- **Car & Development** — active designs, factory jobs, ready specs and facilities;
+- **Finances & Sponsors** — cash, monthly net, sponsor income, active deals and negotiations;
+- **F1 World** — latest simulation-owned news.
+
+Each panel routes to the existing authoritative gameplay screen.
+
+### 5. Championship / Calendar
+
+Current top standings remain read-only links into the Championship Hub. Recent races plus the current/next race provide season context without duplicating the calendar model.
 
 ## Architecture
 
-The flow is:
+The flow remains:
 
 `Save World -> Existing Domain Projections -> Career Home Model -> Browser Dashboard`
 
-The Career Home model is deterministic and does not mutate its source projections.
+The model is deterministic and does not mutate source projections. Hidden future drivers, teams and outcomes are never accessed.
 
-Hidden future drivers, teams and outcomes are never accessed by the dashboard model.
+Financial values come from the controlled team's current profile projection; sponsor values come from the existing Commercial system. Home never calculates an alternative economy.
 
 ## Navigation
 
-The dashboard links back into the existing Career Shell surfaces instead of creating duplicate gameplay screens:
+Career Home v2 integrates with Career Shell v2:
 
-- Inbox / Board / Team -> Management Hub;
+- Inbox -> Management / Inbox;
+- Board -> Management / Board;
+- Drivers -> Team / Profiles;
 - Car & Development -> Technical Operations;
+- Finances & Sponsors -> Commercial;
 - World News -> F1 World;
-- Calendar / Standings -> Career Home focused sections.
+- Calendar / Standings -> Championship Hub;
+- active race weekend -> existing Race Weekend;
+- season complete -> existing Offseason flow.
 
-The global Career Shell remains the navigation authority introduced by Phase 47.
+`CONTINUE` remains owned by the global Career Shell and existing time engine.
