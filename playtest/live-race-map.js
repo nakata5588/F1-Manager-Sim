@@ -106,6 +106,7 @@ function trackSvg(geometry, positions) {
   if (!path) return "";
   const pit = geometry.pitLane?.available ? openPolyline(geometry.pitLane.points) : "";
   const start = geometry.startFinish ? svgPoint(geometry.startFinish) : null;
+  const grid = geometry.startGrid ? svgPoint(geometry.startGrid) : null;
   const sectors = sectorMarkers(geometry);
   const markers = markerRows(positions);
 
@@ -117,7 +118,8 @@ function trackSvg(geometry, positions) {
       const point = svgPoint(sector);
       return `<g class="live-race-map-sector" transform="translate(${point.x} ${point.y})"><circle r="7"></circle><text x="12" y="-10">${escapeHtml(sector.id)}</text></g>`;
     }).join("")}
-    ${start ? `<g class="live-race-map-start" transform="translate(${start.x} ${start.y})"><circle r="14"></circle><text x="20" y="5">S/F</text></g>` : ""}
+    ${start ? `<g class="live-race-map-start" transform="translate(${start.x} ${start.y})"><circle r="14"></circle><text x="20" y="5">FINISH</text></g>` : ""}
+    ${grid && (!start || Math.hypot(grid.x - start.x, grid.y - start.y) > 8) ? `<g class="live-race-map-grid" transform="translate(${grid.x} ${grid.y})"><circle r="11"></circle><text x="18" y="5">START</text></g>` : ""}
     ${markers.map((row) => {
       const point = svgPoint(row);
       const classes = ["live-race-map-car", row.controlled ? "controlled" : "", row.approximate ? "approximate" : ""].filter(Boolean).join(" ");
