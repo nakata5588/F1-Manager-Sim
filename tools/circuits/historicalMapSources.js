@@ -21,6 +21,7 @@ export function validateHistoricalMapSources({ layouts = [], sources = [], requi
   const issues = [];
   const layoutIds = new Set((layouts ?? []).map(layoutId).filter(Boolean));
   const sourceIds = new Set();
+  const sourceLayoutIds = new Set();
   const coveredLayouts = new Set();
 
   for (const row of sources ?? []) {
@@ -33,6 +34,11 @@ export function validateHistoricalMapSources({ layouts = [], sources = [], requi
     if (!targetLayoutId) issues.push("Historical map source '" + (sourceId || "<unknown>") + "' is missing layout_id.");
     else {
       coveredLayouts.add(targetLayoutId);
+      if (sourceLayoutIds.has(targetLayoutId)) {
+        issues.push("Multiple primary historical map sources reference layout_id '" + targetLayoutId + "'.");
+      } else {
+        sourceLayoutIds.add(targetLayoutId);
+      }
       if (layoutIds.size && !layoutIds.has(targetLayoutId)) {
         issues.push("Historical map source '" + sourceId + "' references unknown layout_id '" + targetLayoutId + "'.");
       }
