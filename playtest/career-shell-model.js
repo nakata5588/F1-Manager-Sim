@@ -155,14 +155,15 @@ export function careerPageLabel(location = {}) {
     if (detail) return { id: detail[0], label: detail[1], group: detail[2] };
   }
 
+  if (path === "/world.html") {
+    const view = normalizeWorldView(location.hash);
+    return { id: "world", label: worldViewLabel(view), group: "F1 World" };
+  }
+
   const activeId = activeCareerNavId(location);
   for (const group of CAREER_NAV_GROUPS) {
     const item = group.items.find((row) => row.id === activeId);
     if (item) return { id: item.id, label: item.label, group: group.label };
-  }
-  if (path === "/world.html") {
-    const view = normalizeWorldView(location.hash);
-    return { id: "world", label: worldViewLabel(view), group: "F1 World" };
   }
   if (path === "/profile.html") return { id: "profile", label: "Profile", group: "F1 World" };
   return { id: activeId ?? "career", label: "Career", group: "Career" };
