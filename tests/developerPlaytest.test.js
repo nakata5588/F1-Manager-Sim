@@ -216,7 +216,8 @@ test("race weekend projection exposes explicit circuit geometry without making i
   assert.equal(state.raceWeekend.geometry.pathOriginFraction, state.raceWeekend.geometry.startFinish.pathFraction);
   assert.equal(state.raceWeekend.geometry.startFinish.lapFraction, 0);
   assert.equal(state.raceWeekend.geometry.centerline.length, 4);
-  assert.equal(state.raceWeekend.geometry.pitLane.length, 2);
+  assert.equal(state.raceWeekend.geometry.pitLane.available, true);
+  assert.equal(state.raceWeekend.geometry.pitLane.points.length, 2);
   assert.equal(state.raceWeekend.geometry.corners.length, 1);
 });
 
