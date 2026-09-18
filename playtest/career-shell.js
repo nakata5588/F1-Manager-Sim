@@ -3,6 +3,8 @@ import { CAREER_ENTRY_STORAGE_KEY } from "/main-menu-model.js";
 import {
   activeCareerNavId,
   buildCareerNavigation,
+  careerPageLabel,
+  careerShellContext,
   continueIntent,
   homeSectionTarget,
   managementTabForHash,
@@ -45,6 +47,15 @@ function humanDate(value) {
   }).format(date);
 }
 
+function safeColour(value, fallback) {
+  const colour = String(value ?? "").trim();
+  return /^#[0-9a-f]{6}$/i.test(colour) ? colour : fallback;
+}
+
+function teamInitials(name) {
+  return String(name ?? "Team").split(/\s+/).filter(Boolean).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
+}
+
 function navMarkup(groups) {
   return groups.map((group) => `
     <section class="career-shell-group">
@@ -61,27 +72,45 @@ function statusCopy(state) {
   return "Championship calendar complete";
 }
 
-function renderShell(state, overview = null) {
-  const intent = continueIntent(state);
+function renderShell(state, overview = null, teamProfile = null) {
+  const context = careerShellContext(state, teamProfile, window.location);
+  const intent = context.continue;
   const groups = buildCareerNavigation(window.location, { unreadInbox: overview?.inbox?.unread ?? 0 });
   document.getElementById(SHELL_ID)?.remove();
   document.getElementById(TOPBAR_ID)?.remove();
 
   document.body.classList.add("career-shell-active");
-  document.body.dataset.careerPage = activeCareerNavId(window.location) ?? "career";
+  document.body.dataset.careerPage = activeCareerNavId(window.location) ?? context.page.id ?? "career";
+
+  const primary = safeColour(context.team.colours?.primary, "#27364A");
+  const secondary = safeColour(context.team.colours?.secondary, "#E8FF58");
+  const logo = context.team.logoUrl
+    ? `<img src="${escapeHtml(context.team.logoUrl)}" alt="">`
+    : `<span>${escapeHtml(teamInitials(context.team.name))}</span>`;
 
   const sidebar = document.createElement("aside");
   sidebar.id = SHELL_ID;
+  sidebar.style.setProperty("--career-team-primary", primary);
+  sidebar.style.setProperty("--career-team-secondary", secondary);
   sidebar.innerHTML = `
     <a class="career-shell-brand" href="/"><strong>F1</strong><span>MANAGER</span><em>SIM</em></a>
+    <a class="career-shell-team" href="${context.team.id ? `/profile.html?type=team&id=${encodeURIComponent(context.team.id)}` : "/"}">
+      <i class="career-shell-team-accent"></i>
+      <div class="career-shell-team-logo">${logo}</div>
+      <div class="career-shell-team-copy"><small>${escapeHtml(context.team.nationality ?? "Formula One Team")}</small><strong>${escapeHtml(context.team.name)}</strong><span>${escapeHtml(context.manager.name)}</span></div>
+    </a>
     <nav>${navMarkup(groups)}</nav>
-    <div class="career-shell-foot"><span>CAREER</span><small>Formula One World</small></div>`;
+    <div class="career-shell-foot"><span>SEASON ${escapeHtml(context.season ?? "—")}</span><small>${humanDate(context.date)}</small></div>`;
 
   const topbar = document.createElement("header");
   topbar.id = TOPBAR_ID;
+  topbar.style.setProperty("--career-team-primary", primary);
+  topbar.style.setProperty("--career-team-secondary", secondary);
   topbar.innerHTML = `
-    <div class="career-shell-manager"><strong>${escapeHtml(state.career?.managerName ?? "Manager")}</strong><span>${state.career?.controlledTeamId ? entityLink("team", state.career.controlledTeamId, state.career?.teamName ?? state.career.controlledTeamId) : escapeHtml("No Team")}</span></div>
-    <div class="career-shell-context"><strong>${humanDate(state.career?.date)}</strong><span>${escapeHtml(state.career?.season ?? "")} · ${escapeHtml(statusCopy(state))}</span></div>
+    <div class="career-shell-page"><span data-shell-page-group>${escapeHtml(context.page.group)}</span><strong data-shell-page-label>${escapeHtml(context.page.label)}</strong></div>
+    <div class="career-shell-event"><span>${escapeHtml(context.event.eyebrow)} · ${escapeHtml(publicLabel(context.event.status, "Upcoming"))}</span><strong>${escapeHtml(context.event.title)}</strong><small>${escapeHtml(context.event.meta)}${context.event.date ? ` · ${humanDate(context.event.date)}` : ""}</small></div>
+    <div class="career-shell-manager"><strong>${escapeHtml(context.manager.name)}</strong><span>${escapeHtml(context.manager.nationality ?? context.team.name)}</span></div>
+    <div class="career-shell-date"><strong>${humanDate(context.date)}</strong><span>${escapeHtml(context.season ? `Season ${context.season}` : "Career")}</span></div>
     ${intent.visible ? `<button type="button" class="career-shell-continue" data-shell-continue data-kind="${escapeHtml(intent.kind)}" data-href="${escapeHtml(intent.href ?? "/")}">${escapeHtml(intent.label)}</button>` : ""}`;
 
   document.body.prepend(topbar);
@@ -90,7 +119,10 @@ function renderShell(state, overview = null) {
 
 function syncActiveNavigation() {
   const active = activeCareerNavId(window.location);
-  document.body.dataset.careerPage = active ?? "career";
+  const page = careerPageLabel(window.location);
+  document.body.dataset.careerPage = active ?? page.id ?? "career";
+  document.querySelector("[data-shell-page-group]")?.replaceChildren(document.createTextNode(page.group));
+  document.querySelector("[data-shell-page-label]")?.replaceChildren(document.createTextNode(page.label));
   document.querySelectorAll("[data-career-nav]").forEach((link) => {
     link.classList.toggle("active", link.dataset.careerNav === active);
   });
@@ -133,9 +165,7 @@ function applyPresentationLabels(root = document.body) {
   while (walker.nextNode()) resolveTextNode(walker.currentNode);
 }
 
-async function installPresentationLabels(state) {
-  let setup = null;
-  try { setup = await request("/api/setup"); } catch { setup = null; }
+async function installPresentationLabels(state, setup = null) {
   const rows = [
     ...(setup?.teams ?? []),
     ...(state?.standings?.constructors ?? []),
@@ -227,9 +257,19 @@ async function installCareerShell() {
   }
 
   let overview = null;
+  let setup = null;
+  let teamProfile = null;
   try { overview = await request("/api/management"); } catch { overview = null; }
-  renderShell(shellState, overview);
-  await installPresentationLabels(shellState);
+  try { setup = await request("/api/setup"); } catch { setup = null; }
+  if (shellState.career?.controlledTeamId) {
+    try {
+      teamProfile = await request(`/api/profile?type=team&id=${encodeURIComponent(shellState.career.controlledTeamId)}`);
+    } catch {
+      teamProfile = setup?.teams?.find((row) => String(row.id) === String(shellState.career.controlledTeamId)) ?? null;
+    }
+  }
+  renderShell(shellState, overview, teamProfile);
+  await installPresentationLabels(shellState, setup);
   installDeepLinks();
 
   document.addEventListener("click", (event) => {

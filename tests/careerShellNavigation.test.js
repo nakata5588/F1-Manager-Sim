@@ -4,6 +4,8 @@ import {
   CAREER_NAV_GROUPS,
   activeCareerNavId,
   buildCareerNavigation,
+  careerPageLabel,
+  careerShellContext,
   continueIntent,
   homeSectionTarget,
   managementTabForHash,
@@ -60,4 +62,100 @@ test("legacy Home section links remain readable during the Championship Hub tran
   assert.equal(homeSectionTarget({ pathname: "/", search: "?section=calendar" }), "calendar");
   assert.equal(homeSectionTarget({ pathname: "/", search: "?section=standings" }), "standings");
   assert.equal(homeSectionTarget({ pathname: "/", search: "?section=unknown" }), null);
+});
+
+test("Career Shell v2 derives stable page labels for navigation and entity profiles", () => {
+  assert.deepEqual(careerPageLabel({ pathname: "/management.html", hash: "#staff" }), {
+    id: "staff",
+    label: "Staff",
+    group: "Team",
+  });
+  assert.deepEqual(careerPageLabel({ pathname: "/profile.html", search: "?type=team&id=T1" }), {
+    id: "profile",
+    label: "Profile",
+    group: "F1 World",
+  });
+});
+
+test("Career Shell v2 projects manager, current team identity and active weekend context", () => {
+  const state = {
+    screen: "practice_results",
+    career: {
+      managerName: "Ricardo Nakata",
+      managerProfile: { nationality: "Portuguese" },
+      controlledTeamId: "T1",
+      teamName: "Williams",
+      season: 1980,
+      date: "1980-01-11",
+    },
+    raceWeekend: {
+      stage: "practice_completed",
+      round: 1,
+      name: "Argentine Grand Prix",
+      trackName: "Buenos Aires",
+      date: "1980-01-13",
+    },
+    nextRace: { round: 1, name: "Argentine Grand Prix", date: "1980-01-13" },
+  };
+  const teamProfile = {
+    id: "T1",
+    name: "Williams",
+    nationality: "British",
+    media: { url: "/media/williams.svg" },
+    visualIdentity: { colours: { primary: "#123456", secondary: "#FEDCBA" } },
+  };
+  const context = careerShellContext(state, teamProfile, { pathname: "/technical.html" });
+
+  assert.equal(context.page.label, "Car & Development");
+  assert.equal(context.manager.name, "Ricardo Nakata");
+  assert.equal(context.manager.nationality, "Portuguese");
+  assert.equal(context.team.name, "Williams");
+  assert.equal(context.team.logoUrl, "/media/williams.svg");
+  assert.equal(context.event.eyebrow, "Round 1");
+  assert.equal(context.event.status, "practice_completed");
+  assert.equal(context.event.title, "Argentine Grand Prix");
+  assert.equal(context.event.meta, "Buenos Aires");
+  assert.equal(context.continue.label, "RACE WEEKEND ▶");
+});
+
+test("Career Shell v2 uses the next race and then offseason as global context", () => {
+  const career = {
+    managerName: "Manager",
+    controlledTeamId: "T1",
+    teamName: "Team",
+    season: 1980,
+    date: "1980-02-01",
+  };
+  const next = careerShellContext({
+    screen: "home",
+    career,
+    nextRace: { round: 2, name: "Brazilian Grand Prix", date: "1980-01-27" },
+  }, null, { pathname: "/" });
+  assert.equal(next.event.status, "upcoming");
+  assert.equal(next.event.title, "Brazilian Grand Prix");
+  assert.equal(next.continue.kind, "continue");
+
+  const offseason = careerShellContext({ screen: "home", career, nextRace: null }, null, { pathname: "/" });
+  assert.equal(offseason.event.status, "offseason");
+  assert.equal(offseason.continue.href, "/offseason.html");
+});
+
+test("Career Shell v2 accepts New Game setup media as a safe fallback identity source", () => {
+  const context = careerShellContext({
+    screen: "home",
+    career: {
+      managerName: "Manager",
+      controlledTeamId: "T1",
+      teamName: "Williams",
+      season: 1980,
+      date: "1980-01-01",
+    },
+    nextRace: { round: 1, name: "Argentine Grand Prix", date: "1980-01-13" },
+  }, {
+    id: "T1",
+    name: "Williams",
+    resolvedMedia: { logo: { url: "/media/fallback/teamLogo.svg" } },
+  }, { pathname: "/" });
+
+  assert.equal(context.team.logoUrl, "/media/fallback/teamLogo.svg");
 });

@@ -127,3 +127,72 @@ export function homeSectionTarget(location = {}) {
   const section = params.get("section");
   return section === "calendar" || section === "standings" ? section : null;
 }
+
+export function careerPageLabel(location = {}) {
+  const activeId = activeCareerNavId(location);
+  for (const group of CAREER_NAV_GROUPS) {
+    const item = group.items.find((row) => row.id === activeId);
+    if (item) return { id: item.id, label: item.label, group: group.label };
+  }
+  const path = cleanPath(location.pathname);
+  if (path === "/profile.html") return { id: "profile", label: "Profile", group: "F1 World" };
+  return { id: activeId ?? "career", label: "Career", group: "Career" };
+}
+
+function teamProfileId(profile) {
+  return profile?.id ?? null;
+}
+
+export function careerShellContext(state = {}, teamProfile = null, location = {}) {
+  const page = careerPageLabel(location);
+  const career = state.career ?? {};
+  const manager = career.managerProfile ?? {};
+  const teamId = career.controlledTeamId ?? teamProfileId(teamProfile);
+  const teamName = teamProfile?.name ?? career.teamName ?? teamId ?? "No Team";
+  const weekend = state.raceWeekend;
+  const nextRace = state.nextRace;
+
+  let event = {
+    eyebrow: "Season",
+    status: "offseason",
+    title: "Championship calendar complete",
+    meta: "Offseason available",
+    date: null,
+  };
+  if (weekend && weekend.stage && weekend.stage !== "completed") {
+    event = {
+      eyebrow: `Round ${weekend.round ?? "—"}`,
+      status: weekend.stage,
+      title: weekend.name ?? "Race Weekend",
+      meta: weekend.trackName ?? "Active race weekend",
+      date: weekend.date ?? null,
+    };
+  } else if (nextRace) {
+    event = {
+      eyebrow: `Next · Round ${nextRace.round ?? "—"}`,
+      status: "upcoming",
+      title: nextRace.name ?? "Grand Prix",
+      meta: "Upcoming race",
+      date: nextRace.date ?? null,
+    };
+  }
+
+  return {
+    page,
+    manager: {
+      name: career.managerName ?? manager.name ?? "Manager",
+      nationality: manager.nationality ?? null,
+    },
+    team: {
+      id: teamId,
+      name: teamName,
+      nationality: teamProfile?.nationality ?? null,
+      logoUrl: teamProfile?.media?.url ?? teamProfile?.resolvedMedia?.logo?.url ?? null,
+      colours: teamProfile?.visualIdentity?.colours ?? null,
+    },
+    season: career.season ?? null,
+    date: career.date ?? null,
+    event,
+    continue: continueIntent(state),
+  };
+}

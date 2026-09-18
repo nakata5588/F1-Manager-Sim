@@ -77,6 +77,42 @@ Every career page now receives the same persistent context bar with:
 
 The shell disappears entirely during New Game so Phase 46 retains its dedicated onboarding experience.
 
+## Career Shell v2 consolidation
+
+The v2 shell turns the shared navigation layer into the permanent career workspace rather than leaving each playtest page to present its own top-level chrome.
+
+### Persistent team identity
+
+The sidebar now carries the controlled team's current presentation identity:
+
+- current team name;
+- nationality when available;
+- team logo resolved through the Media Pack;
+- current Team Visual Identity primary/secondary colours;
+- manager name;
+- season and current career date.
+
+The shell prefers the current Save World team profile so rebrands and Save World visual-identity overrides are reflected without changing the stable team id. The New Game setup projection is only a fallback if the current team profile cannot be resolved.
+
+### Persistent top context
+
+The global header now presents:
+
+- current navigation area and page;
+- current/next Formula One event;
+- active race-weekend stage when relevant;
+- manager identity;
+- career date and season;
+- one contextual `CONTINUE` / `RACE WEEKEND` / `OFFSEASON` action.
+
+The event context comes from the same current career state used by the underlying screens. The shell does not create another calendar or race state.
+
+### One workspace
+
+When the global shell is active, legacy page-level chrome that duplicates global context is suppressed. Profile and Championship layouts also relinquish their historical sidebar offsets because the body already reserves the global shell width. This keeps Home, Management, Technical, Championship, F1 World, Governance, Offseason and Profiles aligned inside one workspace.
+
+Deep-link navigation remains supported. Changing a Management/Championship hash updates the active sidebar item and the current-page label without recreating game state.
+
 ## Player-facing presentation boundary
 
 The career workspace now has one shared presentation-label layer for internal enums. Domain and persistence values remain unchanged, while player-facing surfaces resolve them into readable English.
