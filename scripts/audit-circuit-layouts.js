@@ -2,6 +2,10 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { buildCircuitLayoutCoverage } from "../tools/circuits/audit.js";
+import {
+  summarizeHistoricalMapSources,
+  validateHistoricalMapSources,
+} from "../tools/circuits/historicalMapSources.js";
 import { validateCircuitLayoutCatalog } from "../src/data/circuitLayoutCatalog.js";
 
 function arg(name, fallback = null) {
@@ -20,6 +24,7 @@ const root = arg("--root", "data/circuit-layouts");
 const layoutPayload = await json(root + "/layouts.json");
 const assignmentPayload = await json(root + "/season-assignments/" + season + ".json");
 const candidatePayload = await json(arg("--candidates", root + "/candidate-libraries/bacinger-f1-circuits.manifest.json"));
+
 let curatedPayload = { rows: [] };
 try {
   curatedPayload = await json(arg("--curated", root + "/audits/" + season + ".json"));
@@ -27,13 +32,34 @@ try {
   if (error?.code !== "ENOENT") throw error;
 }
 
+let historicalMapPayload = { sources: [] };
+try {
+  historicalMapPayload = await json(arg("--historical-maps", root + "/historical-map-sources/" + season + ".json"));
+} catch (error) {
+  if (error?.code !== "ENOENT") throw error;
+}
+
 const layouts = layoutPayload.layouts ?? [];
 const assignments = assignmentPayload.assignments ?? [];
+const historicalMapSources = historicalMapPayload.sources ?? [];
 const validation = validateCircuitLayoutCatalog({ layouts, assignments, geometries: [] });
 if (!validation.ok) {
   for (const issue of validation.issues) console.error("- " + issue);
   process.exitCode = 1;
   throw new Error("Circuit layout catalog validation failed.");
+}
+
+const assignedLayoutIds = new Set(assignments.map((row) => row.layout_id));
+const seasonLayouts = layouts.filter((row) => assignedLayoutIds.has(row.layout_id));
+const sourceValidation = validateHistoricalMapSources({
+  layouts: seasonLayouts,
+  sources: historicalMapSources,
+  requireCoverage: historicalMapSources.length > 0,
+});
+if (!sourceValidation.ok) {
+  for (const issue of sourceValidation.issues) console.error("- " + issue);
+  process.exitCode = 1;
+  throw new Error("Historical map source validation failed.");
 }
 
 const report = buildCircuitLayoutCoverage({
@@ -42,6 +68,11 @@ const report = buildCircuitLayoutCoverage({
   assignments,
   candidates: candidatePayload.candidates ?? [],
   curatedRows: curatedPayload.rows ?? [],
+  historicalMapSources,
+});
+report.historicalMapSourceSummary = summarizeHistoricalMapSources({
+  layouts: seasonLayouts,
+  sources: historicalMapSources,
 });
 
 const output = arg("--out");
