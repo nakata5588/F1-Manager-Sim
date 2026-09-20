@@ -219,7 +219,6 @@ function endReplacement(saveWorld, event, controlled) {
 }
 
 export function createReplacementDriverSystem(options = {}) {
-  const controlled = controlledTeamSet(null, options.controlledTeamIds ?? []);
   return {
     id: "career.replacement-drivers",
     eventTypes: [
