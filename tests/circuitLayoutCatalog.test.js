@@ -124,7 +124,7 @@ test("candidate ranking rejects same-venue modern layouts by length without inve
   assert.equal(automaticCandidateStatus(match), "CANDIDATE_LENGTH_MISMATCH");
 });
 
-test("1980 source-lock audit resolves 14 historical maps and the first reviewed runtime geometry", async () => {
+test("1980 source-lock audit resolves all 14 historical maps and all 14 reviewed runtime geometries", async () => {
   const layouts = (await json("layouts.json")).layouts;
   const assignments = (await json("season-assignments/1980.json")).assignments;
   const candidates = (await json("candidate-libraries/bacinger-f1-circuits.manifest.json")).candidates;
@@ -145,10 +145,10 @@ test("1980 source-lock audit resolves 14 historical maps and the first reviewed 
   assert.equal(report.summary.identifiedLayouts, 14);
   assert.equal(report.summary.candidatesFound, 11);
   assert.equal(report.summary.historicalMapSourcesReady, 14);
-  assert.equal(report.summary.runtimeGeometryReviewed, 1);
-  assert.equal(report.summary.reviewedGeometry, 1);
-  assert.equal(report.summary.runtimeGeometryStatusCounts.MATCHED_REVIEWED_SCHEMATIC, 1);
-  assert.equal(report.summary.runtimeGeometryStatusCounts.GEOMETRY_UNAVAILABLE, 13);
+  assert.equal(report.summary.runtimeGeometryReviewed, 14);
+  assert.equal(report.summary.reviewedGeometry, 14);
+  assert.equal(report.summary.runtimeGeometryStatusCounts.MATCHED_REVIEWED_SCHEMATIC, 14);
+  assert.equal(report.summary.runtimeGeometryStatusCounts.GEOMETRY_UNAVAILABLE ?? 0, 0);
   assert.equal(report.summary.statusCounts.GEOMETRY_MISSING, 3);
   assert.equal(report.summary.statusCounts.CANDIDATE_CONFIGURATION_MISMATCH, 2);
   assert.equal(report.summary.statusCounts.MATCHED_NEEDS_REVIEW ?? 0, 0);
@@ -228,4 +228,47 @@ test("Long Beach 1978-81 geometry is reviewed only for schematic historical 2D u
   const validation = validateCircuitLayoutCatalog({ layouts, assignments, geometries });
   assert.deepEqual(validation, { ok: true, issues: [] });
   assert.equal(isReviewedCircuitGeometry(geometry), true);
+});
+
+test("all 14 1980 layouts have reviewed schematic geometry with safe presentation-only provenance", async () => {
+  const layouts = (await json("layouts.json")).layouts;
+  const assignments = (await json("season-assignments/1980.json")).assignments;
+  const geometries = (await json("geometries/1980.json")).geometries;
+  const assignedIds = new Set(assignments.map((row) => row.layout_id));
+
+  assert.equal(geometries.length, 14);
+  assert.equal(new Set(geometries.map((row) => row.layout_id)).size, 14);
+  assert.deepEqual(new Set(geometries.map((row) => row.layout_id)), assignedIds);
+
+  for (const geometry of geometries) {
+    assert.equal(isReviewedCircuitGeometry(geometry), true, geometry.layout_id);
+    assert.equal(geometry.geometry_status, "MATCHED_REVIEWED_SCHEMATIC", geometry.layout_id);
+    assert.equal(geometry.precision, "schematic_historical_trace", geometry.layout_id);
+    assert.match(geometry.geometry_hash, /^[0-9a-f]{64}$/, geometry.layout_id);
+    assert.ok(Array.isArray(geometry.centerline) && geometry.centerline.length >= 30, geometry.layout_id);
+    assert.ok(geometry.reviewed_for.includes("2d_track_presentation"), geometry.layout_id);
+    assert.ok(geometry.not_authoritative_for.includes("car_performance"), geometry.layout_id);
+    assert.ok(geometry.not_authoritative_for.includes("race_timing"), geometry.layout_id);
+    for (const point of geometry.centerline) {
+      assert.equal(point.length, 2, geometry.layout_id);
+      assert.ok(point.every((value) => Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 1), geometry.layout_id);
+    }
+  }
+
+  assert.deepEqual(validateCircuitLayoutCatalog({ layouts, assignments, geometries }), { ok: true, issues: [] });
+});
+
+test("1980 Imola uses the 5.000 km pre-1981 configuration while preserving the legacy discrepancy in audit", async () => {
+  const layouts = (await json("layouts.json")).layouts;
+  const geometry = (await json("geometries/1980.json")).geometries.find((row) => row.layout_id === "cl_tr_0047_gp_1974");
+  const audit = await json("audits/1980.json");
+  const layout = layouts.find((row) => row.layout_id === "cl_tr_0047_gp_1974");
+  const row = audit.rows.find((entry) => entry.layout_id === "cl_tr_0047_gp_1974");
+
+  assert.equal(layout.lap_length_km, 5);
+  assert.equal(layout.historical_status, "VERIFIED_LAYOUT_IDENTITY");
+  assert.equal(geometry.lap_length_km, 5);
+  assert.equal(row.baseline_lap_length_km, 5.04);
+  assert.equal(row.corrected_historical_lap_length_km, 5);
+  assert.match(row.notes, /legacy discrepancy/i);
 });
