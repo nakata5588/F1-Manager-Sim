@@ -1,5 +1,9 @@
 import { createRng } from "../../sim/random.js";
 import { activeEngineForTeam } from "./suppliers.js";
+import {
+  assertFinancialCommitment,
+  refreshFinancialPlanningState,
+} from "./finances.js";
 
 export const RELIABILITY_EVENT = Object.freeze({
   INITIALIZED: "reliability.initialized",
@@ -313,8 +317,16 @@ function spend(saveWorld, teamId, amount, reason) {
   const finance = saveWorld.world?.teamState?.[teamId];
   if (!finance) throw new Error(`Team '${teamId}' does not have initialized finances.`);
   const cost = Math.max(0, round(amount));
-  if (numeric(finance.cash, 0) < cost) throw new Error(`Team '${teamId}' does not have enough cash for ${reason}.`);
+  // Reliability repair/service is operationally mandatory: it may use the cash
+  // reserve but can never spend money the team does not actually possess.
+  assertFinancialCommitment(saveWorld, teamId, {
+    amount: cost,
+    kind: "reliability",
+    label: reason,
+    allowReserveBreach: true,
+  });
   finance.cash = round(numeric(finance.cash, 0) - cost);
+  refreshFinancialPlanningState(saveWorld, teamId);
   return cost;
 }
 
