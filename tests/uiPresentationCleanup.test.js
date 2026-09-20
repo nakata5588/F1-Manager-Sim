@@ -239,3 +239,26 @@ test("Race Weekend UX v2 uses the same weekend progression through Results", () 
   assert.match(model, /Grid & Strategy/);
   assert.match(source, /strategyTimelineMarkup/);
 });
+
+
+test("Management Depth Pass adds an actionable Planning workspace backed by the dedicated projection", () => {
+  const source = readFileSync("playtest/management.js", "utf8");
+  const model = readFileSync("playtest/management-workspace-model.js", "utf8");
+  assert.match(model, /id: "planning", label: "Planning"/);
+  assert.match(source, /\/api\/management\/planning/);
+  assert.match(source, /Management priorities/);
+  assert.match(source, /Department pressure & coverage/);
+  assert.match(source, /Driver plan/);
+  assert.match(source, /Staff plan/);
+  assert.match(source, /Driver shortlist/);
+  assert.match(source, /data-renew-driver/);
+  assert.match(source, /data-renew-staff/);
+});
+
+test("Management Planning presentation does not surface hidden ability fields", () => {
+  const source = readFileSync("playtest/management.js", "utf8");
+  const planningStart = source.indexOf("function renderPlanning()");
+  const planningEnd = source.indexOf("function renderCurrentDrivers()", planningStart);
+  const planningSource = source.slice(planningStart, planningEnd);
+  assert.doesNotMatch(planningSource, /currentAbility|potentialAbility|current_ability|potential_ability/);
+});

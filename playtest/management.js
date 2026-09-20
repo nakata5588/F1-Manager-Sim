@@ -23,6 +23,7 @@ let staffRecruitment = { summary: {}, candidates: [] };
 let staffContracts = { summary: {}, negotiations: [] };
 let commercial = { summary: {}, team: null, market: [], negotiations: [] };
 let teamProfile = null;
+let planning = { teamId: null, priorities: [], drivers: [], staff: [], organization: null, shortlist: [], scouting: {}, negotiations: { drivers: [], staff: [] } };
 let recruitmentRequest = "/api/recruitment";
 let staffRequest = "/api/staff-recruitment";
 let commercialTier = "partner";
@@ -99,7 +100,7 @@ async function refreshAll() {
     return;
   }
   const teamId = careerState.career?.controlledTeamId ?? null;
-  [overview, inbox, recruitment, contracts, people, market, boardData, managerCareer, responsibilities, staffRecruitment, staffContracts, commercial, teamProfile] = await Promise.all([
+  [overview, inbox, recruitment, contracts, people, market, boardData, managerCareer, responsibilities, staffRecruitment, staffContracts, commercial, teamProfile, planning] = await Promise.all([
     api("/api/management"),
     api("/api/inbox"),
     api(recruitmentRequest),
@@ -113,6 +114,7 @@ async function refreshAll() {
     api("/api/staff-contracts"),
     api(commercialRequest),
     teamId ? api(`/api/profile?type=team&id=${encodeURIComponent(teamId)}`).catch(() => null) : Promise.resolve(null),
+    api("/api/management/planning"),
   ]);
   selectedNegotiation = contracts.negotiations.find((row) => row.id === selectedNegotiation?.id) ?? null;
   selectedStaffNegotiation = staffContracts.negotiations.find((row) => row.id === selectedStaffNegotiation?.id) ?? null;
@@ -122,6 +124,7 @@ async function refreshAll() {
 
 function sectionBadge(id) {
   if (id === "inbox") return Number(overview?.inbox?.unread ?? 0);
+  if (id === "team") return Number(planning?.priorities?.filter((row) => ["critical", "high"].includes(row.severity)).length ?? 0);
   if (id === "drivers") return Number(overview?.contracts?.active ?? 0) + Number(overview?.market?.openOffers ?? 0);
   if (id === "staff") return Number(overview?.staffContracts?.active ?? 0);
   if (id === "commercial") return Number(overview?.commercial?.openNegotiations ?? 0);
@@ -207,12 +210,96 @@ function renderPeople() {
 function renderTeamOverview() {
   const managerOwned = responsibilities.areas?.filter((row) => row.owner === "manager").length ?? 0;
   const delegated = responsibilities.areas?.filter((row) => row.owner === "delegated").length ?? 0;
+  const priorityCount = planning?.priorities?.filter((row) => ["critical", "high"].includes(row.severity)).length ?? 0;
   return `<section class="management-overview-grid">
+    <article class="management-overview-card ${priorityCount ? "attention-card" : ""}"><span>Planning</span><strong>${priorityCount}</strong><small>Priority decision${priorityCount === 1 ? "" : "s"} requiring attention</small><button data-tab="planning">Open Planning</button></article>
     <article class="management-overview-card"><span>Drivers</span><strong>${people.drivers.length}</strong><small>Current race team</small><button data-tab="drivers">Open Drivers</button></article>
     <article class="management-overview-card"><span>Staff</span><strong>${people.staff.length}</strong><small>Current team staff</small><button data-tab="staff">Open Staff</button></article>
     <article class="management-overview-card"><span>Board confidence</span><strong>${boardData.board ? Math.round(boardData.board.confidence) : "—"}</strong><small>${escapeHtml(publicLabel(boardData.board?.status, "No review"))}</small><button data-tab="board">Open Board</button></article>
     <article class="management-overview-card"><span>Responsibilities</span><strong>${managerOwned}/${managerOwned + delegated}</strong><small>Managed directly</small><button data-tab="responsibilities">Review</button></article>
   </section>${renderPeople()}`;
+}
+
+
+function planningSeverity(value) {
+  return ["critical", "high", "medium", "low"].includes(value) ? value : "low";
+}
+
+function planningPriorities() {
+  if (!planning.priorities?.length) {
+    return '<div class="management-empty">No urgent management priorities. Continue monitoring contracts, morale and organisation workload.</div>';
+  }
+  return `<div class="planning-priority-list">${planning.priorities.map((row) => `<article class="planning-priority ${planningSeverity(row.severity)}">
+    <div><span class="management-category">${escapeHtml(row.category)}</span><h3>${escapeHtml(row.title)}</h3><p>${escapeHtml(row.detail)}</p></div>
+    ${row.action ? `<button data-planning-view="${escapeHtml(row.action.view)}" data-planning-negotiation="${escapeHtml(row.action.negotiationId ?? "")}" data-planning-person="${escapeHtml(row.action.personId ?? "")}">${escapeHtml(row.action.label)}</button>` : ""}
+  </article>`).join("")}</div>`;
+}
+
+function organizationPlanning() {
+  const organization = planning.organization;
+  if (!organization) return '<div class="management-empty">Organisation planning is unavailable without a controlled team.</div>';
+  const departments = organization.departments ?? [];
+  return `<div class="planning-org-summary"><article><span>Status</span><strong>${escapeHtml(publicLabel(organization.overallStatus, "Stable"))}</strong><small>Organisation workload</small></article><article><span>Staff</span><strong>${organization.employedStaffCount ?? 0}</strong><small>Currently employed</small></article><article><span>Vacancies</span><strong>${organization.openStaffVacancies ?? 0}</strong><small>Open staff roles</small></article><article><span>Capacity</span><strong>+${organization.staffCapacityBonus ?? 0}</strong><small>Board-approved capacity</small></article></div>
+  <div class="planning-departments">${departments.map((row) => `<article class="planning-department ${escapeHtml(row.status)}">
+    <div class="planning-department-head"><div><span class="management-category">${escapeHtml(row.label)}</span><h3>${escapeHtml(publicLabel(row.status, "Stable"))}</h3></div><strong>${row.memberCount} staff</strong></div>
+    <div class="planning-department-meta"><span>${escapeHtml(row.workloadLabel)} workload</span><span>${row.vacancyCount} vacanc${row.vacancyCount === 1 ? "y" : "ies"}</span></div>
+    ${row.memberRoles?.length ? `<div class="planning-role-list">${row.memberRoles.map((member) => `<span>${entityLink("staff", member.staffId, member.name)} · ${escapeHtml(publicLabel(member.role, "Staff"))}</span>`).join("")}</div>` : ""}
+    ${row.vacancies?.length ? `<div class="planning-vacancies">${row.vacancies.map((vacancy) => `<span>Open: ${escapeHtml(publicLabel(vacancy.role, "Staff role"))}</span>`).join("")}</div><button data-tab="staff-market">Recruit staff</button>` : ""}
+  </article>`).join("")}</div>`;
+}
+
+function retentionSignals(row) {
+  if (!row.retention?.signals?.length) return '<span class="muted small">No immediate retention warning.</span>';
+  return `<div class="retention-signals">${row.retention.signals.map((signal) => `<span>${escapeHtml(signal.label)}</span>`).join("")}</div>`;
+}
+
+function driverPlanningTable() {
+  if (!planning.drivers?.length) return '<div class="management-empty">No current drivers.</div>';
+  return `<div class="management-table-wrap planning-table"><table><thead><tr><th>Driver</th><th>Role</th><th>Contract</th><th>Morale</th><th>Contract satisfaction</th><th>Rival interest</th><th>Retention</th><th></th></tr></thead><tbody>${planning.drivers.map((row) => `<tr>
+    <td><strong>${entityLink("driver", row.id, row.name)}</strong>${retentionSignals(row)}</td>
+    <td>${escapeHtml(publicLabel(row.role, "Driver"))}</td>
+    <td><strong>${row.contractUntil ?? "—"}</strong><div class="muted small">${escapeHtml(row.horizon?.label ?? "Unknown")}</div></td>
+    <td>${Math.round(row.mentality?.morale ?? 50)}</td>
+    <td>${Math.round(row.mentality?.contractSatisfaction ?? 50)}</td>
+    <td>${row.competingOffers ? `${row.competingOffers} active` : "None"}</td>
+    <td><span class="planning-risk ${escapeHtml(row.retention?.level ?? "low")}">${escapeHtml(publicLabel(row.retention?.level, "Low"))}</span></td>
+    <td><button class="${row.retention?.level === "high" || row.horizon?.status === "expiring" ? "primary" : ""}" data-renew-driver="${escapeHtml(row.id)}">Open talks</button></td>
+  </tr>`).join("")}</tbody></table></div>`;
+}
+
+function staffPlanningTable() {
+  if (!planning.staff?.length) return '<div class="management-empty">No current staff.</div>';
+  return `<div class="management-table-wrap planning-table"><table><thead><tr><th>Staff</th><th>Role</th><th>Contract</th><th>Morale</th><th>Contract satisfaction</th><th>Rival interest</th><th>Retention</th><th></th></tr></thead><tbody>${planning.staff.map((row) => `<tr>
+    <td><strong>${entityLink("staff", row.id, row.name)}</strong>${retentionSignals(row)}</td>
+    <td>${escapeHtml(publicLabel(row.role, "Staff"))}</td>
+    <td><strong>${row.contractUntil ?? "—"}</strong><div class="muted small">${escapeHtml(row.horizon?.label ?? "Unknown")}</div></td>
+    <td>${Math.round(row.mentality?.morale ?? 50)}</td>
+    <td>${Math.round(row.mentality?.contractSatisfaction ?? 50)}</td>
+    <td>${row.competingOffers ? `${row.competingOffers} active` : "None"}</td>
+    <td><span class="planning-risk ${escapeHtml(row.retention?.level ?? "low")}">${escapeHtml(publicLabel(row.retention?.level, "Low"))}</span></td>
+    <td>${row.renewalEligible ? `<button class="${row.retention?.level === "high" || row.horizon?.status === "expiring" ? "primary" : ""}" data-renew-staff="${escapeHtml(row.id)}">Open talks</button>` : '<span class="muted small">Governance role</span>'}</td>
+  </tr>`).join("")}</tbody></table></div>`;
+}
+
+function shortlistPlanning() {
+  const rows = planning.shortlist ?? [];
+  if (!rows.length) return '<div class="management-empty">Your driver shortlist is empty. Use Recruitment to identify future options.</div>';
+  return `<div class="planning-shortlist">${rows.map((row) => `<article><div><strong>${entityLink("driver", row.id, row.name)}</strong><small>${escapeHtml(row.nationality ?? "—")} · age ${row.age ?? "—"}</small></div><div><span>${Math.round(row.knowledge)}% knowledge</span><span>${row.hasReport ? "Report available" : "No full report"}</span><span>${row.f1Eligible ? "F1 eligible" : "Not F1 eligible"}</span></div></article>`).join("")}</div>`;
+}
+
+function renderPlanning() {
+  if (!planning.teamId) return '<div class="management-empty">Team planning becomes available when you control a team.</div>';
+  return `<section class="planning-hero"><div><span class="management-category">Management depth</span><h2>Team Planning</h2><p>Turn contracts, morale, rival interest and organisation pressure into a coherent staffing plan.</p></div><div class="planning-hero-kpis"><span><strong>${planning.priorities?.filter((row) => ["critical", "high"].includes(row.severity)).length ?? 0}</strong> priority decisions</span><span><strong>${planning.scouting?.shortlist ?? 0}</strong> shortlisted drivers</span><span><strong>${planning.scouting?.activeAssignments ?? 0}</strong> scouting assignments</span></div></section>
+  <div class="management-section-title"><div><span class="management-category">Decision queue</span><h2>Management priorities</h2></div></div>
+  ${planningPriorities()}
+  <div class="management-section-title"><div><span class="management-category">Organisation</span><h2>Department pressure & coverage</h2></div><button data-tab="staff-market">Staff market</button></div>
+  ${organizationPlanning()}
+  <div class="management-section-title"><div><span class="management-category">Contracts & retention</span><h2>Driver plan</h2></div><button data-tab="recruitment">Driver recruitment</button></div>
+  ${driverPlanningTable()}
+  <div class="management-section-title"><div><span class="management-category">Contracts & retention</span><h2>Staff plan</h2></div><button data-tab="staff-market">Staff recruitment</button></div>
+  ${staffPlanningTable()}
+  <div class="management-section-title"><div><span class="management-category">Succession</span><h2>Driver shortlist</h2></div><button data-tab="recruitment">Open recruitment</button></div>
+  ${shortlistPlanning()}`;
 }
 
 function renderCurrentDrivers() {
@@ -325,7 +412,8 @@ function render() {
   const content = activeTab === "board" ? renderBoard()
     : activeTab === "career" ? renderCareer()
       : activeTab === "team" ? renderTeamOverview()
-        : activeTab === "drivers" ? renderCurrentDrivers()
+        : activeTab === "planning" ? renderPlanning()
+          : activeTab === "drivers" ? renderCurrentDrivers()
           : activeTab === "staff" ? renderCurrentStaff()
             : activeTab === "staff-market" ? renderStaff()
               : activeTab === "recruitment" ? renderRecruitment()
@@ -354,8 +442,8 @@ async function openDriverNegotiation(driverId, startSeason = undefined) {
   syncManagementHash(activeTab);
 }
 
-async function openStaffNegotiation(staffId) {
-  const result = await api("/api/staff-contracts/open", { method: "POST", body: JSON.stringify({ staffId }) });
+async function openStaffNegotiation(staffId, startSeason = undefined) {
+  const result = await api("/api/staff-contracts/open", { method: "POST", body: JSON.stringify({ staffId, startSeason }) });
   selectedStaffNegotiation = result.negotiation;
   activeTab = "staff-market";
   syncManagementHash(activeTab);
@@ -373,6 +461,21 @@ async function openSponsorNegotiation(sponsorId, tier, renewDealId = null) {
 root.addEventListener("click", (event) => {
   const tab = event.target.closest("[data-tab]")?.dataset.tab;
   if (tab) { activeTab = normalizeManagementView(tab); syncManagementHash(activeTab); render(); return; }
+
+  const planningButton = event.target.closest("[data-planning-view]");
+  if (planningButton) {
+    activeTab = normalizeManagementView(planningButton.dataset.planningView);
+    const negotiationId = planningButton.dataset.planningNegotiation;
+    if (negotiationId && activeTab === "contracts") selectedNegotiation = contracts.negotiations.find((row) => row.id === negotiationId) ?? null;
+    if (negotiationId && activeTab === "staff-market") selectedStaffNegotiation = staffContracts.negotiations.find((row) => row.id === negotiationId) ?? null;
+    syncManagementHash(activeTab);
+    render();
+    return;
+  }
+  const renewDriver = event.target.closest("[data-renew-driver]")?.dataset.renewDriver;
+  if (renewDriver) return action(() => openDriverNegotiation(renewDriver, careerState.career?.season));
+  const renewStaff = event.target.closest("[data-renew-staff]")?.dataset.renewStaff;
+  if (renewStaff) return action(() => openStaffNegotiation(renewStaff, careerState.career?.season));
 
   const readItem = event.target.closest("[data-read-item]")?.dataset.readItem;
   if (readItem) return action(() => api("/api/inbox/read", { method: "POST", body: JSON.stringify({ itemId: readItem, read: true }) }));
