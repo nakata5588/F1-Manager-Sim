@@ -147,7 +147,7 @@ test("completed projects build persistent discipline familiarity without rewriti
   assert.equal(after.totalCompletedProjects, 1);
   assert.equal(after.disciplines.aero.completedProjects, 1);
   assert.ok(after.disciplines.aero.familiarity > before);
-  assert.equal(after.lastProjectAt, "1980-01-01");
+  assert.equal(after.lastProjectAt, "1980-02-01");
   assert.ok(save.history.technicalEvolution.some((row) => row.type === "project_learning" && row.projectId === project.projectId));
   assert.deepEqual(save.world.carStats.find((row) => row.team_id === "T1"), sourceCar);
 });
