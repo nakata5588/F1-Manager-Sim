@@ -124,6 +124,13 @@ export function isDriverRaceAvailable(saveWorld, driverId, date = saveWorld.cloc
   return true;
 }
 
+function defaultInjuryRisk(season) {
+  if (season < 1985) return 0.035;
+  if (season < 1995) return 0.025;
+  if (season < 2005) return 0.018;
+  return 0.012;
+}
+
 function injuryPolicy(saveWorld) {
   const season = Number(saveWorld.clock?.season);
   const accident = effectiveRow(saveWorld.world?.accidentModel, season);
@@ -139,8 +146,8 @@ function injuryPolicy(saveWorld) {
       ?? accident?.era_safety_index,
   );
   return {
-    baseProbability: explicit ?? 0.02,
-    baseSource: explicit === null ? "simulation_default_injury_risk" : "season_database_accident_model",
+    baseProbability: explicit ?? defaultInjuryRisk(season),
+    baseSource: explicit === null ? "simulation_default_era_injury_risk" : "season_database_accident_model",
     safetyIndex,
     safetySource: safetyIndex === null ? "unspecified" : (safety?.source ?? "season_database_era_safety"),
   };
@@ -289,13 +296,23 @@ export function recoverDueDrivers(saveWorld, date = saveWorld.clock?.date) {
 }
 
 export function driverAvailabilityProjection(saveWorld, driverId) {
-  const medical = ensureDriverMedicalState(saveWorld, driverId);
-  const activeReplacement = ensureDriverAvailabilityState(saveWorld).replacements.find((row) =>
+  const state = saveWorld.world?.driverAvailability;
+  const medical = state?.drivers?.[driverId] ?? {
+    driverId,
+    status: saveWorld.world?.careerState?.drivers?.[driverId]?.status === "retired" ? "retired" : "fit",
+    injuryId: null,
+    injuryClass: null,
+    injuredAt: null,
+    unavailableUntil: null,
+    expectedReturnDate: null,
+    recoveredAt: null,
+  };
+  const activeReplacement = (state?.replacements ?? []).find((row) =>
     row.status === "active"
       && (row.absentDriverId === driverId || row.replacementDriverId === driverId)) ?? null;
   return {
     ...structuredClone(medical),
-    raceAvailable: isDriverRaceAvailable(saveWorld, driverId),
+    raceAvailable: medical.status === "fit" && saveWorld.world?.careerState?.drivers?.[driverId]?.status !== "retired",
     activeReplacement: activeReplacement ? structuredClone(activeReplacement) : null,
   };
 }
