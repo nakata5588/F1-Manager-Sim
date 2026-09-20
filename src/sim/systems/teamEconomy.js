@@ -7,6 +7,10 @@ import {
   financeModelMonthlyBurn,
   refreshFinancialPlanningState,
 } from "../../game/management/finances.js";
+import {
+  applyCrisisDebtService,
+  monthlyCrisisDebtService,
+} from "../../game/management/financialCrisis.js";
 
 export const TEAM_FINANCE_EVENT = Object.freeze({
   INITIALIZED: "team.finance_initialized",
@@ -198,7 +202,8 @@ function closeMonth(saveWorld, event) {
     const staffSalaries = assignmentSalary(saveWorld, teamId, "staff", season);
     const maintenance = facilityMaintenance(saveWorld, teamId);
     const engineSupplier = technicalSupplierMonthlyCost(saveWorld, teamId);
-    const knownRecurring = driverSalaries + staffSalaries + maintenance + engineSupplier;
+    const debtService = monthlyCrisisDebtService(saveWorld, teamId);
+    const knownRecurring = driverSalaries + staffSalaries + maintenance + engineSupplier + debtService.total;
     const operations = operatingCost(saveWorld, teamId);
     const income = sponsors;
     const expenses = knownRecurring + operations.value;
@@ -219,7 +224,11 @@ function closeMonth(saveWorld, event) {
       operations: roundMoney(operations.value),
       operationsSource: operations.source,
       engineSupplier: roundMoney(engineSupplier),
+      crisisDebtService: roundMoney(debtService.total),
+      crisisDebtInterest: roundMoney(debtService.interest),
+      crisisDebtPrincipal: roundMoney(debtService.principal),
     };
+    applyCrisisDebtService(saveWorld, teamId, debtService, event.date);
     team.lastFinanceDate = event.date;
     const financialPlanning = refreshFinancialPlanningState(saveWorld, teamId);
     const record = {
@@ -243,6 +252,9 @@ function closeMonth(saveWorld, event) {
         operations: roundMoney(operations.value),
         operationsSource: operations.source,
         engineSupplier: roundMoney(engineSupplier),
+        crisisDebtService: roundMoney(debtService.total),
+        crisisDebtInterest: roundMoney(debtService.interest),
+        crisisDebtPrincipal: roundMoney(debtService.principal),
       },
     };
     saveWorld.history.finances.push(record);
