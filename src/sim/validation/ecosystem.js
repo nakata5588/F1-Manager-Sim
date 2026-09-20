@@ -1,6 +1,7 @@
 import { runLongRunValidation } from "./longRun.js";
 
 function numeric(value, fallback = null) {
+  if (value === null || value === undefined || value === "") return fallback;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
@@ -61,6 +62,9 @@ export function summarizeLongRunEcosystem(saveWorld, structuralReport = null) {
     teamCash: distribution(teamCash),
     financiallyDistressedTeams: teamStates.filter((row) => row?.financialStatus === "distressed").length,
     financiallyTightTeams: teamStates.filter((row) => row?.financialStatus === "tight").length,
+    distressedTeamShare: teamStates.length
+      ? round(teamStates.filter((row) => row?.financialStatus === "distressed").length / teamStates.length, 4)
+      : 0,
     activeDriverAges: distribution(activeDriverAges),
     generatedDrivers,
     freeDrivers: saveWorld.world?.employment?.freeAgents?.drivers?.length ?? 0,
@@ -109,6 +113,8 @@ export function runLongRunMatrix(historicalSnapshot, options = {}) {
   if (constructorChampions.size <= 1 && seasons >= 10) warnings.push("Ecosystem signal: all simulated seasons/seeds produced one constructor champion identity.");
   if (runs.some((run) => run.ecosystem.freeDrivers === 0) && seasons >= 10) warnings.push("Ecosystem signal: at least one long run ended with no free drivers.");
   if (runs.some((run) => run.ecosystem.openVacancies > run.ecosystem.activeTeams * 8)) warnings.push("Ecosystem signal: at least one run ended with unusually high vacancy pressure.");
+  if (runs.some((run) => run.ecosystem.distressedTeamShare >= 0.5)) warnings.push("Ecosystem signal: at least half of active teams are financially distressed in one or more long runs; economy calibration should be reviewed.");
+  if (runs.some((run) => run.ecosystem.activeDriverAges.count > 0 && run.ecosystem.activeDriverAges.median < 16)) warnings.push("Ecosystem signal: active-driver age distribution is implausibly young and should be audited.");
 
   return {
     ok: runs.every((run) => run.ok),
