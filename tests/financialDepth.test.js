@@ -120,7 +120,7 @@ test("affordability protects reserves and recurring runway while allowing explic
   assert.equal(recurring.reason, "recurring_commitment_too_risky");
 });
 
-test("monthly economy uses Finance_Model burn as a residual and does not double-count known payroll or maintenance", () => {
+test("monthly economy keeps Finance_Model as planning-only and posts only authoritative recurring costs", () => {
   const save = economyWorld();
   const systems = [createTeamEconomySystem()];
   initializeSimulation(save, systems);
@@ -136,12 +136,12 @@ test("monthly economy uses Finance_Model burn as a residual and does not double-
   assert.equal(close.payload.breakdown.driverSalaries, 10_000);
   assert.equal(close.payload.breakdown.staffSalaries, 20_000);
   assert.equal(close.payload.breakdown.facilityMaintenance, 1_000);
-  assert.equal(close.payload.breakdown.operations, 169_000);
-  assert.equal(close.payload.breakdown.operationsSource, "gameplay_finance_model_residual");
-  assert.equal(close.payload.expenses, 200_000);
+  assert.equal(close.payload.breakdown.operations, 0);
+  assert.equal(close.payload.breakdown.operationsSource, "unavailable_model_is_planning_only");
+  assert.equal(close.payload.expenses, 31_000);
   assert.equal(close.payload.income, 100_000);
-  assert.equal(close.payload.net, -100_000);
-  assert.equal(save.world.teamState.T1.cash, 900_000);
+  assert.equal(close.payload.net, 69_000);
+  assert.equal(save.world.teamState.T1.cash, 1_069_000);
 });
 
 test("financial planning persists through save/load without becoming historical database state", () => {
