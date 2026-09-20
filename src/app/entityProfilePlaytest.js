@@ -9,6 +9,8 @@ import { personProfile, personProjection } from "../game/management/people.js";
 import { staffRecruitmentEligibility } from "../game/management/staffRecruitment.js";
 import { teamVisualIdentity } from "../presentation/teamVisualIdentity.js";
 import { financialPlanningProjection } from "../game/management/finances.js";
+import { driverAvailabilityProjection } from "../game/management/driverAvailability.js";
+import { driverMarketProjection } from "../game/management/driverMarket.js";
 
 function requireSession(session) {
   if (!session || typeof session.requireCareer !== "function") throw new TypeError("A DeveloperPlaytestSession is required.");
@@ -148,6 +150,8 @@ function personProfileProjection(saveWorld, type, id) {
   };
   if (type === "driver") {
     profile.scoutingKnowledge = driverScoutingKnowledge(saveWorld, id);
+    profile.availability = driverAvailabilityProjection(saveWorld, id);
+    profile.marketPath = driverMarketProjection(saveWorld, id);
     profile.recentResults = recentDriverResults(saveWorld, id);
   } else {
     profile.recruitment = staffRecruitmentEligibility(saveWorld, id);
