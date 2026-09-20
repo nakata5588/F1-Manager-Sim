@@ -4,8 +4,8 @@
   "updatedAt": "2026-09-20",
   "application": {
     "version": "0.1.0",
-    "developmentStage": "16.5",
-    "stageName": "Core Integrity & Long-Term Simulation Gate"
+    "developmentStage": "17",
+    "stageName": "Commercial & Financial Depth"
   },
   "persistence": {
     "saveSchemaVersion": 2,
@@ -29,6 +29,8 @@
   "policies": {
     "historicalFuture": "reference_not_script",
     "uiAuthority": false,
-    "raceParticipationAuthority": "world.raceEntryState.current"
+    "raceParticipationAuthority": "world.raceEntryState.current",
+    "financeAuthority": "world.teamState",
+    "financialPlanning": "save_world_projection_over_existing_cost_authorities"
   }
 }
