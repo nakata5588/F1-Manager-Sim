@@ -64,8 +64,8 @@ function initializeTeams(saveWorld, date) {
       monthlyExpenses: 0,
       monthlyNet: 0,
       lastFinanceDate: date,
-      projectedMonthlyIncome: 0,
-      projectedMonthlyExpenses: 0,
+      projectedMonthlyIncome: null,
+      projectedMonthlyExpenses: null,
       lastIncomeBreakdown: {},
       lastExpenseBreakdown: {},
     };
