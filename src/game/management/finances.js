@@ -176,6 +176,11 @@ export function assessFinancialCommitment(saveWorld, teamId, input = {}) {
   }
   const upfront = Math.max(0, numeric(input.upfront ?? input.amount, 0));
   const monthlyAdded = Math.max(0, numeric(input.monthlyAdded, 0));
+  const crisis = saveWorld.world?.financialCrisis?.teams?.[teamId] ?? null;
+  const crisisEssentialKinds = new Set(["reliability", "supplier_contract", "mandatory_supplier", "emergency_repair"]);
+  const crisisFreeze = crisis?.spendingFreeze === true
+    && !crisisEssentialKinds.has(String(input.kind ?? "general"))
+    && input.allowCrisisFreeze !== true;
   const allowReserveBreach = input.allowReserveBreach === true;
   const strictRecurring = input.strictRecurring === true;
   const cashAfter = projection.cash - upfront;
@@ -189,7 +194,8 @@ export function assessFinancialCommitment(saveWorld, teamId, input = {}) {
     && runwayAfter < FINANCIAL_STRATEGIES[projection.strategy].recurringToleranceMonths;
 
   let reason = "affordable";
-  if (cashShortfall) reason = "insufficient_cash";
+  if (crisisFreeze) reason = "financial_crisis_spending_freeze";
+  else if (cashShortfall) reason = "insufficient_cash";
   else if (reserveBreach && !allowReserveBreach) reason = "cash_reserve_breach";
   else if (recurringRisk && !allowReserveBreach) reason = "recurring_commitment_too_risky";
 
@@ -205,6 +211,8 @@ export function assessFinancialCommitment(saveWorld, teamId, input = {}) {
     cashAfter: roundMoney(cashAfter),
     reserveTarget: projection.reserveTarget,
     reserveBreach,
+    crisisFreeze,
+    crisisStage: crisis?.stage ?? null,
     projectedMonthlyNet: roundMoney(projectedMonthlyNet),
     runwayAfter: runwayAfter === null ? null : Number(runwayAfter.toFixed(2)),
   };
@@ -219,6 +227,9 @@ export function assertFinancialCommitment(saveWorld, teamId, input = {}) {
     }
     if (assessment.reason === "cash_reserve_breach") {
       throw new Error(`Team '${teamId}' cannot fund ${label} without breaching its ${assessment.strategy} cash reserve.`);
+    }
+    if (assessment.reason === "financial_crisis_spending_freeze") {
+      throw new Error(`Team '${teamId}' cannot approve ${label} while a financial-crisis spending freeze is active.`);
     }
     throw new Error(`Team '${teamId}' cannot responsibly afford ${label} under its current financial plan.`);
   }
