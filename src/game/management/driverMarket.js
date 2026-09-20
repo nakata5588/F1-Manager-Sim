@@ -115,6 +115,7 @@ export function initializeDriverMarket(saveWorld, date = saveWorld.clock?.date) 
     if (!driverId || state.drivers[driverId]) continue;
     const career = saveWorld.world?.careerState?.drivers?.[driverId] ?? {};
     const assignment = employment.drivers?.[driverId] ?? null;
+    if (activeReplacementIds.has(String(driverId))) continue;
     let path;
     if (career.status === "retired") path = "retired";
     else if (assignment?.status === "employed") path = "f1_employed";
@@ -149,7 +150,9 @@ export function markDriverF1FreeAgent(saveWorld, driverId, reason = "free_agent"
 export function markDriverF1Employed(saveWorld, driverId, reason = "contract", date = saveWorld.clock?.date) {
   if (!driverId) return null;
   removeFreeAgent(saveWorld, driverId);
-  return transition(saveWorld, driverId, "f1_employed", { reason, date });
+  const row = transition(saveWorld, driverId, "f1_employed", { reason, date });
+  row.lastF1Season = Number(saveWorld.clock?.season);
+  return row;
 }
 
 export function markDriverRetired(saveWorld, driverId, date = saveWorld.clock?.date) {
@@ -194,6 +197,9 @@ export function evolveDriverMarketSeason(saveWorld, seasonInput, date = saveWorl
   const state = ensureDriverMarketState(saveWorld);
   const employment = ensureEmploymentShape(saveWorld);
   const free = new Set(employment.freeAgents.drivers.map(String));
+  const activeReplacementIds = new Set((ensureDriverAvailabilityState(saveWorld).replacements ?? [])
+    .filter((row) => row?.status === "active")
+    .map((row) => String(row.replacementDriverId)));
   const movedOut = [];
   const returned = [];
 
