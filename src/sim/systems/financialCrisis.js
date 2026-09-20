@@ -205,8 +205,7 @@ function maybeAutomaticIntervention(saveWorld, event, assessment, controlled) {
   const isControlled = controlled.has(String(teamId));
   const output = [];
 
-  if (["spending_freeze", "emergency", "administration"].includes(stage) && row.freezeReason !== "financial_crisis") {
-    setFinancialCrisisCostFreeze(saveWorld, teamId, "financial_crisis");
+  if (assessment.changed && ["spending_freeze", "emergency", "administration"].includes(stage)) {
     output.push({
       type: FINANCIAL_CRISIS_EVENT.SPENDING_FREEZE,
       payload: { team_id: teamId, stage, source: "board_crisis_policy" },
@@ -242,14 +241,16 @@ function maybeAutomaticIntervention(saveWorld, event, assessment, controlled) {
   }
 
   if (stage === "administration") {
-    output.push({
-      type: FINANCIAL_CRISIS_EVENT.ADMINISTRATION,
-      payload: {
-        team_id: teamId,
-        administration_months: row.administrationMonths,
-        debt_principal: row.debtPrincipal,
-      },
-    });
+    if (row.administrationMonths === 1) {
+      output.push({
+        type: FINANCIAL_CRISIS_EVENT.ADMINISTRATION,
+        payload: {
+          team_id: teamId,
+          administration_months: row.administrationMonths,
+          debt_principal: row.debtPrincipal,
+        },
+      });
+    }
 
     if (!row.saleMandate && (!isControlled || row.administrationMonths >= 2)) {
       mandateOwnershipSale(saveWorld, teamId, isControlled ? "administrator_sale_process" : "ai_team_crisis_policy");
