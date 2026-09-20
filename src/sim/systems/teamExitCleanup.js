@@ -22,6 +22,11 @@ function archiveTechnicalTeam(saveWorld, teamId) {
     technical.inactiveSupplierTeams[teamId] = structuredClone(technical.suppliers.teams[teamId]);
     delete technical.suppliers.teams[teamId];
   }
+  if (technical.evolution?.teams?.[teamId]) {
+    technical.evolution.inactiveTeams ??= {};
+    technical.evolution.inactiveTeams[teamId] = structuredClone(technical.evolution.teams[teamId]);
+    delete technical.evolution.teams[teamId];
+  }
 }
 
 function cancelFutureAssignments(employment, teamId, date) {
