@@ -48,6 +48,7 @@ export { advanceDay } from "./sim/clock.js";
 export { advanceDays, dispatchSimulationEvents, initializeSimulation, SIM_EVENT } from "./sim/timeEngine.js";
 export { runHeadlessSimulation } from "./sim/headless.js";
 export { runLongRunValidation, validateLongRunWorld } from "./sim/validation/longRun.js";
+export { runLongRunMatrix, summarizeLongRunEcosystem } from "./sim/validation/ecosystem.js";
 export { CONTRACT_EVENT, createContractMilestoneSystem } from "./sim/systems/contractMilestones.js";
 export { ENTITY_EVENT, createEntityAvailabilitySystem } from "./sim/systems/entityAvailability.js";
 export { ageOnDate, CAREER_EVENT, createCareerLifecycleSystem, registerCareerProfile } from "./sim/systems/careerLifecycle.js";

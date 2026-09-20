@@ -6,7 +6,7 @@ F1 Manager Sim is a long-form Formula One management and world simulation game. 
 
 ## Current development phase
 
-**Phase 46 — Integrated New Game Flow**
+**Stage 16.5 — Core Integrity & Long-Term Simulation Gate**
 
 The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market, a persistent physical technical lifecycle, dynamic governance/grid evolution, a playable season-to-season transition, renewable driver population, persistent world news/history/records, an era-safe team-organisation model, resumable career persistence and an explicit New Game selection flow.
 
@@ -16,7 +16,7 @@ Current career path:
 
 Current persistence path:
 
-`Save World -> Versioned Save Envelope -> Manual Slot / Autosave -> Provenance Validation -> Restored Save World -> Resumed Career`
+`Save World -> Versioned Save Envelope -> Manual Slot / Autosave -> Ordered Schema Migrations -> Provenance Validation -> Restored Save World -> Resumed Career`
 
 Current management/world loop:
 
@@ -33,6 +33,9 @@ The talent lifecycle extends through:
 The staff/organisation lifecycle extends through:
 
 `Employment / Vacancy -> Functional Department -> Quality / Capacity / Workload -> Advice / Operational Effect -> Staff Change -> Updated Organisation`
+
+Stage 16.5 consolidates core authority before the next depth pass: Race Entry now feeds Race Weekend directly without mutating Employment, save envelopes have an explicit v1 -> v2 migration path, the real 1980 gate composes the current v0.9 circuit package, and CI now includes multi-seed 20-season ecosystem validation. Current release pointers live in `data/release-manifest.json`.
+
 
 Phase 46 turns the Developer Playtest bootstrap into an explicit New Game wizard with Database, Decade, Season, Team and Manager stages. Because 1980 remains the only fully supported starting season, the current runtime exposes only the validated supplied Season Database rather than inventing unavailable historical options. The browser catalog contract is already structured for multiple databases and seasons, so historical expansion can add real career-ready choices without replacing the flow. Final career creation still passes through the existing server-side `createCareerFromSeasonDatabase()` boundary.
 
@@ -72,7 +75,7 @@ The New Game boundary is:
 
 The persistence boundary is:
 
-`Save World -> Serialization Envelope -> Storage Slot -> Deserialization -> Source Compatibility Gate -> Save World`
+`Save World -> Serialization Envelope -> Storage Slot -> Deserialization / Ordered Schema Migrations -> Source Compatibility Gate -> Save World`
 
 The race-weekend gameplay boundary is:
 
@@ -108,7 +111,7 @@ See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/CAREER_PERSISTENCE
 
 The current promoted canonical source baseline remains **v1.2.5-1980-technical-source-lock-candidate (2026-09-12)**. Its reproducibility contract is pinned in `data/database-baselines/v1.2.5-1980-technical-source-lock-candidate/baseline.json`; earlier baseline folders remain audit history only.
 
-The latest cumulative 1980 database candidate is **v1.2.15-1980-historical-source-enrichment-candidate** (corrective r3). It is pinned separately as the latest candidate and is **not** silently promoted over v1.2.5. The v1.2.15 corrective candidate preserves the cumulative 1980 database lineage, conservative Career Start availability rules, historical-source enrichment and explicit uncertainty where row-level opening evidence remains incomplete.
+The latest cumulative 1980 database candidate is **v1.2.16-1980-canonical-closure-audit-consistency-candidate**. It is pinned separately as the latest Development candidate and is **not** silently promoted over v1.2.5. The v1.2.16 candidate closes the current 1980 audit-consistency pass while preserving explicit uncertainty where opening historical evidence remains incomplete.
 
 The canonical source identity remains `9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097`. The promoted Global JSON hash is `315fdd58ef24b02bc6aeb073876d8fa1966839c134751979d8800393b83a36cd` and the promoted Season Definition 1980 JSON hash is `e22b89da311991fad300d873973513cba438ebac38b450e8bf5248f61dfc9303`.
 
@@ -149,6 +152,7 @@ Core simulation development requires Node.js 22+. Historical database tooling us
 ```bash
 npm test
 npm run test:data
+npm run sim:ecosystem -- --seasons 20 --seeds 10
 ```
 
 Audit a master workbook without modifying it:

@@ -104,3 +104,14 @@ Initial classification:
 6. running automated tests outside any UI.
 
 This is the foundation for the longer milestone: New Game -> Database -> Decade -> Season -> Team -> Manager -> Career -> Continue -> Race Weekend -> Championship -> Offseason -> Next Season.
+
+
+### 7. Race Entry authority
+
+Employment owns contractual employment. `world.raceEntryState.current` owns participation in the current race-entry context.
+
+Race Weekend consumes Race Entry directly. It must not mutate Employment to make a reserve/test/temporary driver appear as a race driver. This boundary is required for injuries, substitutions, one-race entries and era-specific entry rules.
+
+### 8. Save schema evolution
+
+Save envelopes use an ordered migration chain before restoration. Migrations may normalize persisted structure and metadata, but must not rerun simulation outcomes. Historical Database provenance compatibility is checked separately after save-schema migration.

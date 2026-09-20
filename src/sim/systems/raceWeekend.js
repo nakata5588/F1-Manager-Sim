@@ -56,10 +56,28 @@ function raceRole(role) {
 }
 
 function entrants(saveWorld) {
+  const authoritative = saveWorld.world?.raceEntryState?.current;
+  if (Array.isArray(authoritative)) {
+    return authoritative
+      .filter((entry) => entry?.driverId && entry?.teamId && saveWorld.world?.careerState?.drivers?.[entry.driverId]?.status !== "retired")
+      .map((entry) => ({
+        driverId: entry.driverId,
+        teamId: entry.teamId,
+        role: entry.sourceRole ?? entry.role ?? "race_driver",
+        entrantId: entry.entrantId ?? null,
+        carNumber: entry.carNumber ?? null,
+        tyreSupplier: entry.tyreSupplier ?? null,
+        source: entry.source ?? "race_entry_state",
+      }))
+      .sort((a, b) => a.teamId.localeCompare(b.teamId) || Number(a.carNumber ?? 999) - Number(b.carNumber ?? 999) || a.driverId.localeCompare(b.driverId));
+  }
+
+  // Legacy/save-recovery fallback only. New careers own participation through
+  // world.raceEntryState and Race Weekend must never mutate Employment to obtain it.
   const assignments = saveWorld.world?.employment?.drivers ?? {};
   return Object.entries(assignments)
     .filter(([id, assignment]) => assignment?.status === "employed" && assignment.teamId && raceRole(assignment.role) && saveWorld.world?.careerState?.drivers?.[id]?.status !== "retired")
-    .map(([driverId, assignment]) => ({ driverId, teamId: assignment.teamId, role: assignment.role ?? "driver" }))
+    .map(([driverId, assignment]) => ({ driverId, teamId: assignment.teamId, role: assignment.role ?? "driver", source: "legacy_employment_fallback" }))
     .sort((a, b) => a.teamId.localeCompare(b.teamId) || a.driverId.localeCompare(b.driverId));
 }
 

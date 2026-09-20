@@ -128,6 +128,28 @@ test("save serialization round-trips independently", () => {
   assert.equal(restored.meta.historicalDatabase.databaseVersion, "f1db-test");
 });
 
+test("save serialization migrates schema v1 envelopes to the current schema without recalculating gameplay", () => {
+  const save = createSaveWorld(loadHistoricalSeason(db, 1980), { createdAt: "1980-01-01T00:00:00.000Z" });
+  save.world.teams[0].team_name = "Alternative Williams";
+  const current = JSON.parse(serializeSaveWorld(save, { savedAt: "1980-01-01T12:00:00.000Z" }));
+  const legacy = structuredClone(current);
+  legacy.schemaVersion = 1;
+  delete legacy.save.meta.saveSchemaVersion;
+  delete legacy.migrations;
+
+  const restored = deserializeSaveWorld(legacy);
+  assert.equal(restored.meta.saveSchemaVersion, 2);
+  assert.equal(restored.world.teams[0].team_name, "Alternative Williams");
+  assert.equal(save.meta.saveSchemaVersion, undefined, "serialization must not mutate the active Save World");
+});
+
+test("save serialization rejects future schemas instead of silently downgrading them", () => {
+  const save = createSaveWorld(loadHistoricalSeason(db, 1980), { createdAt: "1980-01-01T00:00:00.000Z" });
+  const future = JSON.parse(serializeSaveWorld(save));
+  future.schemaVersion = 999;
+  assert.throws(() => deserializeSaveWorld(future), /newer than supported/i);
+});
+
 test("headless harness advances a career without UI", () => {
   const database = {
     ...db,

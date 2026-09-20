@@ -20,6 +20,7 @@
     "playtest": "node scripts/playtest-server.js",
     "circuit:audit": "node scripts/audit-circuit-layouts.js",
     "circuit:import:geojson": "node scripts/import-circuit-geojson.js",
-    "circuit:overlay": "node scripts/build-circuit-layout-season-overlay.js"
+    "circuit:overlay": "node scripts/build-circuit-layout-season-overlay.js",
+    "sim:ecosystem": "node scripts/ecosystem-sim.js"
   }
 }

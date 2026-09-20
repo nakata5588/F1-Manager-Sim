@@ -1,0 +1,34 @@
+{
+  "format": "f1-manager-sim-release-manifest",
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-20",
+  "application": {
+    "version": "0.1.0",
+    "developmentStage": "16.5",
+    "stageName": "Core Integrity & Long-Term Simulation Gate"
+  },
+  "persistence": {
+    "saveSchemaVersion": 2,
+    "minimumSupportedSaveSchemaVersion": 1
+  },
+  "historicalDatabase": {
+    "promotedCanonical": "v1.2.5-1980-technical-source-lock-candidate",
+    "latest1980Candidate": "v1.2.16-1980-canonical-closure-audit-consistency-candidate",
+    "latestCandidateCanonical": false
+  },
+  "seasonPacks": {
+    "1980": {
+      "baseVersion": "0.7",
+      "systemsOverlayVersion": "0.8",
+      "circuitLayoutOverlayVersion": "0.9",
+      "reviewedCircuitLayouts": 14,
+      "assignedCircuitLayouts": 14,
+      "geometryAuthority": "presentation_only"
+    }
+  },
+  "policies": {
+    "historicalFuture": "reference_not_script",
+    "uiAuthority": false,
+    "raceParticipationAuthority": "world.raceEntryState.current"
+  }
+}
