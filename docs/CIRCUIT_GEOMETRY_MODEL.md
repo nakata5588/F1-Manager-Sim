@@ -14,7 +14,7 @@ Circuit geometry is historical starting data only when the selected Season Datab
 
 The 1980 research pipeline now distinguishes three independent gates: historical layout identity, period-map source-lock, and reviewed runtime geometry. A source-locked map is not automatically drawable geometry.
 
-The first reviewed 1980 runtime geometry is Long Beach 1978-1981. It is explicitly classified as `MATCHED_REVIEWED_SCHEMATIC`: suitable for historical Live Race 2D topology, but not authoritative for distance measurement, car performance, race timing or exact corner coordinates. Other 1980 layouts remain `geometry_unavailable` until their extracted geometry passes the same review gate.
+All 14 1980 runtime geometries are now explicitly classified as `MATCHED_REVIEWED_SCHEMATIC`: suitable for historical Live Race 2D topology, but not authoritative for distance measurement, car performance, race timing or exact corner coordinates. Long Beach remains the special period case with separate start-grid and timing/finish locations.
 
 For coordinate-free tracks:
 
