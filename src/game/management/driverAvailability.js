@@ -256,11 +256,18 @@ export function recoverDueDrivers(saveWorld, date = saveWorld.clock?.date) {
   if (!current) return [];
   const state = ensureDriverAvailabilityState(saveWorld);
   const recovered = [];
-  for (const [driverId, medical] of Object.entries(state.drivers)) {
-    if (medical?.status !== "injured") continue;
+  const activeInjuries = state.injuries.filter((row) => row?.status === "active");
+
+  // Recovery is a sparse event. Iterate active injuries rather than every known
+  // driver on every simulated day so long careers do not pay O(days × roster)
+  // cost when nobody is injured.
+  for (const injury of activeInjuries) {
+    const driverId = injury.driverId;
+    const medical = state.drivers?.[driverId];
+    if (!medical || medical.status !== "injured" || medical.injuryId !== injury.id) continue;
     const until = isoDate(medical.unavailableUntil);
     if (!until || current <= until) continue;
-    const injury = state.injuries.find((row) => row.id === medical.injuryId) ?? null;
+
     medical.status = "fit";
     medical.recoveredAt = current;
     medical.injuryClass = null;
@@ -268,20 +275,19 @@ export function recoverDueDrivers(saveWorld, date = saveWorld.clock?.date) {
     medical.expectedReturnDate = null;
     const injuryId = medical.injuryId;
     medical.injuryId = null;
-    if (injury) {
-      injury.status = "recovered";
-      injury.recoveredAt = current;
-    }
+    injury.status = "recovered";
+    injury.recoveredAt = current;
+
     const result = {
       driverId,
-      teamId: injury?.teamId ?? saveWorld.world?.employment?.drivers?.[driverId]?.teamId ?? null,
+      teamId: injury.teamId ?? saveWorld.world?.employment?.drivers?.[driverId]?.teamId ?? null,
       injuryId,
       recoveredAt: current,
-      injuryClass: injury?.injuryClass ?? null,
-      carNumber: injury?.carNumber ?? null,
-      entrantId: injury?.entrantId ?? null,
-      tyreSupplier: injury?.tyreSupplier ?? null,
-      sourceRole: injury?.sourceRole ?? null,
+      injuryClass: injury.injuryClass ?? null,
+      carNumber: injury.carNumber ?? null,
+      entrantId: injury.entrantId ?? null,
+      tyreSupplier: injury.tyreSupplier ?? null,
+      sourceRole: injury.sourceRole ?? null,
     };
     recovered.push(result);
     saveWorld.history.driverAvailability.push({
