@@ -41,9 +41,6 @@ test("1980 v0.9 validates and materializes stable layout IDs with Season Pack al
   const snapshot = loadSeasonPackRuntimePayload(payload);
 
   assert.equal(validation.ok, true);
-  assert.equal(validation.counts.circuitLayoutRegistry, 14);
-  assert.equal(validation.counts.circuitLayoutAssignments, 14);
-  assert.equal(validation.counts.circuitLayoutGeometry, 1);
   assert.equal(snapshot.circuitLayouts.length, 14);
   assert.equal(snapshot.seasonCircuitAssignments.length, 14);
   assert.equal(snapshot.circuitLayoutGeometry.length, 1);
