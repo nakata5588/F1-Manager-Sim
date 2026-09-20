@@ -23,9 +23,12 @@ Technical workflows are moved into contextual secondary navigation rather than c
 ### Team
 
 - Overview
+- Planning
 - Responsibilities
 
 The Team overview uses the existing People projection for current drivers/staff and the existing Board/Responsibilities projections for summary context.
+
+Stage 15 adds **Planning** as a read-only management projection over current Save World systems. It brings together contract horizons, retention signals, rival interest, organisation vacancies/workload, shortlist context and existing negotiations without creating a second contract or staffing authority.
 
 ### Drivers
 
@@ -100,3 +103,21 @@ Stage 9 does not change:
 - manager-career rules.
 
 The change is information architecture, presentation and navigation only, plus reuse of the existing Team Profile finance projection.
+
+
+## Stage 15 — Management Depth Pass
+
+The consolidated workspace is now deeper rather than merely cleaner.
+
+Team Planning provides:
+
+- a management decision queue;
+- current driver retention/contract planning;
+- current staff retention/contract planning;
+- organisation department coverage and vacancies;
+- shortlist/succession context;
+- direct links into existing negotiations and recruitment actions.
+
+The Planning layer deliberately avoids raw CA/PA or a synthetic worker Overall. It exposes concrete operational signals such as contract expiry, morale, contract satisfaction, transfer openness, rival approaches and staffing vacancies.
+
+Hidden future identities continue to be filtered through the canonical visibility/scouting rules.
