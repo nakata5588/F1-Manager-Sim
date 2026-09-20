@@ -42,7 +42,8 @@
         "direction_basis": "period circuit map and historical layout cross-check",
         "finish_basis": "period map / conventional historical start-finish reference",
         "pit_lane_available": false,
-        "manual_review_date": "2026-09-20"
+        "manual_review_date": "2026-09-20",
+        "topology_sanity": "simple_closed_polyline_no_self_intersections"
       },
       "centerline": [
         [
@@ -243,7 +244,8 @@
         "direction_basis": "period circuit map and historical layout cross-check",
         "finish_basis": "period map / conventional historical start-finish reference",
         "pit_lane_available": false,
-        "manual_review_date": "2026-09-20"
+        "manual_review_date": "2026-09-20",
+        "topology_sanity": "simple_closed_polyline_no_self_intersections"
       },
       "centerline": [
         [
@@ -948,7 +950,8 @@
         "direction_basis": "period circuit map and historical layout cross-check",
         "finish_basis": "period map / conventional historical start-finish reference",
         "pit_lane_available": false,
-        "manual_review_date": "2026-09-20"
+        "manual_review_date": "2026-09-20",
+        "topology_sanity": "simple_closed_polyline_no_self_intersections"
       },
       "centerline": [
         [
@@ -1145,7 +1148,8 @@
         "direction_basis": "period circuit map and historical layout cross-check",
         "finish_basis": "period map / conventional historical start-finish reference",
         "pit_lane_available": false,
-        "manual_review_date": "2026-09-20"
+        "manual_review_date": "2026-09-20",
+        "topology_sanity": "simple_closed_polyline_no_self_intersections"
       },
       "centerline": [
         [
@@ -1564,7 +1568,8 @@
         "direction_basis": "period circuit map and historical layout cross-check",
         "finish_basis": "period map / conventional historical start-finish reference",
         "pit_lane_available": false,
-        "manual_review_date": "2026-09-20"
+        "manual_review_date": "2026-09-20",
+        "topology_sanity": "simple_closed_polyline_no_self_intersections"
       },
       "centerline": [
         [
@@ -2035,7 +2040,8 @@
         "direction_basis": "period circuit map and historical layout cross-check",
         "finish_basis": "period map / conventional historical start-finish reference",
         "pit_lane_available": false,
-        "manual_review_date": "2026-09-20"
+        "manual_review_date": "2026-09-20",
+        "topology_sanity": "simple_closed_polyline_no_self_intersections"
       },
       "centerline": [
         [
@@ -2438,7 +2444,8 @@
         "direction_basis": "period circuit map and historical layout cross-check",
         "finish_basis": "period map / conventional historical start-finish reference",
         "pit_lane_available": false,
-        "manual_review_date": "2026-09-20"
+        "manual_review_date": "2026-09-20",
+        "topology_sanity": "simple_closed_polyline_no_self_intersections"
       },
       "centerline": [
         [
@@ -2944,7 +2951,8 @@
         "direction_basis": "period circuit map and historical layout cross-check",
         "finish_basis": "period map / conventional historical start-finish reference",
         "pit_lane_available": false,
-        "manual_review_date": "2026-09-20"
+        "manual_review_date": "2026-09-20",
+        "topology_sanity": "simple_closed_polyline_no_self_intersections"
       },
       "centerline": [
         [
