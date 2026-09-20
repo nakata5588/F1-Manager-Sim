@@ -129,18 +129,18 @@ function trackSvg(geometry, positions) {
   </svg>`;
 }
 
-export function renderLiveRaceMap({ geometry = null, positions = null, trackName = null } = {}) {
+export function renderLiveRaceMap({ geometry = null, positions = null, trackName = null, spanClass = "span-12" } = {}) {
   const status = liveRaceMapState({ geometry, positions });
   const telemetry = positions?.telemetryMode ?? "unavailable";
 
   if (!geometry?.available) {
-    return `<article class="card span-12 live-race-map-card unavailable">
+    return `<article class="card ${escapeHtml(spanClass)} live-race-map-card unavailable">
       <div class="live-race-map-head"><div><div class="eyebrow">Track Map</div><h2>${escapeHtml(trackName ?? geometry?.trackName ?? "Circuit")}</h2></div><span class="live-race-map-mode">Geometry unavailable</span></div>
       <div class="live-race-map-fallback"><strong>No circuit drawing shown</strong><p>${escapeHtml(status.message)}</p><small>Live timing, Race Control and strategy remain authoritative.</small></div>
     </article>`;
   }
 
-  return `<article class="card span-12 live-race-map-card ${escapeHtml(status.status)}">
+  return `<article class="card ${escapeHtml(spanClass)} live-race-map-card ${escapeHtml(status.status)}">
     <div class="live-race-map-head">
       <div><div class="eyebrow">Live Track Map</div><h2>${escapeHtml(trackName ?? geometry.trackName ?? "Circuit")}</h2></div>
       <div class="live-race-map-badges"><span>${escapeHtml(telemetry.replaceAll("_", " "))}</span><span>${status.drawableCars} marker${status.drawableCars === 1 ? "" : "s"}</span></div>
