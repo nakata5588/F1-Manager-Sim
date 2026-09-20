@@ -128,11 +128,11 @@ Once active, a new team uses the same economy, recruitment, suppliers, developme
 
 ## Team exits
 
-An uncontrolled team can become an automatic exit candidate after at least two consecutive distressed seasons, provided the grid remains above the regulation minimum.
+Stage 19 removes the old annual financial-exit probability from Governance. Governance still tracks grid structure and long-term distress history, but financial survival is now owned by the dedicated crisis/ownership system.
 
-The initial exit probability remains deliberately conservative and deterministic from the Save World seed.
+A team can leave Formula One through unresolved administration or a voluntary crisis withdrawal only after the rescue chain has had an opportunity to act. The regulation package's minimum-team limit is enforced before any financial withdrawal is completed.
 
-A player-controlled team is excluded from this automatic mechanism. A future dedicated insolvency/ownership system should handle a player team's collapse rather than silently ending the career through an AI-only rule.
+Controlled and AI teams use the same crisis primitives. The difference is decision ownership: a controlled manager receives crisis choices through the Inbox instead of being silently removed by an AI-only rule.
 
 When a team exits:
 
@@ -142,7 +142,8 @@ When a team exits:
 - current race entries are removed;
 - future employment commitments are cancelled;
 - open vacancies are cancelled;
-- financial/car/technical/supplier state is archived into inactive buckets.
+- financial/car/technical/supplier state is archived into inactive buckets;
+- crisis/ownership state is archived into `world.financialCrisis.inactiveTeams`.
 
 Completed historical race results therefore keep a valid stable team identity, while active systems no longer process a ghost team.
 
@@ -214,7 +215,7 @@ Normally code/configuration + tests only:
 - technical carry-over/reliability retention ranges;
 - entry readiness thresholds;
 - grid min/max defaults;
-- team-exit distress duration/probability;
+- crisis escalation and grid-protection thresholds;
 - Inbox wording;
 - Governance UI presentation.
 
@@ -248,8 +249,6 @@ Phase 38 does not yet attempt to model every historical governing body, politica
 
 It also does not yet include:
 
-- owner/shareholder transactions;
-- a dedicated player-team insolvency/game-over process;
 - generated brand-new fictional constructors when the future identity pool is exhausted;
 - entry fees/concorde-style commercial agreements;
 - detailed homologation or testing restrictions by regulation article;
