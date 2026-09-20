@@ -1,4 +1,10 @@
 import { createRng } from "../../sim/random.js";
+import {
+  recordTechnicalProjectCompletion,
+  technicalDevelopmentModifier,
+  technicalIdentityProjection,
+  technicalManufacturingCostModifier,
+} from "./technicalEvolution.js";
 
 export const TECHNICAL_EVENT = Object.freeze({
   INITIALIZED: "technical.initialized",
@@ -428,9 +434,10 @@ export function startTechnicalDesignProject(saveWorld, teamId, input = {}) {
   spend(saveWorld, teamId, cost, `${componentLabel(component)} design`);
   const id = nextId(team, "design", saveWorld.clock.date);
   const rng = createRng(`${saveWorld.meta.seed}|${id}|${component}|${focus}`);
+  const evolution = technicalDevelopmentModifier(saveWorld, teamId, component, focus);
   const potential = 0.45 + staff * 0.55 + facility * 0.45 + feedback * 0.22;
   const focusGain = focus === "performance" ? 0.35 : focus === "reliability" ? -0.08 : 0.12;
-  const targetGain = round(clamp(potential + focusGain + (rng.next() - 0.5) * 0.34, 0.25, 2.6));
+  const targetGain = round(clamp((potential + focusGain + (rng.next() - 0.5) * 0.34) * evolution.totalModifier, 0.2, 3));
   const risk = round(clamp(0.32 - staff * 0.12 - facility * 0.10 + (focus === "performance" ? 0.16 : 0), 0.03, 0.55), 3);
   const computedDuration = clamp(Math.round(5 - staff * 1.3 - facility * 1.2 + complexity), 1, 6);
   const durationMonths = Math.max(1, Math.round(numeric(input.durationMonths, computedDuration)));
@@ -451,6 +458,11 @@ export function startTechnicalDesignProject(saveWorld, teamId, input = {}) {
     staffEfficiency: round(staff, 3),
     facilityEfficiency: round(facility, 3),
     driverFeedback: round(feedback, 3),
+    technicalDiscipline: evolution.discipline,
+    technicalFamiliarity: evolution.familiarity,
+    identityModifier: evolution.identityModifier,
+    regulationDevelopmentModifier: evolution.regulationModifier,
+    developmentModifier: evolution.totalModifier,
   };
   team.designProjects.push(project);
   ensureHistory(saveWorld).push({ date: saveWorld.clock.date, type: "design_started", ...structuredClone(project) });
@@ -480,7 +492,8 @@ function completeDesign(saveWorld, team, project, date) {
   project.completedAt = date;
   project.specId = specId;
   project.realizedGain = realizedGain;
-  ensureHistory(saveWorld).push({ date, type: "design_completed", teamId: team.teamId, projectId: project.projectId, specId, component: project.component, gain: realizedGain, targetSeason: project.targetSeason });
+  recordTechnicalProjectCompletion(saveWorld, team.teamId, project, realizedGain);
+  ensureHistory(saveWorld).push({ date, type: "design_completed", teamId: team.teamId, projectId: project.projectId, specId, component: project.component, gain: realizedGain, targetSeason: project.targetSeason, technicalDiscipline: project.technicalDiscipline ?? null });
   return spec;
 }
 
@@ -503,7 +516,8 @@ export function startManufacturingJob(saveWorld, teamId, input = {}) {
   const quantity = clamp(Math.round(numeric(input.quantity, 1)), 1, 4);
   const emergency = Boolean(input.emergency);
   const level = facilityLevel(team, "manufacturing");
-  const unitCost = Math.max(9000, round((12000 + spec.rating * 420) * (emergency ? 1.45 : 1)));
+  const regulationCost = technicalManufacturingCostModifier(saveWorld);
+  const unitCost = Math.max(9000, round((12000 + spec.rating * 420) * (emergency ? 1.45 : 1) * regulationCost));
   const cost = spend(saveWorld, teamId, unitCost * quantity, `${componentLabel(spec.component)} manufacturing`);
   const computedDuration = emergency ? 1 : level >= 8 ? 1 : level >= 5 ? 2 : 3;
   const durationMonths = Math.max(1, Math.round(numeric(input.durationMonths, computedDuration)));
@@ -516,6 +530,7 @@ export function startManufacturingJob(saveWorld, teamId, input = {}) {
     unitCost,
     cost,
     emergency,
+    regulationCostModifier: round(regulationCost, 3),
     source: input.source ?? "player",
     status: "active",
     startedAt: saveWorld.clock.date,
@@ -711,6 +726,7 @@ export function technicalProjection(saveWorld, teamId) {
     },
     facilities: Object.values(team.facilities).map((row) => ({ ...structuredClone(row), upgrade: team.facilityUpgrades.find((upgrade) => upgrade.facilityId === row.id && upgrade.status === "active") ?? null })),
     facilityUpgrades: structuredClone(team.facilityUpgrades.slice(-12)),
+    evolution: technicalIdentityProjection(saveWorld, teamId),
   };
 }
 
