@@ -55,6 +55,29 @@ function renderCar(slot, title) {
   return `<div class="car-box"><h3>${escapeHtml(title)}</h3>${Number.isFinite(Number(condition)) ? `<div class="technical-muted">Overall condition ${Number(condition).toFixed(1)}</div>` : ""}${rows || '<div class="technical-muted">No fitted component data.</div>'}</div>`;
 }
 
+
+function pct(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? `${Math.round(number * 100)}%` : "—";
+}
+
+function renderTechnicalIdentity() {
+  const data = technical.team?.evolution;
+  if (!data) return "";
+  const regulation = data.regulationContext ?? {};
+  const strengths = (data.strengths ?? []).map((row) => row.label).join(" · ") || "No dominant discipline";
+  const developing = (data.developing ?? []).map((row) => row.label).join(" · ") || "No clear weak familiarity";
+  const lastTransition = data.recentTransitions?.at?.(-1) ?? (data.recentTransitions ?? [])[data.recentTransitions?.length - 1];
+
+  return `<section class="technical-card wide technical-identity">
+    <div class="technical-identity-head"><div><span class="management-category">Team evolution</span><h2>Technical Identity & Evolution</h2><p>Persistent know-how built from the opening car and the development choices made during this career.</p></div><div class="technical-concept"><span>Current concept</span><strong>${escapeHtml(label(data.concept))}</strong><small>${escapeHtml(label(data.currentSeasonFocus))} season focus</small></div></div>
+    <div class="technical-identity-summary"><article><span>Established strengths</span><strong>${escapeHtml(strengths)}</strong></article><article><span>Developing areas</span><strong>${escapeHtml(developing)}</strong></article><article><span>Completed projects</span><strong>${data.totalCompletedProjects ?? 0}</strong></article></div>
+    <div class="technical-discipline-grid">${(data.disciplines ?? []).map((row) => `<article class="technical-discipline ${escapeHtml(row.status)}"><div><strong>${escapeHtml(row.label)}</strong><span>${escapeHtml(label(row.status))}</span></div><div class="technical-experience"><b>${row.experienceIndex}</b><small>familiarity</small></div><div class="technical-progress"><i style="width:${Math.max(0, Math.min(100, (Number(row.experienceIndex) - 85) / 30 * 100))}%"></i></div><small>${row.completedProjects} completed project${row.completedProjects === 1 ? "" : "s"}</small></article>`).join("")}</div>
+    <div class="technical-regulation-strip"><span><b>${pct(regulation.carryoverRetention)}</b> technical carry-over</span><span><b>${pct(regulation.developmentEfficiencyModifier)}</b> development efficiency</span><span><b>${pct(regulation.manufacturingCostModifier)}</b> manufacturing cost</span>${lastTransition ? `<span><b>${lastTransition.season}</b> last identity transition</span>` : ""}</div>
+    <div class="technical-muted">Identity familiarity is gameplay know-how, not a hidden Team Overall. Staff, facilities, driver feedback, supplier performance and component specifications remain separate systems.</div>
+  </section>`;
+}
+
 function renderSupplier() {
   const data = technical.supplier;
   if (!data) return "";
@@ -126,7 +149,7 @@ function renderDesign() {
         <button class="primary" type="submit" ${busy ? "disabled" : ""}>Start Design</button>
       </form>`
     : "";
-  const activeRows = active.length ? `<table class="technical-table"><thead><tr><th>Component</th><th>Focus</th><th>Target</th><th>Remaining</th><th>Cost</th></tr></thead><tbody>${active.map((row) => `<tr><td><strong>${escapeHtml(label(row.component))}</strong></td><td>${escapeHtml(label(row.focus))}</td><td>${row.targetSeason}</td><td>${row.monthsRemaining} month(s)</td><td>${money(row.cost)}</td></tr>`).join("")}</tbody></table>` : '<div class="technical-muted">No active design programme.</div>';
+  const activeRows = active.length ? `<table class="technical-table"><thead><tr><th>Component</th><th>Discipline</th><th>Focus</th><th>Development</th><th>Target</th><th>Remaining</th><th>Cost</th></tr></thead><tbody>${active.map((row) => `<tr><td><strong>${escapeHtml(label(row.component))}</strong></td><td>${escapeHtml(label(row.technicalDiscipline ?? "general"))}</td><td>${escapeHtml(label(row.focus))}</td><td>${Number.isFinite(Number(row.developmentModifier)) ? pct(row.developmentModifier) : "—"}<div class="technical-muted">identity × regulations</div></td><td>${row.targetSeason}</td><td>${row.monthsRemaining} month(s)</td><td>${money(row.cost)}</td></tr>`).join("")}</tbody></table>` : '<div class="technical-muted">No active design programme.</div>';
   return `<section class="technical-card wide"><span class="management-category">R&D</span><h2>Design Programmes</h2>${activeRows}${controls}</section>`;
 }
 
@@ -183,6 +206,7 @@ function render() {
     ${technical.responsibility !== "manager" ? '<div class="technical-alert"><strong>Car Development is delegated.</strong> The technical department uses the same supplier, testing, design, manufacturing, maintenance and fitment rules as AI teams. Return the responsibility to Manager in the Management Hub to issue direct orders.</div>' : ""}
     <div class="technical-kpis"><div class="technical-kpi"><strong>${summary.activeDesigns ?? 0}</strong><span>Active designs</span></div><div class="technical-kpi"><strong>${summary.manufacturingJobs ?? 0}</strong><span>Factory jobs</span></div><div class="technical-kpi"><strong>${summary.readySpecs ?? 0}</strong><span>Specs ready</span></div><div class="technical-kpi"><strong>${summary.facilityUpgrades ?? 0}</strong><span>Facility projects</span></div></div>
     <div class="technical-grid">
+      ${renderTechnicalIdentity()}
       ${renderSupplier()}
       ${renderPreseason()}
       <section class="technical-card"><span class="management-category">Race cars</span><h2>Fitted Specifications</h2><div class="car-pair">${renderCar("car1", "Car 1")}${renderCar("car2", "Car 2")}</div></section>
