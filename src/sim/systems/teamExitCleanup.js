@@ -29,6 +29,16 @@ function archiveTechnicalTeam(saveWorld, teamId) {
   }
 }
 
+function archiveFinancialCrisisTeam(saveWorld, teamId) {
+  const crisis = saveWorld.world?.financialCrisis;
+  if (!crisis?.teams?.[teamId]) return false;
+  crisis.inactiveTeams ??= {};
+  crisis.inactiveTeams[teamId] = structuredClone(crisis.teams[teamId]);
+  crisis.inactiveTeams[teamId].archivedAt = saveWorld.clock?.date ?? null;
+  delete crisis.teams[teamId];
+  return true;
+}
+
 function cancelFutureAssignments(employment, teamId, date) {
   let cancelled = 0;
   for (const type of ["drivers", "staff"]) {
@@ -54,12 +64,14 @@ export function archiveExitedTeamOperationalState(saveWorld, teamId, date = save
   const archivedFinance = archiveObjectBucket(world, "teamState", "inactiveTeamState", teamId);
   const archivedCar = archiveObjectBucket(world, "carState", "inactiveCarState", teamId);
   archiveTechnicalTeam(saveWorld, teamId);
+  const archivedFinancialCrisis = archiveFinancialCrisisTeam(saveWorld, teamId);
   const cancelledFutureAssignments = cancelFutureAssignments(world.employment, teamId, date);
   return {
     teamId,
     archived: archivedFinance || archivedCar,
     archivedFinance,
     archivedCar,
+    archivedFinancialCrisis,
     cancelledFutureAssignments,
   };
 }
