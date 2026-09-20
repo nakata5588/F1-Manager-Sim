@@ -15,13 +15,13 @@ A save slot is storage only. It is never a second gameplay authority.
 The existing Save World envelope remains authoritative:
 
 - `format = f1-manager-sim-save`
-- `schemaVersion = 1`
+- `schemaVersion = 2`
 - `savedAt`
 - `save` — the complete mutable Save World
 
-Phase 45 does not invent a parallel playtest save schema.
+Phase 45 does not invent a parallel playtest save schema. Stage 16.5 adds an explicit forward migration chain: schema-v1 saves are upgraded to v2 at load time without recalculating gameplay outcomes, while saves from a newer unsupported schema are rejected safely.
 
-## Slot storage
+## Save migrations\n\nSave-envelope migrations now run before a Save World is restored. Each migration is ordered, deterministic and structural: it may normalize persisted shape/metadata but must not rerun races, contracts, development or other simulation outcomes. The first bridge is `v1 -> v2`, which records the current save-schema version inside `save.meta` while preserving the existing world state.\n\nThis creates the compatibility boundary required for future Save World evolution without invalidating established careers. Historical Database compatibility remains a separate provenance gate.\n\n## Slot storage
 
 The local Developer Playtest uses `FileSaveSlotStore`.
 
@@ -127,7 +127,7 @@ Phase 45 does not add:
 - cloud saves;
 - account synchronization;
 - save compression;
-- arbitrary migration between incompatible database releases;
+- arbitrary migration between incompatible historical database releases;
 - branching/checkpoint timelines;
 - final-product save UI polish.
 
