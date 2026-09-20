@@ -4,8 +4,8 @@
   "updatedAt": "2026-09-20",
   "application": {
     "version": "0.1.0",
-    "developmentStage": "17",
-    "stageName": "Commercial & Financial Depth"
+    "developmentStage": "18",
+    "stageName": "Driver Availability, Injuries & Replacement Market"
   },
   "persistence": {
     "saveSchemaVersion": 2,
@@ -31,6 +31,9 @@
     "uiAuthority": false,
     "raceParticipationAuthority": "world.raceEntryState.current",
     "financeAuthority": "world.teamState",
-    "financialPlanning": "save_world_projection_over_existing_cost_authorities"
+    "financialPlanning": "save_world_projection_over_existing_cost_authorities",
+    "driverMedicalAuthority": "world.driverAvailability",
+    "driverMarketAuthority": "world.driverMarketState",
+    "temporaryRaceReplacement": "race_entry_only_no_employment_mutation"
   }
 }
