@@ -68,7 +68,12 @@ export function ensureFinancialPlanningState(saveWorld, teamId) {
 function recurringValues(saveWorld, teamId) {
   const finance = saveWorld.world?.teamState?.[teamId] ?? {};
   const model = financeModel(saveWorld, teamId);
-  const hasClosedMonth = Boolean(finance.lastExpenseBreakdown || Number(finance.monthlyExpenses) > 0 || Number(finance.monthlyIncome) > 0);
+  const hasClosedMonth = Boolean(
+    (finance.lastExpenseBreakdown && Object.keys(finance.lastExpenseBreakdown).length)
+      || (finance.lastIncomeBreakdown && Object.keys(finance.lastIncomeBreakdown).length)
+      || Number(finance.monthlyExpenses) > 0
+      || Number(finance.monthlyIncome) > 0
+  );
   const income = hasClosedMonth
     ? numeric(finance.monthlyIncome, 0)
     : numeric(finance.projectedMonthlyIncome, modelSponsorIncome(model) ?? 0);
