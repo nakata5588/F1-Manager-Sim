@@ -124,7 +124,7 @@ test("candidate ranking rejects same-venue modern layouts by length without inve
   assert.equal(automaticCandidateStatus(match), "CANDIDATE_LENGTH_MISMATCH");
 });
 
-test("1980 source-lock audit resolves 14 historical maps and the first reviewed runtime geometry", async () => {
+test("1980 source-lock audit resolves all 14 historical maps and all 14 reviewed runtime geometries", async () => {
   const layouts = (await json("layouts.json")).layouts;
   const assignments = (await json("season-assignments/1980.json")).assignments;
   const candidates = (await json("candidate-libraries/bacinger-f1-circuits.manifest.json")).candidates;
@@ -145,10 +145,10 @@ test("1980 source-lock audit resolves 14 historical maps and the first reviewed 
   assert.equal(report.summary.identifiedLayouts, 14);
   assert.equal(report.summary.candidatesFound, 11);
   assert.equal(report.summary.historicalMapSourcesReady, 14);
-  assert.equal(report.summary.runtimeGeometryReviewed, 1);
-  assert.equal(report.summary.reviewedGeometry, 1);
-  assert.equal(report.summary.runtimeGeometryStatusCounts.MATCHED_REVIEWED_SCHEMATIC, 1);
-  assert.equal(report.summary.runtimeGeometryStatusCounts.GEOMETRY_UNAVAILABLE, 13);
+  assert.equal(report.summary.runtimeGeometryReviewed, 14);
+  assert.equal(report.summary.reviewedGeometry, 14);
+  assert.equal(report.summary.runtimeGeometryStatusCounts.MATCHED_REVIEWED_SCHEMATIC, 14);
+  assert.equal(report.summary.runtimeGeometryStatusCounts.GEOMETRY_UNAVAILABLE ?? 0, 0);
   assert.equal(report.summary.statusCounts.GEOMETRY_MISSING, 3);
   assert.equal(report.summary.statusCounts.CANDIDATE_CONFIGURATION_MISMATCH, 2);
   assert.equal(report.summary.statusCounts.MATCHED_NEEDS_REVIEW ?? 0, 0);
@@ -220,7 +220,7 @@ test("Long Beach 1978-81 geometry is reviewed only for schematic historical 2D u
   assert.equal(geometry.geometry_status, "MATCHED_REVIEWED_SCHEMATIC");
   assert.equal(geometry.precision, "schematic_historical_trace");
   assert.equal(geometry.centerline.length, 53);
-  assert.equal(geometry.geometry_hash, "bc5652309c2855b30d5a4bcc09c8280ee3fc5a33a6096221ded04c6308bd9877");
+  assert.equal(geometry.geometry_hash, "aa0db1d66b59d469ecd7e7fc73c74ee58bceb35088e30fbebdaacdc432ba83ab");
   assert.notEqual(geometry.finish_line.centerlineIndex, geometry.start_grid.centerlineIndex);
   assert.ok(geometry.reviewed_for.includes("2d_track_presentation"));
   assert.ok(geometry.not_authoritative_for.includes("car_performance"));
@@ -228,4 +228,80 @@ test("Long Beach 1978-81 geometry is reviewed only for schematic historical 2D u
   const validation = validateCircuitLayoutCatalog({ layouts, assignments, geometries });
   assert.deepEqual(validation, { ok: true, issues: [] });
   assert.equal(isReviewedCircuitGeometry(geometry), true);
+});
+
+test("all 14 1980 layouts have reviewed schematic geometry with safe presentation-only provenance", async () => {
+  const layouts = (await json("layouts.json")).layouts;
+  const assignments = (await json("season-assignments/1980.json")).assignments;
+  const geometries = (await json("geometries/1980.json")).geometries;
+  const assignedIds = new Set(assignments.map((row) => row.layout_id));
+
+  assert.equal(geometries.length, 14);
+  assert.equal(new Set(geometries.map((row) => row.layout_id)).size, 14);
+  assert.deepEqual(new Set(geometries.map((row) => row.layout_id)), assignedIds);
+
+  for (const geometry of geometries) {
+    assert.equal(isReviewedCircuitGeometry(geometry), true, geometry.layout_id);
+    assert.equal(geometry.geometry_status, "MATCHED_REVIEWED_SCHEMATIC", geometry.layout_id);
+    assert.equal(geometry.precision, "schematic_historical_trace", geometry.layout_id);
+    assert.match(geometry.geometry_hash, /^[0-9a-f]{64}$/, geometry.layout_id);
+    assert.ok(geometry.source_author, geometry.layout_id);
+    assert.ok(Array.isArray(geometry.centerline) && geometry.centerline.length >= 30, geometry.layout_id);
+    assert.ok(geometry.reviewed_for.includes("2d_track_presentation"), geometry.layout_id);
+    assert.ok(geometry.not_authoritative_for.includes("car_performance"), geometry.layout_id);
+    assert.ok(geometry.not_authoritative_for.includes("race_timing"), geometry.layout_id);
+    for (const point of geometry.centerline) {
+      assert.equal(point.length, 2, geometry.layout_id);
+      assert.ok(point.every((value) => Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 1), geometry.layout_id);
+    }
+  }
+
+  assert.deepEqual(validateCircuitLayoutCatalog({ layouts, assignments, geometries }), { ok: true, issues: [] });
+});
+
+test("1980 Imola uses the 5.000 km pre-1981 configuration while preserving the legacy discrepancy in audit", async () => {
+  const layouts = (await json("layouts.json")).layouts;
+  const geometry = (await json("geometries/1980.json")).geometries.find((row) => row.layout_id === "cl_tr_0047_gp_1974");
+  const audit = await json("audits/1980.json");
+  const layout = layouts.find((row) => row.layout_id === "cl_tr_0047_gp_1974");
+  const row = audit.rows.find((entry) => entry.layout_id === "cl_tr_0047_gp_1974");
+
+  assert.equal(layout.lap_length_km, 5);
+  assert.equal(layout.historical_status, "VERIFIED_LAYOUT_IDENTITY");
+  assert.equal(geometry.lap_length_km, 5);
+  assert.equal(row.baseline_lap_length_km, 5.04);
+  assert.equal(row.corrected_historical_lap_length_km, 5);
+  assert.match(row.notes, /legacy discrepancy/i);
+});
+
+function circuitSegmentsIntersect(a, b, c, d) {
+  const orient = (p, q, r) => (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
+  const o1 = orient(a, b, c);
+  const o2 = orient(a, b, d);
+  const o3 = orient(c, d, a);
+  const o4 = orient(c, d, b);
+  return o1 * o2 < -1e-12 && o3 * o4 < -1e-12;
+}
+
+test("1980 reviewed centerlines are simple closed paths without artificial self-intersections", async () => {
+  const geometries = (await json("geometries/1980.json")).geometries;
+  for (const geometry of geometries) {
+    const points = geometry.centerline;
+    const count = points.length;
+    for (let i = 0; i < count; i += 1) {
+      const a = points[i];
+      const b = points[(i + 1) % count];
+      for (let j = i + 1; j < count; j += 1) {
+        if (j === i || j === (i + 1) % count || (j + 1) % count === i) continue;
+        if (i === 0 && j === count - 1) continue;
+        const c = points[j];
+        const d = points[(j + 1) % count];
+        assert.equal(
+          circuitSegmentsIntersect(a, b, c, d),
+          false,
+          `${geometry.layout_id} has an artificial crossing between segments ${i} and ${j}`,
+        );
+      }
+    }
+  }
 });

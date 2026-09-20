@@ -95,7 +95,7 @@ const assignmentHeaders = [
 ];
 const geometryHeaders = [
   "layout_id", "track_id", "geometry_status", "historical_status", "geometry_source",
-  "source_url", "source_repository", "original_source", "license", "retrieved_at",
+  "source_url", "source_repository", "source_author", "original_source", "license", "retrieved_at",
   "geometry_hash", "lap_length_km", "coordinate_system", "precision", "reviewed_for",
   "not_authoritative_for", "trace_metadata", "centerline", "finish_line", "timing_line",
   "start_finish", "start_grid", "pit_lane", "corners", "sectors", "notes",

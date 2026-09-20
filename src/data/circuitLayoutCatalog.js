@@ -143,6 +143,7 @@ function geometryPayload(row) {
     provenance: {
       sourceUrl: row.source_url ?? row.sourceUrl ?? null,
       sourceRepository: row.source_repository ?? row.sourceRepository ?? null,
+      sourceAuthor: row.source_author ?? row.sourceAuthor ?? null,
       originalSource: row.original_source ?? row.originalSource ?? null,
       license: row.license ?? null,
       retrievedAt: row.retrieved_at ?? row.retrievedAt ?? null,
