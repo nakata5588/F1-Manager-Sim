@@ -29,6 +29,7 @@ test("career shell exposes one stable navigation model across the playable modul
 test("management deep links resolve existing tabs without creating duplicate screens", () => {
   assert.equal(managementTabForHash("#inbox"), "inbox");
   assert.equal(managementTabForHash("#team"), "team");
+  assert.equal(managementTabForHash("#planning"), "planning");
   assert.equal(managementTabForHash("#drivers"), "drivers");
   assert.equal(managementTabForHash("#recruitment"), "recruitment");
   assert.equal(managementTabForHash("#staff"), "staff");
@@ -38,6 +39,7 @@ test("management deep links resolve existing tabs without creating duplicate scr
   assert.equal(managementTabForHash("#not-a-tab"), null);
 
   assert.equal(activeCareerNavId({ pathname: "/management.html", hash: "#team" }), "team");
+  assert.equal(activeCareerNavId({ pathname: "/management.html", hash: "#planning" }), "team");
   assert.equal(activeCareerNavId({ pathname: "/management.html", hash: "#drivers" }), "drivers");
   assert.equal(activeCareerNavId({ pathname: "/management.html", hash: "#recruitment" }), "drivers");
   assert.equal(activeCareerNavId({ pathname: "/management.html", hash: "#commercial" }), "commercial");
@@ -87,6 +89,11 @@ test("Career Shell v2 derives stable page labels for navigation and entity profi
 });
 
 test("management workspace detail labels remain specific inside the global Career Shell", () => {
+  assert.deepEqual(careerPageLabel({ pathname: "/management.html", hash: "#planning" }), {
+    id: "team",
+    label: "Team Planning",
+    group: "Team",
+  });
   assert.deepEqual(careerPageLabel({ pathname: "/management.html", hash: "#board" }), {
     id: "team",
     label: "Board",
