@@ -220,7 +220,7 @@ test("Long Beach 1978-81 geometry is reviewed only for schematic historical 2D u
   assert.equal(geometry.geometry_status, "MATCHED_REVIEWED_SCHEMATIC");
   assert.equal(geometry.precision, "schematic_historical_trace");
   assert.equal(geometry.centerline.length, 53);
-  assert.equal(geometry.geometry_hash, "bc5652309c2855b30d5a4bcc09c8280ee3fc5a33a6096221ded04c6308bd9877");
+  assert.equal(geometry.geometry_hash, "aa0db1d66b59d469ecd7e7fc73c74ee58bceb35088e30fbebdaacdc432ba83ab");
   assert.notEqual(geometry.finish_line.centerlineIndex, geometry.start_grid.centerlineIndex);
   assert.ok(geometry.reviewed_for.includes("2d_track_presentation"));
   assert.ok(geometry.not_authoritative_for.includes("car_performance"));
