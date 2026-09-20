@@ -64,7 +64,7 @@ scripts/audit-circuit-layouts.js --season 1980 validates stable layout IDs, seas
 
 ## 1980 findings
 
-The required historical layout and a licensed period-correct map source are identified for all 14 rounds. Runtime geometry is now 1/14 reviewed: Long Beach 1978-1981 is the first `MATCHED_REVIEWED_SCHEMATIC` layout. The remaining 13 circuits still fail closed as `geometry_unavailable`.
+The required historical layout and a licensed period-correct map source are identified for all 14 rounds. Runtime geometry is now 14/14 reviewed as `MATCHED_REVIEWED_SCHEMATIC`. All 1980 circuits are drawable in Live Race 2D from period-correct source-locked traces; this status is deliberately limited to historical topology and presentation.
 
 The generic bacinger/f1-circuits library remains useful for candidate discovery, but its 1980 venue coverage is mostly modern geometry:
 
@@ -108,3 +108,10 @@ One database discrepancy is explicitly retained for follow-up: the current Imola
 The next season must use the same registry and assignment model. New seasons should add/reuse stable layout_id values rather than cloning layouts per year. A layout is reused across every season in which the same configuration was historically valid; a new layout_id is created only when the route/configuration materially changes.
 
 The long-term target is therefore not one map per circuit, but a historical layout graph covering every F1 venue and every materially distinct configuration used by the championship.
+
+
+## 1980 geometry completion
+
+The 1980 pilot season now has complete Live Race 2D geometry coverage: 14 assigned historical layouts, 14 licensed period-map sources and 14 `MATCHED_REVIEWED_SCHEMATIC` centerlines. The traces were reviewed against their source-locked period configuration and cross-checked for defining topology such as the original long Interlagos course, Hockenheim forest layout, Österreichring, Zandvoort's 1980 chicane and Watkins Glen's period Grand Prix route.
+
+Imola is explicitly corrected in the current historical layout catalog to 5.000 km for 1980. The older v1.2.11 recovery baseline retains 5.040 km as an immutable/auditable legacy discrepancy; later Imola configurations must not be back-projected into 1980.
