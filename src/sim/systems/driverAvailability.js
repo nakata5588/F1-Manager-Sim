@@ -80,6 +80,7 @@ export function createDriverAvailabilitySystem() {
       SIM_EVENT.DAY_ADVANCED,
       RACE_TIMELINE_EVENT.APPLIED,
       CAREER_EVENT.RETIRED,
+      CAREER_EVENT.PROFILE_ACTIVATED,
     ],
     handle({ saveWorld, event }) {
       if (event.type === SIM_EVENT.CAREER_STARTED) {
@@ -92,6 +93,23 @@ export function createDriverAvailabilitySystem() {
 
       if (event.type === SIM_EVENT.DAY_ADVANCED) return recoveryEvents(saveWorld, event);
       if (event.type === RACE_TIMELINE_EVENT.APPLIED) return injuryEvents(saveWorld, event);
+
+      if (event.type === CAREER_EVENT.PROFILE_ACTIVATED && event.payload?.entity_type === "driver") {
+        const driverId = event.payload?.entity_id;
+        if (driverId) ensureDriverAvailabilityState(saveWorld).drivers[driverId] ??= {
+          driverId,
+          status: "fit",
+          injuryId: null,
+          injuryClass: null,
+          injuredAt: null,
+          unavailableUntil: null,
+          expectedReturnDate: null,
+          recoveredAt: null,
+          temporaryRaceTeamId: null,
+          replacementForDriverId: null,
+        };
+        return null;
+      }
 
       if (event.type === CAREER_EVENT.RETIRED && event.payload?.worker_type === "driver") {
         const driverId = event.payload?.worker_id;
