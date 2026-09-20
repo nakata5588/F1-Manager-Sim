@@ -10,6 +10,7 @@ import { MARKET_EVENT } from "./marketDynamics.js";
 import { BOARD_EVENT } from "./boardManagement.js";
 import { MANAGER_EVENT } from "../../game/management/managerCareer.js";
 import { STAFF_ADVICE_EVENT } from "./staffAdvice.js";
+import { FINANCIAL_CRISIS_EVENT } from "./financialCrisis.js";
 
 function controlledTeamIds(saveWorld, configured) {
   const dynamic = saveWorld.player?.controlledTeamIds;
@@ -64,6 +65,14 @@ export function createManagementInboxSystem(options = {}) {
       MANAGER_EVENT.APPLICATION_REJECTED,
       MANAGER_EVENT.APPOINTED,
       STAFF_ADVICE_EVENT.CREATED,
+      FINANCIAL_CRISIS_EVENT.RESPONSE_REQUIRED,
+      FINANCIAL_CRISIS_EVENT.SPENDING_FREEZE,
+      FINANCIAL_CRISIS_EVENT.OWNER_FUNDING,
+      FINANCIAL_CRISIS_EVENT.BRIDGE_FINANCE,
+      FINANCIAL_CRISIS_EVENT.OWNERSHIP_CHANGED,
+      FINANCIAL_CRISIS_EVENT.ADMINISTRATION,
+      FINANCIAL_CRISIS_EVENT.RECOVERED,
+      FINANCIAL_CRISIS_EVENT.WITHDRAWAL_BLOCKED,
     ],
     handle({ saveWorld, event }) {
       ensureManagementInbox(saveWorld);
@@ -78,6 +87,86 @@ export function createManagementInboxSystem(options = {}) {
           sourceId: "management-core-ready",
           title: "Management team ready",
           body: "Board, staff, recruitment, people, market and contract decisions will appear here as the world advances.",
+        });
+        return null;
+      }
+
+      if (event.type === FINANCIAL_CRISIS_EVENT.RESPONSE_REQUIRED) {
+        const teamId = event.payload?.team_id ?? null;
+        if (!teamId || !controlled.has(String(teamId))) return null;
+        const stage = event.payload?.stage ?? "warning";
+        const urgent = ["emergency", "administration"].includes(stage);
+        const options = [
+          { id: "freeze_spending", label: "Freeze discretionary spending" },
+          { id: "seek_owner_support", label: "Request owner funding" },
+          { id: "seek_investor", label: "Seek new investment / buyer" },
+        ];
+        if (urgent) options.push({ id: "voluntary_withdrawal", label: "Prepare withdrawal from F1" });
+        addManagementInboxItem(saveWorld, {
+          date: event.date,
+          category: "finances",
+          priority: urgent ? "urgent" : "high",
+          sourceType: "financial_crisis_response",
+          sourceId: `${teamId}:${stage}:${String(event.date).slice(0, 7)}`,
+          title: urgent ? "Financial emergency requires action" : "Financial pressure requires a response",
+          body: `The team is now in ${String(stage).replaceAll("_", " ")}. Cash: ${Math.round(Number(event.payload?.cash ?? 0))}; monthly net: ${Math.round(Number(event.payload?.monthly_net ?? 0))}. Choose a response while the Board and ownership continue their crisis review.`,
+          decision: {
+            kind: "financial_crisis_response",
+            refId: teamId,
+            options,
+          },
+        });
+        return null;
+      }
+
+      if ([
+        FINANCIAL_CRISIS_EVENT.SPENDING_FREEZE,
+        FINANCIAL_CRISIS_EVENT.OWNER_FUNDING,
+        FINANCIAL_CRISIS_EVENT.BRIDGE_FINANCE,
+        FINANCIAL_CRISIS_EVENT.OWNERSHIP_CHANGED,
+        FINANCIAL_CRISIS_EVENT.ADMINISTRATION,
+        FINANCIAL_CRISIS_EVENT.RECOVERED,
+        FINANCIAL_CRISIS_EVENT.WITHDRAWAL_BLOCKED,
+      ].includes(event.type)) {
+        const teamId = event.payload?.team_id ?? null;
+        if (!teamId || !controlled.has(String(teamId))) return null;
+        let title = "Financial crisis update";
+        let body = "The team's financial-crisis state has changed.";
+        let priority = "high";
+        if (event.type === FINANCIAL_CRISIS_EVENT.SPENDING_FREEZE) {
+          title = "Board imposes spending freeze";
+          body = "Non-essential new commitments are blocked until liquidity improves or the crisis is restructured.";
+        } else if (event.type === FINANCIAL_CRISIS_EVENT.OWNER_FUNDING) {
+          title = "Owner injects emergency capital";
+          body = `Ownership has provided ${Math.round(Number(event.payload?.amount ?? 0))} in emergency funding.`;
+        } else if (event.type === FINANCIAL_CRISIS_EVENT.BRIDGE_FINANCE) {
+          title = "Emergency bridge finance arranged";
+          body = `The team has raised ${Math.round(Number(event.payload?.amount ?? 0))} in debt funding. Debt service will now affect monthly cashflow.`;
+        } else if (event.type === FINANCIAL_CRISIS_EVENT.OWNERSHIP_CHANGED) {
+          title = "Team ownership changes";
+          body = `A new ownership group has completed a recapitalisation, injecting ${Math.round(Number(event.payload?.capital_injection ?? 0))} and refinancing ${Math.round(Number(event.payload?.debt_refinanced ?? 0))} of crisis debt. The stable team identity is preserved.`;
+          priority = "urgent";
+        } else if (event.type === FINANCIAL_CRISIS_EVENT.ADMINISTRATION) {
+          title = "Team enters financial administration";
+          body = "Normal discretionary investment is suspended while a rescue, sale or withdrawal outcome is pursued.";
+          priority = "urgent";
+        } else if (event.type === FINANCIAL_CRISIS_EVENT.RECOVERED) {
+          title = "Financial crisis cleared";
+          body = "Liquidity and runway have recovered enough for the team to leave formal crisis status.";
+          priority = "normal";
+        } else if (event.type === FINANCIAL_CRISIS_EVENT.WITHDRAWAL_BLOCKED) {
+          title = "Withdrawal blocked by grid protection";
+          body = "The current regulation package requires the championship to retain the minimum number of teams. The team remains in administration while another resolution is sought.";
+          priority = "urgent";
+        }
+        addManagementInboxItem(saveWorld, {
+          date: event.date,
+          category: "finances",
+          priority,
+          sourceType: event.type,
+          sourceId: `${teamId}:${event.type}:${String(event.date).slice(0, 7)}`,
+          title,
+          body,
         });
         return null;
       }
