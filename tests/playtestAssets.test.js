@@ -70,6 +70,7 @@ for (const path of [
   "src/presentation/racePositionProjection.js",
   "src/sim/circuitGeometry.js",
   "src/game/management/managerProfile.js",
+  "src/game/management/technicalEvolution.js",
   "src/save/slotStore.js",
   "playtest/app.js",
   "playtest/live-race-map.js",
