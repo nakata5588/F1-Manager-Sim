@@ -245,6 +245,7 @@ test("all 14 1980 layouts have reviewed schematic geometry with safe presentatio
     assert.equal(geometry.geometry_status, "MATCHED_REVIEWED_SCHEMATIC", geometry.layout_id);
     assert.equal(geometry.precision, "schematic_historical_trace", geometry.layout_id);
     assert.match(geometry.geometry_hash, /^[0-9a-f]{64}$/, geometry.layout_id);
+    assert.ok(geometry.source_author, geometry.layout_id);
     assert.ok(Array.isArray(geometry.centerline) && geometry.centerline.length >= 30, geometry.layout_id);
     assert.ok(geometry.reviewed_for.includes("2d_track_presentation"), geometry.layout_id);
     assert.ok(geometry.not_authoritative_for.includes("car_performance"), geometry.layout_id);
