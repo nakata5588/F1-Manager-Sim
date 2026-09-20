@@ -273,3 +273,35 @@ test("1980 Imola uses the 5.000 km pre-1981 configuration while preserving the l
   assert.equal(row.corrected_historical_lap_length_km, 5);
   assert.match(row.notes, /legacy discrepancy/i);
 });
+
+function circuitSegmentsIntersect(a, b, c, d) {
+  const orient = (p, q, r) => (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
+  const o1 = orient(a, b, c);
+  const o2 = orient(a, b, d);
+  const o3 = orient(c, d, a);
+  const o4 = orient(c, d, b);
+  return o1 * o2 < -1e-12 && o3 * o4 < -1e-12;
+}
+
+test("1980 reviewed centerlines are simple closed paths without artificial self-intersections", async () => {
+  const geometries = (await json("geometries/1980.json")).geometries;
+  for (const geometry of geometries) {
+    const points = geometry.centerline;
+    const count = points.length;
+    for (let i = 0; i < count; i += 1) {
+      const a = points[i];
+      const b = points[(i + 1) % count];
+      for (let j = i + 1; j < count; j += 1) {
+        if (j === i || j === (i + 1) % count || (j + 1) % count === i) continue;
+        if (i === 0 && j === count - 1) continue;
+        const c = points[j];
+        const d = points[(j + 1) % count];
+        assert.equal(
+          circuitSegmentsIntersect(a, b, c, d),
+          false,
+          `${geometry.layout_id} has an artificial crossing between segments ${i} and ${j}`,
+        );
+      }
+    }
+  }
+});
