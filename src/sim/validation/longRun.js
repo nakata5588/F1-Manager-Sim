@@ -160,6 +160,23 @@ function employmentHealth(saveWorld, errors) {
   }
 }
 
+function financialCrisisHealth(saveWorld, errors) {
+  const crisis = saveWorld.world?.financialCrisis;
+  if (!crisis) return;
+  const activeIds = new Set((saveWorld.world?.teams ?? []).map((row) => row.team_id).filter(Boolean).map(String));
+  const inactiveIds = new Set((saveWorld.world?.inactiveTeams ?? []).map((row) => row.team_id).filter(Boolean).map(String));
+
+  for (const [teamId, row] of Object.entries(crisis.teams ?? {})) {
+    if (!activeIds.has(String(teamId))) errors.push(`Financial crisis state references non-active team ${teamId}.`);
+    if (numeric(row?.debtPrincipal, 0) < 0) errors.push(`Financial crisis debt is negative for team ${teamId}.`);
+    if (!row?.owner?.ownershipId) errors.push(`Financial crisis ownership state is missing for team ${teamId}.`);
+  }
+  for (const [teamId, row] of Object.entries(crisis.inactiveTeams ?? {})) {
+    if (!inactiveIds.has(String(teamId))) errors.push(`Archived financial crisis state references unknown inactive team ${teamId}.`);
+    if (numeric(row?.debtPrincipal, 0) < 0) errors.push(`Archived financial crisis debt is negative for team ${teamId}.`);
+  }
+}
+
 function raceCountsForSeasons(saveWorld, expectedSeasons) {
   const grouped = groupBySeason(saveWorld.history?.races ?? []);
   return Object.fromEntries(expectedSeasons.map((season) => [season, (grouped.get(season) ?? []).length]));
@@ -218,10 +235,12 @@ export function validateLongRunWorld(saveWorld, options = {}) {
   championshipHealth(saveWorld, expectedSeasons, errors, warnings);
   raceEntryHealth(saveWorld, errors);
   employmentHealth(saveWorld, errors);
+  financialCrisisHealth(saveWorld, errors);
 
   checkFiniteObject(saveWorld.world?.teamState, "world.teamState", errors);
   checkFiniteObject(saveWorld.world?.carState, "world.carState", errors);
   checkFiniteObject(saveWorld.world?.careerState, "world.careerState", errors);
+  checkFiniteObject(saveWorld.world?.financialCrisis, "world.financialCrisis", errors);
 
   const championshipSeasons = (saveWorld.history?.championships ?? []).map((row) => Number(row.season)).filter(Number.isInteger);
   const transfers = saveWorld.history?.transfers?.length ?? 0;
@@ -252,6 +271,10 @@ export function validateLongRunWorld(saveWorld, options = {}) {
       otherMotorsportDrivers: Object.values(saveWorld.world?.driverMarketState?.drivers ?? {}).filter((row) => row?.path === "other_motorsport").length,
       injuries: saveWorld.world?.driverAvailability?.injuries?.length ?? 0,
       replacementAgreements: saveWorld.world?.driverAvailability?.replacements?.length ?? 0,
+      financialCrisisTeams: Object.keys(saveWorld.world?.financialCrisis?.teams ?? {}).length,
+      teamsInAdministration: Object.values(saveWorld.world?.financialCrisis?.teams ?? {}).filter((row) => row?.stage === "administration").length,
+      ownershipChanges: saveWorld.world?.financialCrisis?.ownershipChanges?.length ?? 0,
+      crisisDebt: Object.values(saveWorld.world?.financialCrisis?.teams ?? {}).reduce((sum, row) => sum + Math.max(0, numeric(row?.debtPrincipal, 0)), 0),
       freeStaff: saveWorld.world?.employment?.freeAgents?.staff?.length ?? 0,
       openVacancies: (saveWorld.world?.employment?.vacancies ?? []).filter((row) => row.status === "open").length,
     },
