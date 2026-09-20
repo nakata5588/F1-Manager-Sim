@@ -91,6 +91,7 @@ test("1980 v0.9 Save World activates all historical circuit geometry and keeps t
     assert.equal(geometry.available, true, track.track_id);
     assert.equal(track.layout_geometry.dataStatus, "MATCHED_REVIEWED_SCHEMATIC", track.track_id);
     assert.ok(track.layout_geometry.provenance.notAuthoritativeFor.includes("car_performance"), track.track_id);
+    assert.ok(track.layout_geometry.provenance.sourceAuthor, track.track_id);
   }
 
   assert.equal(save.world.circuitLayouts, undefined);
