@@ -241,7 +241,7 @@ export function recordTechnicalProjectCompletion(saveWorld, teamId, project, rea
   const learning = clamp(0.004 + Math.min(0.015, gain * 0.005) + (focus === "performance" ? 0.002 : 0), 0.004, 0.021);
   discipline.familiarity = round(clamp(discipline.familiarity + learning, 0.9, 1.14));
   discipline.completedProjects += 1;
-  discipline.lastProjectAt = saveWorld.clock?.date ?? project?.completedAt ?? null;
+  discipline.lastProjectAt = project?.completedAt ?? saveWorld.clock?.date ?? null;
 
   if (focus === "reliability") {
     const reliability = identity.disciplines.reliability;
