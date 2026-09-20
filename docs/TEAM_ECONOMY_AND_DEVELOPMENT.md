@@ -52,7 +52,7 @@ The projection derives:
 
 Discretionary technical investment, preseason testing and new currency-denominated driver/staff/supplier commitments use this shared affordability boundary. Mandatory reliability repairs may breach the protected reserve but cannot spend cash that does not exist.
 
-Where explicit operating cost is unavailable, `Finance_Model.estimated_monthly_operating_burn` is used only as a residual after known payroll, facility and supplier costs. This prevents double-counting and preserves its `gameplay_design_estimate` provenance.
+`Finance_Model.estimated_monthly_operating_burn` is a planning/calibration signal only. It can shape the opening risk/reserve projection, but it is not posted to the monthly ledger as an invented operating bill. Monthly cashflow contains only authoritative/explicit recurring costs. This avoids double-counting and prevents a one-season gameplay estimate from compounding as historical truth across alternative seasons.
 
 ## Dynamic car state
 
