@@ -107,4 +107,4 @@ npm run seasonpack:materialize -- \
   --seed 1980-v09
 ```
 
-The v0.9 circuit overlay contains 14 stable layout identities and assignments plus only the reviewed geometry currently available. Long Beach 1978-1981 is the first reviewed schematic geometry; other circuits remain safely unavailable.
+The v0.9 circuit overlay contains 14 stable layout identities, 14 season assignments and 14 reviewed schematic geometries. All are safe presentation assets only; simulation performance remains owned by the race and circuit-trait systems.
