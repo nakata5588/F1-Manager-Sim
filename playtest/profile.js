@@ -93,7 +93,7 @@ function team(profile) {
     <section class="profile-grid">
       <article class="profile-card"><h2>Championship</h2>${detail("Points", profile.championship?.points ?? 0)}${detail("Wins", profile.championship?.wins ?? 0)}${detail("Reputation", profile.reputation)}</article>
       <article class="profile-card"><h2>Organisation</h2>${detail("Drivers", profile.drivers?.length ?? 0)}${detail("Staff", profile.staff?.length ?? 0)}${detail("Entered season", profile.evolution?.enteredSeason)}</article>
-      ${profile.finances ? `<article class="profile-card wide"><h2>Finances</h2>${detail("Cash", profile.finances.cash)}${detail("Monthly income", profile.finances.monthlyIncome)}${detail("Monthly expenses", profile.finances.monthlyExpenses)}${detail("Monthly net", profile.finances.monthlyNet)}${detail("Status", human(profile.finances.financialStatus))}</article>` : ""}
+      ${profile.finances ? `<article class="profile-card wide"><h2>Finances</h2>${detail("Cash", profile.finances.cash)}${detail("Monthly income", profile.finances.monthlyIncome)}${detail("Monthly expenses", profile.finances.monthlyExpenses)}${detail("Monthly net", profile.finances.monthlyNet)}${detail("Status", human(profile.finances.financialStatus))}${detail("Crisis stage", human(profile.finances.crisis?.stage ?? "stable"))}${detail("Crisis debt", profile.finances.crisis?.debtPrincipal ?? 0)}${detail("Ownership", human(profile.finances.crisis?.owner?.model ?? "incumbent"))}</article>` : ""}
       ${visualIdentity(profile.visualIdentity)}
       ${roster("Drivers", "driver", profile.drivers)}${roster("Staff", "staff", profile.staff)}
     </section>
