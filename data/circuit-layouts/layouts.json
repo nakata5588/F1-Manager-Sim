@@ -289,8 +289,8 @@
       "configuration_name": "Variante Bassa + Variante Alta, pre-Acque Minerali chicane",
       "valid_from": 1974,
       "valid_to": 1980,
-      "lap_length_km": 5.04,
-      "historical_status": "VERIFIED_WITH_LENGTH_DISCREPANCY",
+      "lap_length_km": 5,
+      "historical_status": "VERIFIED_LAYOUT_IDENTITY",
       "candidate_aliases": [
         "Imola",
         "Autodromo Dino Ferrari",
@@ -301,9 +301,14 @@
           "source": "RacingCircuits.info",
           "url": "https://www.racingcircuits.info/europe/italy/imola.html",
           "note": "Documents Variante Bassa (1972), Variante Alta (1974), and the Acque Minerali chicane added for 1981 after the first F1 events."
+        },
+        {
+          "source": "STATS F1",
+          "url": "https://www.statsf1.com/en/circuit-imola.aspx",
+          "note": "Lists Imola at 5.000 km for the 1980 Italian Grand Prix and 5.040 km from the 1981 San Marino Grand Prix."
         }
       ],
-      "notes": "Existing baseline says 5.040 km, while 1980 race references commonly state 5.000 km. Keep baseline unchanged in this foundation PR and flag for source-lock correction.",
+      "notes": "1980 Formula One configuration: 5.000 km and 60 laps / 300.000 km. The older v1.2.11 recovery baseline retains 5.040 km as an auditable legacy discrepancy; 5.040 km applies from the 1981 configuration after the chicane change.",
       "configuration_requirements": {
         "required_features": [
           "variante_bassa",
