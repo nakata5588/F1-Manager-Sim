@@ -6,6 +6,7 @@ export const DRIVER_AVAILABILITY_EVENT = Object.freeze({
   RECOVERED: "driver.recovered",
   REPLACEMENT_APPOINTED: "driver.replacement_appointed",
   REPLACEMENT_ENDED: "driver.replacement_ended",
+  REPLACEMENT_UNAVAILABLE: "driver.replacement_unavailable",
 });
 
 function numeric(value, fallback = null) {
