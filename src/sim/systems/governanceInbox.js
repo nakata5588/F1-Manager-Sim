@@ -93,7 +93,7 @@ export function createGovernanceInboxSystem(options = {}) {
           sourceId: `team-exit:${payload.team_id}:${payload.season}`,
           priority: "high",
           title: "Team leaves Formula One",
-          body: `${payload.team_id} has left the championship after sustained financial distress. Its personnel return to the employment market.`,
+          body: `${payload.team_id} has left the championship after ${String(payload.reason ?? "a team-evolution decision").replaceAll("_", " ")}. Its personnel return to the employment market.`,
         });
       } else if (event.type === TEAM_EVOLUTION_EVENT.TEAM_REBRANDED) {
         add(saveWorld, event, {
