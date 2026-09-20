@@ -32,7 +32,7 @@ test("1980 v0.9 circuit overlay composes after v0.8 without duplicating the Seas
   assert.equal(payload.sheets["1980_Car_Performance_Model"].length, 16, "v0.8 systems remain present");
   assert.equal(payload.sheets["1980_Circuit_Layout_Registry"].length, 15);
   assert.equal(payload.sheets["1980_Circuit_Layout_Assignments"].length, 15);
-  assert.equal(payload.sheets["1980_Circuit_Layout_Geometry"].length, 2);
+  assert.equal(payload.sheets["1980_Circuit_Layout_Geometry"].length, 15);
 });
 
 test("1980 v0.9 validates and materializes stable layout IDs with Season Pack aliases", async () => {
@@ -43,7 +43,7 @@ test("1980 v0.9 validates and materializes stable layout IDs with Season Pack al
   assert.equal(validation.ok, true);
   assert.equal(snapshot.circuitLayouts.length, 14);
   assert.equal(snapshot.seasonCircuitAssignments.length, 14);
-  assert.equal(snapshot.circuitLayoutGeometry.length, 1);
+  assert.equal(snapshot.circuitLayoutGeometry.length, 14);
 
   const longBeachAssignment = snapshot.seasonCircuitAssignments.find((row) => row.round === 4);
   assert.equal(longBeachAssignment.layout_id, "cl_tr_0088_gp_1978");
@@ -52,7 +52,7 @@ test("1980 v0.9 validates and materializes stable layout IDs with Season Pack al
   assert.equal(longBeachAssignment.runtime_gp_id, "RACE198004");
 });
 
-test("1980 v0.9 Save World activates Long Beach geometry and keeps the source catalog immutable/reference-only", async () => {
+test("1980 v0.9 Save World activates all historical circuit geometry and keeps the source catalog immutable/reference-only", async () => {
   const { payload } = await loadV09();
   const snapshot = loadSeasonPackRuntimePayload(payload);
   const save = createSaveWorld(snapshot, {
@@ -61,7 +61,7 @@ test("1980 v0.9 Save World activates Long Beach geometry and keeps the source ca
   });
 
   assert.equal(save.meta.databaseOpeningState.historicalLayoutAssignments, 14);
-  assert.equal(save.meta.databaseOpeningState.reviewedCircuitGeometries, 1);
+  assert.equal(save.meta.databaseOpeningState.reviewedCircuitGeometries, 14);
 
   const longBeach = save.world.tracks.find((row) => row.track_id === "CIR0043");
   assert.ok(longBeach);
@@ -81,12 +81,22 @@ test("1980 v0.9 Save World activates Long Beach geometry and keeps the source ca
 
   const interlagos = save.world.tracks.find((row) => row.track_id === "CIR0018");
   assert.equal(interlagos.layout_id, "cl_tr_0028_long_1978");
-  assert.equal(resolveCircuitGeometry(interlagos).available, false, "layout identity may be known while reviewed geometry remains unavailable");
+  assert.equal(resolveCircuitGeometry(interlagos).available, true);
+  assert.equal(resolveCircuitGeometry(interlagos).lapLengthKm, 7.873);
+
+  const reviewedTracks = save.world.tracks.filter((row) => row.layout_id);
+  assert.equal(reviewedTracks.length, 14);
+  for (const track of reviewedTracks) {
+    const geometry = resolveCircuitGeometry(track);
+    assert.equal(geometry.available, true, track.track_id);
+    assert.equal(track.layout_geometry.dataStatus, "MATCHED_REVIEWED_SCHEMATIC", track.track_id);
+    assert.ok(track.layout_geometry.provenance.notAuthoritativeFor.includes("car_performance"), track.track_id);
+  }
 
   assert.equal(save.world.circuitLayouts, undefined);
   assert.equal(save.world.circuitLayoutGeometry, undefined);
   assert.equal(save.world.seasonCircuitAssignments, undefined);
   assert.equal(save.reference.databaseContext.circuitLayouts.length, 14);
-  assert.equal(save.reference.databaseContext.circuitLayoutGeometry.length, 1);
+  assert.equal(save.reference.databaseContext.circuitLayoutGeometry.length, 14);
   assert.equal(save.reference.databaseContext.seasonCircuitAssignments.length, 14);
 });
