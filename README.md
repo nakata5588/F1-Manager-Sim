@@ -6,7 +6,7 @@ F1 Manager Sim is a long-form Formula One management and world simulation game. 
 
 ## Current development phase
 
-**Phase 46 — Integrated New Game Flow**
+**Stage 16.5 — Core Integrity & Long-Term Simulation Gate**
 
 The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market, a persistent physical technical lifecycle, dynamic governance/grid evolution, a playable season-to-season transition, renewable driver population, persistent world news/history/records, an era-safe team-organisation model, resumable career persistence and an explicit New Game selection flow.
 
@@ -16,7 +16,7 @@ Current career path:
 
 Current persistence path:
 
-`Save World -> Versioned Save Envelope -> Manual Slot / Autosave -> Provenance Validation -> Restored Save World -> Resumed Career`
+`Save World -> Versioned Save Envelope -> Ordered Schema Migrations -> Manual Slot / Autosave -> Provenance Validation -> Restored Save World -> Resumed Career`
 
 Current management/world loop:
 
@@ -108,7 +108,7 @@ See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/CAREER_PERSISTENCE
 
 The current promoted canonical source baseline remains **v1.2.5-1980-technical-source-lock-candidate (2026-09-12)**. Its reproducibility contract is pinned in `data/database-baselines/v1.2.5-1980-technical-source-lock-candidate/baseline.json`; earlier baseline folders remain audit history only.
 
-The latest cumulative 1980 database candidate is **v1.2.15-1980-historical-source-enrichment-candidate** (corrective r3). It is pinned separately as the latest candidate and is **not** silently promoted over v1.2.5. The v1.2.15 corrective candidate preserves the cumulative 1980 database lineage, conservative Career Start availability rules, historical-source enrichment and explicit uncertainty where row-level opening evidence remains incomplete.
+The latest cumulative 1980 database candidate is **v1.2.16-1980-canonical-closure-audit-consistency-candidate**. It is pinned separately as the latest Development candidate and is **not** silently promoted over v1.2.5. The v1.2.16 candidate closes the current 1980 audit-consistency pass while preserving explicit uncertainty where opening historical evidence remains incomplete.
 
 The canonical source identity remains `9d29b8d004dbbc371b935e155a396bd6f33410f635de9ebdae4e808f8e2cc097`. The promoted Global JSON hash is `315fdd58ef24b02bc6aeb073876d8fa1966839c134751979d8800393b83a36cd` and the promoted Season Definition 1980 JSON hash is `e22b89da311991fad300d873973513cba438ebac38b450e8bf5248f61dfc9303`.
 
