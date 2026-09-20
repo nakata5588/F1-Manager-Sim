@@ -55,7 +55,7 @@ Inputs may be JSON or gzip-compressed JSON.
 20. Continue into the next season
 21. Save to a manual slot or resume from the milestone autosave
 
-Alongside the race-weekend path, the playtest exposes current management/world surfaces for Inbox, Board, manager career, People, Staff, Recruitment, Contracts, Commercial, responsibilities, Technical Operations, Governance, Offseason and F1 World / History / Records.
+Alongside the race-weekend path, the playtest exposes current management/world surfaces for Inbox, Team Planning, Board, manager career, People, Staff, Recruitment, Contracts, Commercial, responsibilities, Technical Operations, Governance, Offseason and F1 World / History / Records.
 
 The UI deliberately remains a developer playtest rather than final visual polish. Its purpose is to make real simulation systems observable and controllable as early as possible.
 
@@ -68,7 +68,7 @@ The UI deliberately remains a developer playtest rather than final visual polish
 - `/offseason.html` — Offseason & New Season
 - `/world.html` — F1 World / News / History / Records
 
-Phase 44 organisation state is currently consumed by simulation and Staff Advice rather than presented as a separate authoritative browser model. Any later organisation UI must remain a projection over `world.management.organization`.
+The Stage 15 Team Planning workspace now presents the existing organisation state as a read-only operational projection over `world.management.organization`. Employment, vacancies, workload effects and contract authority remain in their existing systems.
 
 ## Application boundary
 
@@ -184,7 +184,7 @@ The loop automatically pauses when a new notable event is returned, including in
 
 ## Management and world surfaces
 
-The Management Hub already projects persistent Inbox and decision state, Board confidence/objectives, manager career, people/mentality, staff recruitment, driver recruitment/contracts, external market, commercial management and responsibility delegation.
+The Management Hub projects persistent Inbox and decision state, Team Planning, Board confidence/objectives, manager career, people/mentality, staff recruitment, driver recruitment/contracts, external market, commercial management and responsibility delegation. Team Planning combines current contract horizons, retention pressure, organisation workload/vacancies and shortlist context without exposing hidden CA/PA.
 
 Technical Operations exposes the physical technical lifecycle, suppliers, reliability/condition, manufacturing, fitment, facilities and preseason work.
 
@@ -217,7 +217,7 @@ Persistence endpoints:
 - `POST /api/saves/load`
 - `POST /api/saves/delete`
 
-It also exposes the server-authoritative management, technical, governance, offseason and F1 World endpoints used by their respective playtest pages. Browser code remains projection/instruction code only.
+It also exposes the server-authoritative management, technical, governance, offseason and F1 World endpoints used by their respective playtest pages. Team Planning is available at `GET /api/management/planning`. Browser code remains projection/instruction code only.
 
 ## Safety / visibility rule
 
@@ -238,7 +238,6 @@ The highest-value remaining vertical-slice gaps are now:
 - integrated New Game flow with explicit Database -> Decade -> Season -> Team -> Manager selection rather than launching one pre-supplied Season Database;
 - proper Calendar navigation and date/event browsing;
 - tighter integration of the separate playtest pages into one Career shell/navigation model;
-- player-facing Team / Drivers / Staff / Organisation / Car / Development / Finances views built from existing application projections;
 - full pre-race stint editor rather than starting-compound-only control;
 - richer Practice programmes and Qualifying session management;
 - calibrated absolute timing/gaps rather than abstract race-index gaps;
