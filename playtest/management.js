@@ -22,6 +22,7 @@ let responsibilities = { teamId: null, areas: [] };
 let staffRecruitment = { summary: {}, candidates: [] };
 let staffContracts = { summary: {}, negotiations: [] };
 let commercial = { summary: {}, team: null, market: [], negotiations: [] };
+let finances = { teamId: null, planning: null };
 let teamProfile = null;
 let planning = { teamId: null, priorities: [], drivers: [], staff: [], organization: null, shortlist: [], scouting: {}, negotiations: { drivers: [], staff: [] } };
 let recruitmentRequest = "/api/recruitment";
@@ -100,7 +101,7 @@ async function refreshAll() {
     return;
   }
   const teamId = careerState.career?.controlledTeamId ?? null;
-  [overview, inbox, recruitment, contracts, people, market, boardData, managerCareer, responsibilities, staffRecruitment, staffContracts, commercial, teamProfile, planning] = await Promise.all([
+  [overview, inbox, recruitment, contracts, people, market, boardData, managerCareer, responsibilities, staffRecruitment, staffContracts, commercial, finances, teamProfile, planning] = await Promise.all([
     api("/api/management"),
     api("/api/inbox"),
     api(recruitmentRequest),
@@ -113,6 +114,7 @@ async function refreshAll() {
     api(staffRequest),
     api("/api/staff-contracts"),
     api(commercialRequest),
+    api("/api/finances"),
     teamId ? api(`/api/profile?type=team&id=${encodeURIComponent(teamId)}`).catch(() => null) : Promise.resolve(null),
     api("/api/management/planning"),
   ]);
@@ -377,16 +379,29 @@ function sponsorInterest(row) {
 function renderCommercial() {
   if (!commercial.team) return '<div class="management-empty">Commercial management becomes available when you control a team.</div>';
   const team = commercial.team;
-  const finances = teamProfile?.finances ?? null;
+  const teamFinances = teamProfile?.finances ?? null;
+  const windowFinances = finances;
   const pending = team.pendingActivities ?? [];
   const slots = team.slotUsage ?? {};
-  const financeSummary = finances ? `<section class="finance-summary-grid">
-    <article><span>Cash balance</span><strong>${money(finances.cash)}</strong><small>${escapeHtml(publicLabel(finances.financialStatus, "Financial status"))}</small></article>
-    <article><span>Monthly income</span><strong>${money(finances.monthlyIncome)}</strong><small>Current team projection</small></article>
-    <article><span>Monthly expenses</span><strong>${money(finances.monthlyExpenses)}</strong><small>Current team projection</small></article>
-    <article><span>Monthly net</span><strong class="${Number(finances.monthlyNet ?? 0) < 0 ? "negative" : ""}">${money(finances.monthlyNet)}</strong><small>Income minus expenses</small></article>
+  const financeSummary = teamFinances ? `<section class="finance-summary-grid">
+    <article><span>Cash balance</span><strong>${money(teamFinances.cash)}</strong><small>${escapeHtml(publicLabel(teamFinances.financialStatus, "Financial status"))}</small></article>
+    <article><span>Monthly income</span><strong>${money(teamFinances.monthlyIncome)}</strong><small>Current team projection</small></article>
+    <article><span>Monthly expenses</span><strong>${money(teamFinances.monthlyExpenses)}</strong><small>Current team projection</small></article>
+    <article><span>Monthly net</span><strong class="${Number(teamFinances.monthlyNet ?? 0) < 0 ? "negative" : ""}">${money(teamFinances.monthlyNet)}</strong><small>Income minus expenses</small></article>
   </section>` : "";
-  return `${financeSummary}<div class="commercial-hero"><div><span class="management-category">Commercial department</span><h2>Marketability ${Math.round(team.marketability ?? 0)}/100</h2><p>${escapeHtml(team.era?.id?.replaceAll("-", " ") ?? "era model")} · sponsor income ${money(team.monthlySponsorIncome)}/month</p></div><div class="commercial-slot-summary"><span>Title ${slots.title?.used ?? 0}/${slots.title?.capacity ?? 0}</span><span>Major ${slots.major?.used ?? 0}/${slots.major?.capacity ?? 0}</span><span>Partner ${slots.partner?.used ?? 0}/${slots.partner?.capacity ?? 0}</span></div></div>
+  const financialPlan = windowFinances?.planning ?? null;
+  const planningSummary = financialPlan ? `<div class="management-section-title"><div><span class="management-category">Financial planning</span><h2>Budget commitments & risk</h2></div></div>
+  <section class="finance-summary-grid">
+    <article><span>Reserve target</span><strong>${money(financialPlan.reserveTarget)}</strong><small>${escapeHtml(publicLabel(financialPlan.strategy, "Balanced"))} strategy</small></article>
+    <article><span>Available to commit</span><strong>${money(financialPlan.availableToCommit)}</strong><small>After protected reserve</small></article>
+    <article><span>Cash runway</span><strong>${financialPlan.runwayMonths === null ? "∞" : `${financialPlan.runwayMonths} mo`}</strong><small>${escapeHtml(publicLabel(financialPlan.riskLevel, "Stable"))} risk</small></article>
+    <article><span>Salary burden</span><strong>${financialPlan.salaryBurden === null ? "—" : `${Math.round(financialPlan.salaryBurden * 100)}%`}</strong><small>Of recurring expenses</small></article>
+    <article><span>Sponsor coverage</span><strong>${financialPlan.sponsorCoverage === null ? "—" : `${Math.round(financialPlan.sponsorCoverage * 100)}%`}</strong><small>Of recurring expenses</small></article>
+    <article><span>Annualised net</span><strong class="${Number(financialPlan.annualizedNet ?? 0) < 0 ? "negative" : ""}">${money(financialPlan.annualizedNet)}</strong><small>${escapeHtml(publicLabel(financialPlan.recurringSource, "Runtime projection"))}</small></article>
+  </section>
+  <div class="management-notice"><strong>Financial strategy:</strong> protect a larger reserve for stability or accept more risk to invest sooner. <div class="management-actions compact"><button class="${financialPlan.strategy === "conservative" ? "primary" : ""}" data-financial-strategy="conservative">Conservative</button><button class="${financialPlan.strategy === "balanced" ? "primary" : ""}" data-financial-strategy="balanced">Balanced</button><button class="${financialPlan.strategy === "aggressive" ? "primary" : ""}" data-financial-strategy="aggressive">Aggressive</button></div></div>
+  ${financialPlan.expenseBreakdown ? `<div class="management-table-wrap compact-table"><table><thead><tr><th>Recurring cost</th><th>Monthly</th></tr></thead><tbody><tr><td>Driver payroll</td><td>${money(financialPlan.expenseBreakdown.driverSalaries)}</td></tr><tr><td>Staff payroll</td><td>${money(financialPlan.expenseBreakdown.staffSalaries)}</td></tr><tr><td>Facilities</td><td>${money(financialPlan.expenseBreakdown.facilityMaintenance)}</td></tr><tr><td>Engine supplier</td><td>${money(financialPlan.expenseBreakdown.engineSupplier)}</td></tr><tr><td>Operations</td><td>${money(financialPlan.expenseBreakdown.operations)}<div class="muted small">${escapeHtml(publicLabel(financialPlan.expenseBreakdown.operationsSource, "Runtime"))}</div></td></tr></tbody></table></div>` : ""}` : "";
+  return `${financeSummary}${planningSummary}<div class="commercial-hero"><div><span class="management-category">Commercial department</span><h2>Marketability ${Math.round(team.marketability ?? 0)}/100</h2><p>${escapeHtml(team.era?.id?.replaceAll("-", " ") ?? "era model")} · sponsor income ${money(team.monthlySponsorIncome)}/month</p></div><div class="commercial-slot-summary"><span>Title ${slots.title?.used ?? 0}/${slots.title?.capacity ?? 0}</span><span>Major ${slots.major?.used ?? 0}/${slots.major?.capacity ?? 0}</span><span>Partner ${slots.partner?.used ?? 0}/${slots.partner?.capacity ?? 0}</span></div></div>
   ${pending.length ? `<div class="management-section-title"><div><span class="management-category">Commitments</span><h2>Sponsor activities</h2></div></div><div class="objective-grid">${pending.map((row) => `<article class="objective-card"><strong>${escapeHtml(row.sponsorName)}</strong><p>Commercial activation is due.</p><div class="management-actions compact"><button class="primary" data-commercial-activity="${escapeHtml(row.id)}" data-fulfilled="true">Fulfil</button><button data-commercial-activity="${escapeHtml(row.id)}" data-fulfilled="false">Skip</button></div></article>`).join("")}</div>` : ""}
   <div class="management-section-title"><div><span class="management-category">Portfolio</span><h2>Current partners</h2></div></div>
   ${team.activeDeals.length ? `<div class="management-table-wrap"><table><thead><tr><th>Sponsor</th><th>Tier</th><th>Category</th><th>Annual value</th><th>Satisfaction</th><th>End</th><th>Source</th><th></th></tr></thead><tbody>${team.activeDeals.map((deal) => `<tr><td><strong>${escapeHtml(deal.sponsorName)}</strong></td><td>${escapeHtml(deal.tier)}</td><td>${escapeHtml(deal.categoryLabel)}</td><td>${money(deal.annualValue)}</td><td>${Math.round(deal.satisfaction)}/100</td><td>${deal.endSeason}</td><td><span class="muted small">${escapeHtml(deal.valueSource)}</span></td><td>${deal.renewalEligible ? `<button data-renew-sponsor="${escapeHtml(deal.sponsorId)}" data-renew-deal="${escapeHtml(deal.id)}" data-sponsor-tier="${escapeHtml(deal.tier)}">Renew</button>` : ""}</td></tr>`).join("")}</tbody></table></div>` : '<div class="management-empty">No active sponsor agreements.</div>'}
@@ -490,6 +505,8 @@ root.addEventListener("click", (event) => {
   if (managerApply) return action(() => api("/api/manager-career/apply", { method: "POST", body: JSON.stringify({ teamId: managerApply }) }));
   const responsibilityButton = event.target.closest("[data-responsibility]");
   if (responsibilityButton) return action(() => api("/api/responsibilities/set", { method: "POST", body: JSON.stringify({ area: responsibilityButton.dataset.responsibility, owner: responsibilityButton.dataset.owner }) }));
+  const financialStrategy = event.target.closest("[data-financial-strategy]")?.dataset.financialStrategy;
+  if (financialStrategy) return action(() => api("/api/finances/strategy", { method: "POST", body: JSON.stringify({ strategy: financialStrategy }) }));
 
   const shortlistButton = event.target.closest("[data-shortlist-driver]");
   if (shortlistButton) return action(() => api("/api/recruitment/shortlist", { method: "POST", body: JSON.stringify({ driverId: shortlistButton.dataset.shortlistDriver, shortlisted: shortlistButton.dataset.shortlisted !== "true" }) }));

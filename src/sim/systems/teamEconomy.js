@@ -3,6 +3,10 @@ import { EMPLOYMENT_EVENT } from "./employmentMarket.js";
 import { commercialMonthlySponsorIncome } from "../../game/management/commercial.js";
 import { technicalFacilityMaintenanceAnnual } from "../../game/management/technical.js";
 import { technicalSupplierMonthlyCost } from "../../game/management/suppliers.js";
+import {
+  financeModelMonthlyBurn,
+  refreshFinancialPlanningState,
+} from "../../game/management/finances.js";
 
 export const TEAM_FINANCE_EVENT = Object.freeze({
   INITIALIZED: "team.finance_initialized",
@@ -60,7 +64,12 @@ function initializeTeams(saveWorld, date) {
       monthlyExpenses: 0,
       monthlyNet: 0,
       lastFinanceDate: date,
+      projectedMonthlyIncome: null,
+      projectedMonthlyExpenses: null,
+      lastIncomeBreakdown: {},
+      lastExpenseBreakdown: {},
     };
+    refreshFinancialPlanningState(saveWorld, id);
     created += 1;
   }
   return created;
@@ -128,17 +137,18 @@ function operatingCost(saveWorld, teamId) {
   const team = (saveWorld.world?.teams ?? []).find((row) => row.team_id === teamId) ?? {};
   const brand = teamBrand(saveWorld, teamId);
   const annual = Number(team.annual_operating_cost ?? brand.annual_operating_cost);
-  return Number.isFinite(annual) ? annual / 12 : 0;
-}
+  if (Number.isFinite(annual)) return { value: annual / 12, source: "historical_or_team_operating_cost" };
 
-function refreshFinancialStatus(team) {
-  team.financialStatus = team.openingCash === 0 && team.cash === 0
-    ? "unknown"
-    : team.cash < 0
-      ? "distressed"
-      : team.cash < Math.max(100000, team.openingCash * 0.08)
-        ? "tight"
-        : "stable";
+  // Finance_Model remains a planning/calibration signal only. Turning an
+  // estimated burn into a real monthly ledger debit would invent accounting
+  // detail and, over many seasons, compound a starting calibration as if it
+  // were an immutable historical operating bill.
+  return {
+    value: 0,
+    source: financeModelMonthlyBurn(saveWorld, teamId) !== null
+      ? "unavailable_model_is_planning_only"
+      : "unavailable",
+  };
 }
 
 function applyContractTransaction(saveWorld, event) {
@@ -153,10 +163,10 @@ function applyContractTransaction(saveWorld, event) {
   const cashExpense = signingBonus + transferValue;
   if (cashExpense > 0) {
     target.cash = roundMoney(numeric(target.cash) - cashExpense);
-    refreshFinancialStatus(target);
+    refreshFinancialPlanningState(saveWorld, teamId);
     if (fromTeamId && state[fromTeamId] && transferValue > 0) {
       state[fromTeamId].cash = roundMoney(numeric(state[fromTeamId].cash) + transferValue);
-      refreshFinancialStatus(state[fromTeamId]);
+      refreshFinancialPlanningState(saveWorld, fromTeamId);
     }
   }
   const record = {
@@ -187,17 +197,31 @@ function closeMonth(saveWorld, event) {
     const driverSalaries = assignmentSalary(saveWorld, teamId, "driver", season);
     const staffSalaries = assignmentSalary(saveWorld, teamId, "staff", season);
     const maintenance = facilityMaintenance(saveWorld, teamId);
-    const operations = operatingCost(saveWorld, teamId);
     const engineSupplier = technicalSupplierMonthlyCost(saveWorld, teamId);
+    const knownRecurring = driverSalaries + staffSalaries + maintenance + engineSupplier;
+    const operations = operatingCost(saveWorld, teamId);
     const income = sponsors;
-    const expenses = driverSalaries + staffSalaries + maintenance + operations + engineSupplier;
+    const expenses = knownRecurring + operations.value;
     const net = income - expenses;
     team.cash = roundMoney(numeric(team.cash) + net);
     team.monthlyIncome = roundMoney(income);
     team.monthlyExpenses = roundMoney(expenses);
     team.monthlyNet = roundMoney(net);
-    refreshFinancialStatus(team);
+    team.projectedMonthlyIncome = team.monthlyIncome;
+    team.projectedMonthlyExpenses = team.monthlyExpenses;
+    team.lastIncomeBreakdown = {
+      sponsors: roundMoney(sponsors),
+    };
+    team.lastExpenseBreakdown = {
+      driverSalaries: roundMoney(driverSalaries),
+      staffSalaries: roundMoney(staffSalaries),
+      facilityMaintenance: roundMoney(maintenance),
+      operations: roundMoney(operations.value),
+      operationsSource: operations.source,
+      engineSupplier: roundMoney(engineSupplier),
+    };
     team.lastFinanceDate = event.date;
+    const financialPlanning = refreshFinancialPlanningState(saveWorld, teamId);
     const record = {
       date: event.date,
       season,
@@ -207,12 +231,17 @@ function closeMonth(saveWorld, event) {
       expenses: roundMoney(expenses),
       net: roundMoney(net),
       closingCash: team.cash,
+      financialRisk: financialPlanning?.riskLevel ?? null,
+      reserveTarget: financialPlanning?.reserveTarget ?? null,
+      availableToCommit: financialPlanning?.availableToCommit ?? null,
+      runwayMonths: financialPlanning?.runwayMonths ?? null,
       breakdown: {
         sponsors: roundMoney(sponsors),
         driverSalaries: roundMoney(driverSalaries),
         staffSalaries: roundMoney(staffSalaries),
         facilityMaintenance: roundMoney(maintenance),
-        operations: roundMoney(operations),
+        operations: roundMoney(operations.value),
+        operationsSource: operations.source,
         engineSupplier: roundMoney(engineSupplier),
       },
     };

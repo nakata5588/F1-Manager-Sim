@@ -120,7 +120,7 @@ Terms currently include:
 
 Counter-offers enter the generic management Inbox as decisions. Renewal reminders are generated for player-managed commercial departments as current agreements approach expiry.
 
-AI and delegated commercial departments use the same domain functions as the player. There is no separate simplified sponsor-signing engine for AI teams.
+AI and delegated commercial departments use the same domain functions as the player. There is no separate simplified sponsor-signing engine for AI teams. Stage 17 additionally makes Distressed/Critical AI teams prefer the highest-value viable sponsor opportunity rather than choosing randomly among acceptable offers.
 
 ## Sponsor satisfaction and activities
 
@@ -152,7 +152,7 @@ Before Phase 35, Team Economy read historical `sponsorContracts` directly every 
 
 After commercial initialization:
 
-`Historical starting contracts -> Save World commercial deals -> monthly Team Economy sponsor income`
+`Historical starting contracts -> Save World commercial deals -> monthly Team Economy sponsor income -> Financial Planning sponsor coverage / commitment capacity`
 
 This gives one mutable commercial source of truth and allows contracts to expire, renew or be replaced naturally.
 
@@ -207,3 +207,16 @@ Additional Phase 35 tests cover:
 - delegated commercial behavior;
 - normal Save World serialization;
 - era-aware sponsor-market projections.
+
+
+## Stage 17 financial integration
+
+Sponsorship now participates in a wider commitment model without becoming a second finance authority.
+
+- `world.teamState` owns cash and monthly cashflow;
+- the commercial portfolio owns sponsor agreements and sponsor income;
+- Financial Planning reads both and derives sponsor coverage, runway and protected commitment capacity;
+- driver, staff and supplier negotiations use the same affordability rules for recurring commitments;
+- commercial activity, marketability and sponsor satisfaction remain independent commercial mechanics.
+
+This keeps the Football Manager-style distinction between **commercial opportunity** and **financial capacity**: a team may attract a sponsor, afford a driver, or invest in facilities for different reasons, but the consequences meet in the same Save World cashflow.

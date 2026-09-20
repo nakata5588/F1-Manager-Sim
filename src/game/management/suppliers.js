@@ -1,4 +1,5 @@
 import { createRng } from "../../sim/random.js";
+import { assertFinancialCommitment } from "./finances.js";
 
 export const SUPPLIER_EVENT = Object.freeze({
   INITIALIZED: "supplier.initialized",
@@ -275,6 +276,21 @@ function agreedDeal(saveWorld, negotiation, terms, source) {
   };
 }
 
+function assertSupplierAffordable(saveWorld, teamId, annualValue, label = "engine supplier contract") {
+  if (!saveWorld.world?.teamState?.[teamId]) return null;
+  const active = activeSupplierContract(saveWorld, teamId);
+  const currentMonthly = active?.annualValueMode === "currency"
+    ? Math.max(0, numeric(active.annualValue, 0)) / 12
+    : 0;
+  const monthlyAdded = Math.max(0, Math.max(0, numeric(annualValue, 0)) / 12 - currentMonthly);
+  return assertFinancialCommitment(saveWorld, teamId, {
+    monthlyAdded,
+    strictRecurring: true,
+    kind: "supplier_contract",
+    label,
+  });
+}
+
 export function submitSupplierOffer(saveWorld, teamId, negotiationId, input = {}) {
   const state = ensureSupplierTeam(saveWorld, teamId);
   const negotiation = state.negotiations.find((row) => row.negotiationId === negotiationId);
@@ -283,6 +299,7 @@ export function submitSupplierOffer(saveWorld, teamId, negotiationId, input = {}
   const annualValue = Math.max(0, numeric(input.annualValue, expected.annualValue));
   const durationYears = clamp(Math.round(numeric(input.durationYears, expected.durationYears)), 1, 4);
   const offer = { annualValue: round(annualValue), durationYears, submittedAt: saveWorld.clock.date };
+  assertSupplierAffordable(saveWorld, teamId, offer.annualValue);
   negotiation.offers.push(offer);
   negotiation.counter = null;
 
@@ -320,6 +337,7 @@ export function acceptSupplierCounter(saveWorld, teamId, negotiationId) {
   const state = ensureSupplierTeam(saveWorld, teamId);
   const negotiation = state.negotiations.find((row) => row.negotiationId === negotiationId);
   if (!negotiation || negotiation.status !== "countered" || !negotiation.counter) throw new Error("No supplier counter-offer is available.");
+  assertSupplierAffordable(saveWorld, teamId, negotiation.counter.annualValue);
   const deal = agreedDeal(saveWorld, negotiation, negotiation.counter, negotiation.source ?? "player");
   state.futureDeal = deal;
   negotiation.status = "accepted";

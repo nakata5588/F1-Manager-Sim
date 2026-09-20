@@ -14,6 +14,7 @@ import {
   releaseNextSeasonSpecifications,
 } from "../../game/management/technical.js";
 import { controlledTeamSet } from "./controlState.js";
+import { financialPlanningProjection } from "../../game/management/finances.js";
 import {
   applyTechnicalEvolutionSeasonTransition,
   initializeTechnicalEvolution,
@@ -63,13 +64,6 @@ function seasonStrategy(saveWorld, teamId) {
 function developmentFocus(saveWorld, teamId) {
   const focus = seasonStrategy(saveWorld, teamId)?.technicalFocus;
   return ["balanced", "performance", "reliability"].includes(focus) ? focus : "balanced";
-}
-
-function reserveRatio(saveWorld, teamId) {
-  const risk = seasonStrategy(saveWorld, teamId)?.financialRisk;
-  if (risk === "conservative") return 0.12;
-  if (risk === "aggressive") return 0.05;
-  return 0.08;
 }
 
 function emitStarted(project) {
@@ -149,10 +143,8 @@ function autoManufactureAndFit(saveWorld, teamId, source) {
 }
 
 function maybeStartAiFacilityUpgrade(saveWorld, event, teamId, source) {
-  const finance = saveWorld.world?.teamState?.[teamId];
-  const cash = numeric(finance?.cash, 0);
-  const opening = Math.max(1, numeric(finance?.openingCash, 0));
-  if (cash < Math.max(2_000_000, opening * 1.2)) return null;
+  const financial = financialPlanningProjection(saveWorld, teamId);
+  if (!financial || ["critical", "distressed"].includes(financial.riskLevel) || financial.availableToCommit < 100000) return null;
   const projection = technicalProjection(saveWorld, teamId);
   if (projection.facilityUpgrades.some((row) => row.status === "active")) return null;
   const preferred = preferredTechnicalFacilities(saveWorld, teamId);
@@ -190,10 +182,9 @@ function startAiProjects(saveWorld, event, options) {
     const projection = technicalProjection(saveWorld, teamId);
     if (!projection.design.active.length) {
       const component = developmentComponent(saveWorld, teamId, projection);
-      const finance = saveWorld.world?.teamState?.[teamId];
-      const cash = numeric(finance?.cash, 0);
-      const reserve = Math.max(numeric(options.minimumCashReserve, 100000), numeric(finance?.openingCash, 0) * reserveRatio(saveWorld, teamId));
-      if (component && cash > reserve + 50000) {
+      const financial = financialPlanningProjection(saveWorld, teamId);
+      const minimumRoom = Math.max(numeric(options.minimumCashReserve, 100000) * 0.5, 50000);
+      if (component && financial && !["critical", "distressed"].includes(financial.riskLevel) && financial.availableToCommit > minimumRoom) {
         try {
           const project = startTechnicalDesignProject(saveWorld, teamId, {
             component,

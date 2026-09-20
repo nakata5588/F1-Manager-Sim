@@ -1,5 +1,6 @@
 import { listVisibleStaff } from "../../domain/entityVisibility.js";
 import { createRng } from "../../sim/random.js";
+import { assertFinancialCommitment } from "./finances.js";
 import { ensurePersonState, ensureRepresentative, ensureRelationship, personProfile } from "./people.js";
 
 export const STAFF_NEGOTIATION_EVENT = Object.freeze({
@@ -308,11 +309,28 @@ function normalizeOffer(negotiation, input = {}) {
   };
 }
 
+function assertStaffOfferAffordable(saveWorld, negotiation, offer) {
+  if (offer?.compensationMode !== "currency" || !saveWorld.world?.teamState?.[negotiation.teamId]) return null;
+  const current = assignment(saveWorld, negotiation.staffId);
+  const currentAnnual = current?.teamId === negotiation.teamId
+    ? knownSalary(saveWorld, negotiation.staffId) ?? 0
+    : 0;
+  const salaryDelta = Math.max(0, numeric(offer.annualSalary, 0) - currentAnnual);
+  return assertFinancialCommitment(saveWorld, negotiation.teamId, {
+    amount: Math.max(0, numeric(offer.signingBonus, 0)),
+    monthlyAdded: salaryDelta / 12,
+    strictRecurring: true,
+    kind: "staff_contract",
+    label: `staff contract for ${negotiation.staffName ?? negotiation.staffId}`,
+  });
+}
+
 export function submitStaffContractOfferEvent(saveWorld, negotiationId, input = {}) {
   const negotiation = ensureState(saveWorld).negotiations.find((row) => row.id === negotiationId);
   if (!negotiation || negotiation.status !== "open") throw new Error(`Open staff negotiation '${negotiationId}' does not exist.`);
   assertStaffRecruitable(saveWorld, negotiation.staffId);
   const offer = normalizeOffer(negotiation, input);
+  assertStaffOfferAffordable(saveWorld, negotiation, offer);
   return {
     type: STAFF_NEGOTIATION_EVENT.OFFER_SUBMITTED,
     payload: { negotiation_id: negotiation.id, offer },
@@ -323,6 +341,7 @@ export function acceptStaffCounterEvent(saveWorld, negotiationId) {
   const negotiation = ensureState(saveWorld).negotiations.find((row) => row.id === negotiationId);
   if (!negotiation || negotiation.status !== "countered" || !negotiation.counterTerms) throw new Error(`Staff negotiation '${negotiationId}' has no counter-offer.`);
   assertStaffRecruitable(saveWorld, negotiation.staffId);
+  assertStaffOfferAffordable(saveWorld, negotiation, negotiation.counterTerms);
   return { type: STAFF_NEGOTIATION_EVENT.COUNTER_ACCEPTED, payload: { negotiation_id: negotiation.id } };
 }
 

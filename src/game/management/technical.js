@@ -1,5 +1,9 @@
 import { createRng } from "../../sim/random.js";
 import {
+  assertFinancialCommitment,
+  refreshFinancialPlanningState,
+} from "./finances.js";
+import {
   recordTechnicalProjectCompletion,
   technicalDevelopmentModifier,
   technicalIdentityProjection,
@@ -117,11 +121,17 @@ function ensureFinance(saveWorld, teamId) {
   return finance;
 }
 
-function spend(saveWorld, teamId, amount, reason) {
+function spend(saveWorld, teamId, amount, reason, options = {}) {
   const finance = ensureFinance(saveWorld, teamId);
   const cost = Math.max(0, round(amount));
-  if (numeric(finance.cash, 0) < cost) throw new Error(`Team '${teamId}' does not have enough cash for ${reason}.`);
+  assertFinancialCommitment(saveWorld, teamId, {
+    amount: cost,
+    kind: options.kind ?? "technical",
+    label: reason,
+    allowReserveBreach: options.allowReserveBreach === true,
+  });
   finance.cash = round(numeric(finance.cash, 0) - cost);
+  refreshFinancialPlanningState(saveWorld, teamId);
   return cost;
 }
 
@@ -518,7 +528,10 @@ export function startManufacturingJob(saveWorld, teamId, input = {}) {
   const level = facilityLevel(team, "manufacturing");
   const regulationCost = technicalManufacturingCostModifier(saveWorld);
   const unitCost = Math.max(9000, round((12000 + spec.rating * 420) * (emergency ? 1.45 : 1) * regulationCost));
-  const cost = spend(saveWorld, teamId, unitCost * quantity, `${componentLabel(spec.component)} manufacturing`);
+  const cost = spend(saveWorld, teamId, unitCost * quantity, `${componentLabel(spec.component)} manufacturing`, {
+    kind: emergency ? "emergency_manufacturing" : "manufacturing",
+    allowReserveBreach: emergency,
+  });
   const computedDuration = emergency ? 1 : level >= 8 ? 1 : level >= 5 ? 2 : 3;
   const durationMonths = Math.max(1, Math.round(numeric(input.durationMonths, computedDuration)));
   const job = {

@@ -6,7 +6,7 @@ F1 Manager Sim is a long-form Formula One management and world simulation game. 
 
 ## Current development phase
 
-**Stage 16.5 — Core Integrity & Long-Term Simulation Gate**
+**Stage 17 — Commercial & Financial Depth**
 
 The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market, a persistent physical technical lifecycle, dynamic governance/grid evolution, a playable season-to-season transition, renewable driver population, persistent world news/history/records, an era-safe team-organisation model, resumable career persistence and an explicit New Game selection flow.
 
@@ -20,7 +20,7 @@ Current persistence path:
 
 Current management/world loop:
 
-`Continue -> Board / Inbox / People / Staff / Organisation / Recruitment / Commercial / Technical / Governance / Offseason / F1 World -> Decision -> Save World consequence -> Continue`
+`Continue -> Board / Inbox / People / Staff / Organisation / Recruitment / Financial Planning / Commercial / Technical / Governance / Offseason / F1 World -> Decision -> Save World consequence -> Continue`
 
 The technical lifecycle extends through:
 
@@ -34,7 +34,7 @@ The staff/organisation lifecycle extends through:
 
 `Employment / Vacancy -> Functional Department -> Quality / Capacity / Workload -> Advice / Operational Effect -> Staff Change -> Updated Organisation`
 
-Stage 16.5 consolidates core authority before the next depth pass: Race Entry now feeds Race Weekend directly without mutating Employment, save envelopes have an explicit v1 -> v2 migration path, the real 1980 gate composes the current v0.9 circuit package, and CI now includes multi-seed 20-season ecosystem validation. Current release pointers live in `data/release-manifest.json`.
+Stage 17 turns the existing cash, contracts, sponsors, suppliers and technical costs into one coherent financial decision layer. `world.teamState` remains the cash authority; Financial Planning derives protected reserves, available commitment capacity, runway, salary burden, sponsor coverage and risk from that same state. R&D, facilities, manufacturing, preseason, driver/staff contracts and supplier agreements now evaluate affordability through the common planning boundary, while mandatory reliability work may use reserves without inventing credit. AI teams use the same constraints and distressed teams prioritise commercial revenue. Stage 16.5 remains the integrity baseline: Race Entry authority, Save Schema v2 migrations, 14/14 reviewed 1980 circuit geometry and multi-seed 20-season ecosystem validation.
 
 
 Phase 46 turns the Developer Playtest bootstrap into an explicit New Game wizard with Database, Decade, Season, Team and Manager stages. Because 1980 remains the only fully supported starting season, the current runtime exposes only the validated supplied Season Database rather than inventing unavailable historical options. The browser catalog contract is already structured for multiple databases and seasons, so historical expansion can add real career-ready choices without replacing the flow. Final career creation still passes through the existing server-side `createCareerFromSeasonDatabase()` boundary.
@@ -49,7 +49,7 @@ The local Developer Playtest exposes:
 
 - Integrated New Game flow: Database -> Decade -> Season -> Team -> Manager
 - Career / Race Weekend, including manual Save/Load and race-milestone autosave
-- Management Hub, including Inbox, Board, People, Staff, Recruitment, Contracts, Commercial and responsibilities
+- Management Hub, including Inbox, Board, People, Staff, Recruitment, Contracts, Financial Planning, Commercial and responsibilities
 - Technical Operations, including persistent technical identity, suppliers, preseason, reliability, R&D, manufacturing and facilities
 - Governance, including regulation votes and grid/team evolution
 - Offseason & New Season, including season review, readiness, planning and calendar transition
@@ -83,7 +83,7 @@ The race-weekend gameplay boundary is:
 
 The management gameplay boundary is:
 
-`World Event -> Board / People / Staff / Organisation / Market / Commercial / Technical / Governance / Offseason / Career State -> Inbox / Advice -> Player Decision -> Simulation Event -> Updated Save World`
+`World Event -> Board / People / Staff / Organisation / Market / Financial Planning / Commercial / Technical / Governance / Offseason / Career State -> Inbox / Advice -> Player Decision -> Simulation Event -> Updated Save World`
 
 The technical gameplay boundary is:
 
@@ -105,7 +105,13 @@ The organisation boundary is:
 
 `Authoritative Employment / Board / Team State -> Derived Department Capacity / Quality / Workload -> Advice / Existing-System Modifier`
 
-See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/CAREER_PERSISTENCE_SAVE_LOAD.md`, `docs/INTEGRATED_NEW_GAME_FLOW.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/STAFF_ORGANISATION_DEPTH.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/TECHNICAL_TEAM_EVOLUTION.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/REGULATIONS_GOVERNANCE_TEAM_EVOLUTION.md`, `docs/OFFSEASON_NEW_SEASON_PREPARATION.md`, `docs/TALENT_PIPELINE_GENERATED_DRIVERS.md`, `docs/WORLD_EVENTS_NEWS_HISTORY.md`, `docs/F1_WORLD_HISTORY_RECORDS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
+The financial boundary is:
+
+`Existing income/cost authorities -> world.teamState cashflow -> Financial Planning projection -> affordability / AI decision -> Save World consequence`
+
+`Finance_Model` is gameplay calibration only. Its estimated burn can inform opening planning/risk, but it is never posted as an invented monthly ledger cost; cashflow records only explicit/authoritative recurring expenses.
+
+See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/CAREER_PERSISTENCE_SAVE_LOAD.md`, `docs/INTEGRATED_NEW_GAME_FLOW.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/STAFF_ORGANISATION_DEPTH.md`, `docs/COMMERCIAL_FINANCIAL_DEPTH.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/TECHNICAL_TEAM_EVOLUTION.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/REGULATIONS_GOVERNANCE_TEAM_EVOLUTION.md`, `docs/OFFSEASON_NEW_SEASON_PREPARATION.md`, `docs/TALENT_PIPELINE_GENERATED_DRIVERS.md`, `docs/WORLD_EVENTS_NEWS_HISTORY.md`, `docs/F1_WORLD_HISTORY_RECORDS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
 
 ## Historical data policy
 

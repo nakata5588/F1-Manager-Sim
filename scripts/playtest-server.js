@@ -14,6 +14,7 @@ import {
   developerBoard,
   developerCommercial,
   developerContractNegotiations,
+  developerFinances,
   developerInbox,
   developerManagementOverview,
   developerManagementPlanning,
@@ -28,6 +29,7 @@ import {
   developerResolveInboxDecision,
   developerResolveSponsorActivity,
   developerResponsibilities,
+  developerSetFinancialStrategy,
   developerSetResponsibility,
   developerSetShortlist,
   developerStaffContractNegotiations,
@@ -444,6 +446,14 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/staff-contracts/withdraw" && request.method === "POST") {
       const input = await body(request);
       return json(response, 200, developerWithdrawStaffNegotiation(session, input.negotiationId));
+    }
+
+    if (url.pathname === "/api/finances" && request.method === "GET") {
+      return json(response, 200, developerFinances(session));
+    }
+    if (url.pathname === "/api/finances/strategy" && request.method === "POST") {
+      const input = await body(request);
+      return json(response, 200, developerSetFinancialStrategy(session, input.strategy));
     }
 
     if (url.pathname === "/api/commercial" && request.method === "GET") {

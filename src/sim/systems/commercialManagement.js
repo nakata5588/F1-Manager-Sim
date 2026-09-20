@@ -19,6 +19,7 @@ import {
   updateCommercialMarketability,
 } from "../../game/management/commercial.js";
 import { createRng } from "../random.js";
+import { financialPlanningProjection } from "../../game/management/finances.js";
 
 function monthOf(date) {
   return Number(String(date ?? "").slice(5, 7));
@@ -170,10 +171,15 @@ function aiCommercialDeals(saveWorld, event, configured) {
     if (!tier) continue;
     const candidates = listSponsorMarket(saveWorld, teamId, { tier })
       .filter((row) => !row.categoryConflict && row.interest.score >= 46)
-      .slice(0, 4);
+      .slice(0, 6);
     if (!candidates.length) continue;
+    const financial = financialPlanningProjection(saveWorld, teamId);
+    const urgentRevenue = ["critical", "distressed"].includes(financial?.riskLevel);
     const rng = createRng(`${saveWorld.meta?.seed}|ai-commercial|${teamId}|${event.date}|${tier}`);
-    const candidate = candidates[Math.floor(rng.next() * candidates.length)] ?? candidates[0];
+    const candidate = urgentRevenue
+      ? [...candidates].sort((a, b) => Number(b.expectedTerms?.annualValue ?? 0) - Number(a.expectedTerms?.annualValue ?? 0)
+        || Number(b.interest?.score ?? 0) - Number(a.interest?.score ?? 0))[0]
+      : candidates[Math.floor(rng.next() * candidates.length)] ?? candidates[0];
     try {
       const negotiation = openSponsorNegotiation(saveWorld, { teamId, sponsorId: candidate.id, tier });
       const result = submitSponsorOfferEvent(saveWorld, negotiation.id, negotiation.expectedTerms);

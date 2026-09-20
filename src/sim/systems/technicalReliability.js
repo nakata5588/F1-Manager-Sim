@@ -8,6 +8,7 @@ import {
   listSupplierMarket,
   openSupplierNegotiation,
   submitSupplierOffer,
+  withdrawSupplierNegotiation,
 } from "../../game/management/suppliers.js";
 import {
   PRESEASON_EVENT,
@@ -34,6 +35,7 @@ import {
   startManufacturingJob,
   technicalProjection,
 } from "../../game/management/technical.js";
+import { assessFinancialCommitment } from "../../game/management/finances.js";
 import { createRng } from "../random.js";
 import { SIM_EVENT } from "../timeEngine.js";
 import { RACE_EVENT } from "./raceWeekend.js";
@@ -101,20 +103,41 @@ function maybeAiSupplierDeal(saveWorld, event, teamId, source) {
     .sort((a, b) => supplierUtility(b) - supplierUtility(a) || a.engineId.localeCompare(b.engineId));
   if (!candidates.length) return [];
   const best = candidates[0];
-  if (!financeCanSpend(saveWorld, teamId, best.expectedTerms.annualValue / 12)) return [];
+  const currentMonthly = state.active?.annualValueMode === "currency"
+    ? Math.max(0, numeric(state.active.annualValue, 0)) / 12
+    : 0;
+  const proposedMonthly = Math.max(0, numeric(best.expectedTerms?.annualValue, 0)) / 12;
+  const financial = assessFinancialCommitment(saveWorld, teamId, {
+    monthlyAdded: Math.max(0, proposedMonthly - currentMonthly),
+    strictRecurring: true,
+    kind: "supplier_contract",
+  });
+  if (!financial.allowed) return [];
 
   const negotiation = openSupplierNegotiation(saveWorld, teamId, best.engineId, { source });
-  const result = submitSupplierOffer(saveWorld, teamId, negotiation.negotiationId, {
-    annualValue: best.expectedTerms.annualValue,
-    durationYears: best.expectedTerms.durationYears,
-  });
   const events = [{ type: SUPPLIER_EVENT.NEGOTIATION_OPENED, payload: { team_id: teamId, negotiation_id: negotiation.negotiationId, engine_id: best.engineId, source } }];
+  let result;
+  try {
+    result = submitSupplierOffer(saveWorld, teamId, negotiation.negotiationId, {
+      annualValue: best.expectedTerms.annualValue,
+      durationYears: best.expectedTerms.durationYears,
+    });
+  } catch {
+    withdrawSupplierNegotiation(saveWorld, teamId, negotiation.negotiationId);
+    events.push({ type: SUPPLIER_EVENT.REJECTED, payload: { team_id: teamId, negotiation_id: negotiation.negotiationId, engine_id: best.engineId, source, reason: "financial_capacity" } });
+    return events;
+  }
   if (result.status === "accepted") {
     events.push({ type: SUPPLIER_EVENT.ACCEPTED, payload: { team_id: teamId, negotiation_id: negotiation.negotiationId, engine_id: best.engineId, contract_id: result.deal.contractId, effective_season: result.deal.effectiveSeason, annual_value: result.deal.annualValue, source } });
   } else if (result.status === "countered") {
-    const accepted = acceptSupplierCounter(saveWorld, teamId, negotiation.negotiationId);
     events.push({ type: SUPPLIER_EVENT.COUNTERED, payload: { team_id: teamId, negotiation_id: negotiation.negotiationId, engine_id: best.engineId, annual_value: result.counter.annualValue, source } });
-    events.push({ type: SUPPLIER_EVENT.ACCEPTED, payload: { team_id: teamId, negotiation_id: negotiation.negotiationId, engine_id: best.engineId, contract_id: accepted.deal.contractId, effective_season: accepted.deal.effectiveSeason, annual_value: accepted.deal.annualValue, source } });
+    try {
+      const accepted = acceptSupplierCounter(saveWorld, teamId, negotiation.negotiationId);
+      events.push({ type: SUPPLIER_EVENT.ACCEPTED, payload: { team_id: teamId, negotiation_id: negotiation.negotiationId, engine_id: best.engineId, contract_id: accepted.deal.contractId, effective_season: accepted.deal.effectiveSeason, annual_value: accepted.deal.annualValue, source } });
+    } catch {
+      withdrawSupplierNegotiation(saveWorld, teamId, negotiation.negotiationId);
+      events.push({ type: SUPPLIER_EVENT.REJECTED, payload: { team_id: teamId, negotiation_id: negotiation.negotiationId, engine_id: best.engineId, source, reason: "financial_capacity" } });
+    }
   } else {
     events.push({ type: SUPPLIER_EVENT.REJECTED, payload: { team_id: teamId, negotiation_id: negotiation.negotiationId, engine_id: best.engineId, source } });
   }

@@ -1,4 +1,8 @@
 import { createRng } from "../../sim/random.js";
+import {
+  assertFinancialCommitment,
+  refreshFinancialPlanningState,
+} from "./finances.js";
 
 export const PRESEASON_EVENT = Object.freeze({
   INITIALIZED: "preseason.initialized",
@@ -122,8 +126,13 @@ function spend(saveWorld, teamId, amount) {
   const finance = saveWorld.world?.teamState?.[teamId];
   if (!finance) throw new Error(`Team '${teamId}' does not have initialized finances.`);
   const cost = Math.max(0, Math.round(amount * 100) / 100);
-  if (numeric(finance.cash, 0) < cost) throw new Error("The team does not have enough cash for preseason testing.");
+  assertFinancialCommitment(saveWorld, teamId, {
+    amount: cost,
+    kind: "preseason_testing",
+    label: "preseason testing",
+  });
   finance.cash = Math.round((numeric(finance.cash, 0) - cost) * 100) / 100;
+  refreshFinancialPlanningState(saveWorld, teamId);
   return cost;
 }
 
