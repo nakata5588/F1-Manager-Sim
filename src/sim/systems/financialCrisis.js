@@ -14,6 +14,7 @@ import { regulationPackage } from "../../game/management/regulations.js";
 import { SIM_EVENT } from "../timeEngine.js";
 import { TEAM_FINANCE_EVENT } from "./teamEconomy.js";
 import { EMPLOYMENT_EVENT } from "./employmentMarket.js";
+import { dismissManager } from "../../game/management/managerCareer.js";
 import { controlledTeamSet } from "./controlState.js";
 
 export const FINANCIAL_CRISIS_EVENT = Object.freeze({
@@ -114,6 +115,10 @@ function exitEvents(saveWorld, teamId, reason) {
     }];
   }
   const exited = exitTeam(saveWorld, teamId, { reason });
+  const currentManagerTeam = saveWorld.player?.controlledTeamIds?.[0] ?? null;
+  if (String(currentManagerTeam ?? "") === String(teamId)) {
+    dismissManager(saveWorld, teamId, saveWorld.clock?.date, "team_financial_withdrawal");
+  }
   const output = [{
     type: TEAM_EVOLUTION_EVENT.TEAM_EXITED,
     payload: {
