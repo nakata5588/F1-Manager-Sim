@@ -1,5 +1,6 @@
 import { listVisibleDrivers } from "../../domain/entityVisibility.js";
 import { createRng } from "../../sim/random.js";
+import { assertFinancialCommitment } from "./finances.js";
 import {
   ensureRepresentative,
   evaluateDriverTransferInterest,
@@ -365,11 +366,32 @@ export function openDriverContractNegotiation(saveWorld, input = {}) {
   return structuredClone(row);
 }
 
+function assertOfferAffordable(saveWorld, negotiation, terms) {
+  if (terms?.compensationMode !== "currency" || !saveWorld.world?.teamState?.[negotiation.teamId]) return null;
+  const current = currentAssignment(saveWorld, negotiation.driverId);
+  const currentContract = current?.teamId === negotiation.teamId
+    ? activeContract(saveWorld, negotiation.driverId, negotiation.teamId)
+    : null;
+  const currentAnnual = currentContract ? salaryFromContract(currentContract) ?? 0 : 0;
+  const salaryDelta = Math.max(0, numeric(terms.annualSalary, 0) - currentAnnual);
+  const transfer = terms.transferCompensation?.mode === "currency"
+    ? Math.max(0, numeric(terms.transferCompensation.value, 0))
+    : 0;
+  return assertFinancialCommitment(saveWorld, negotiation.teamId, {
+    amount: Math.max(0, numeric(terms.signingBonus, 0)) + transfer,
+    monthlyAdded: salaryDelta / 12,
+    strictRecurring: true,
+    kind: "driver_contract",
+    label: `contract for ${negotiation.driverName ?? negotiation.driverId}`,
+  });
+}
+
 export function submitDriverContractOfferEvent(saveWorld, negotiationId, input = {}) {
   const negotiation = ensureContractNegotiationState(saveWorld).negotiations.find((row) => row.id === negotiationId);
   if (!negotiation) throw new Error(`Contract negotiation '${negotiationId}' does not exist.`);
   if (!["open", "countered"].includes(negotiation.status)) throw new Error(`Contract negotiation '${negotiationId}' is not open for offers.`);
   const terms = normalizeOffer(negotiation, input);
+  assertOfferAffordable(saveWorld, negotiation, terms);
   return { type: CONTRACT_NEGOTIATION_EVENT.OFFER_SUBMITTED, payload: { negotiation_id: negotiationId, terms } };
 }
 
@@ -378,6 +400,7 @@ export function acceptDriverContractCounterEvent(saveWorld, negotiationId) {
   if (!negotiation || negotiation.status !== "countered" || !negotiation.counterTerms) {
     throw new Error(`Contract negotiation '${negotiationId}' has no counter-offer to accept.`);
   }
+  assertOfferAffordable(saveWorld, negotiation, negotiation.counterTerms);
   return { type: CONTRACT_NEGOTIATION_EVENT.COUNTER_ACCEPTED, payload: { negotiation_id: negotiationId } };
 }
 
