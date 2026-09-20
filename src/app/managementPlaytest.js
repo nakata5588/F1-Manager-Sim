@@ -65,6 +65,10 @@ import {
   submitSponsorOfferEvent,
   withdrawSponsorNegotiationEvent,
 } from "../game/management/commercial.js";
+import {
+  financialPlanningProjection,
+  setFinancialStrategy,
+} from "../game/management/finances.js";
 import { BOARD_EVENT } from "../sim/systems/boardManagement.js";
 import { buildManagementPlanning } from "./managementPlanning.js";
 import { createCoreWorldSystems } from "../sim/systems/coreWorldSystems.js";
@@ -121,6 +125,7 @@ export function developerManagementOverview(session) {
     board: teamId ? boardProjection(saveWorld, teamId) : null,
     career: managerCareerProjection(saveWorld),
     commercial: commercialSummary(saveWorld, teamId),
+    finances: teamId ? financialPlanningProjection(saveWorld, teamId) : null,
   };
 }
 
@@ -371,6 +376,22 @@ export function developerWithdrawStaffNegotiation(session, negotiationId) {
   if (!negotiation || negotiation.teamId !== teamId) throw new Error("This staff negotiation does not belong to the controlled team.");
   dispatchManagementEvent(session, withdrawStaffNegotiationEvent(saveWorld, negotiationId));
   return developerStaffContractNegotiations(session);
+}
+
+export function developerFinances(session) {
+  const saveWorld = requireSession(session);
+  return {
+    teamId: session.controlledTeamId,
+    planning: session.controlledTeamId ? financialPlanningProjection(saveWorld, session.controlledTeamId) : null,
+  };
+}
+
+export function developerSetFinancialStrategy(session, strategy) {
+  const { saveWorld, teamId } = requireControlledTeam(session);
+  return {
+    teamId,
+    planning: setFinancialStrategy(saveWorld, teamId, strategy),
+  };
 }
 
 export function developerCommercial(session, options = {}) {
