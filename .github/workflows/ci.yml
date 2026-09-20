@@ -17,6 +17,8 @@ jobs:
           node-version: 22
       - name: Run simulation tests
         run: npm test
+      - name: Run 20-season multi-seed ecosystem gate
+        run: npm run sim:ecosystem -- --seasons 20 --seeds 2
 
   database-tooling:
     runs-on: ubuntu-latest
