@@ -210,7 +210,9 @@ function renderPeople() {
 function renderTeamOverview() {
   const managerOwned = responsibilities.areas?.filter((row) => row.owner === "manager").length ?? 0;
   const delegated = responsibilities.areas?.filter((row) => row.owner === "delegated").length ?? 0;
+  const priorityCount = planning?.priorities?.filter((row) => ["critical", "high"].includes(row.severity)).length ?? 0;
   return `<section class="management-overview-grid">
+    <article class="management-overview-card ${priorityCount ? "attention-card" : ""}"><span>Planning</span><strong>${priorityCount}</strong><small>Priority decision${priorityCount === 1 ? "" : "s"} requiring attention</small><button data-tab="planning">Open Planning</button></article>
     <article class="management-overview-card"><span>Drivers</span><strong>${people.drivers.length}</strong><small>Current race team</small><button data-tab="drivers">Open Drivers</button></article>
     <article class="management-overview-card"><span>Staff</span><strong>${people.staff.length}</strong><small>Current team staff</small><button data-tab="staff">Open Staff</button></article>
     <article class="management-overview-card"><span>Board confidence</span><strong>${boardData.board ? Math.round(boardData.board.confidence) : "—"}</strong><small>${escapeHtml(publicLabel(boardData.board?.status, "No review"))}</small><button data-tab="board">Open Board</button></article>
@@ -440,8 +442,8 @@ async function openDriverNegotiation(driverId, startSeason = undefined) {
   syncManagementHash(activeTab);
 }
 
-async function openStaffNegotiation(staffId) {
-  const result = await api("/api/staff-contracts/open", { method: "POST", body: JSON.stringify({ staffId }) });
+async function openStaffNegotiation(staffId, startSeason = undefined) {
+  const result = await api("/api/staff-contracts/open", { method: "POST", body: JSON.stringify({ staffId, startSeason }) });
   selectedStaffNegotiation = result.negotiation;
   activeTab = "staff-market";
   syncManagementHash(activeTab);
@@ -459,6 +461,21 @@ async function openSponsorNegotiation(sponsorId, tier, renewDealId = null) {
 root.addEventListener("click", (event) => {
   const tab = event.target.closest("[data-tab]")?.dataset.tab;
   if (tab) { activeTab = normalizeManagementView(tab); syncManagementHash(activeTab); render(); return; }
+
+  const planningButton = event.target.closest("[data-planning-view]");
+  if (planningButton) {
+    activeTab = normalizeManagementView(planningButton.dataset.planningView);
+    const negotiationId = planningButton.dataset.planningNegotiation;
+    if (negotiationId && activeTab === "contracts") selectedNegotiation = contracts.negotiations.find((row) => row.id === negotiationId) ?? null;
+    if (negotiationId && activeTab === "staff-market") selectedStaffNegotiation = staffContracts.negotiations.find((row) => row.id === negotiationId) ?? null;
+    syncManagementHash(activeTab);
+    render();
+    return;
+  }
+  const renewDriver = event.target.closest("[data-renew-driver]")?.dataset.renewDriver;
+  if (renewDriver) return action(() => openDriverNegotiation(renewDriver, careerState.career?.season));
+  const renewStaff = event.target.closest("[data-renew-staff]")?.dataset.renewStaff;
+  if (renewStaff) return action(() => openStaffNegotiation(renewStaff, careerState.career?.season));
 
   const readItem = event.target.closest("[data-read-item]")?.dataset.readItem;
   if (readItem) return action(() => api("/api/inbox/read", { method: "POST", body: JSON.stringify({ itemId: readItem, read: true }) }));
