@@ -63,7 +63,7 @@ Design inputs include:
 - focus (`balanced`, `performance`, `reliability`);
 - current-season development or next-season research.
 
-Project cost and duration are simulation values. Efficiency responds to employed technical staff, relevant facilities and driver technical feedback. Randomness is deterministic from the Save World seed and is controlled rather than dominant.
+Project cost and duration are simulation values. Efficiency responds to employed technical staff, relevant facilities and driver technical feedback. Stage 16 additionally applies persistent team technical familiarity and the enacted regulation package's development-efficiency modifier. Randomness is deterministic from the Save World seed and is controlled rather than dominant.
 
 ## Current vs next-season development
 
@@ -146,8 +146,8 @@ AI teams and a player team with `Car Development = Delegated` use the same techn
 1. progress active work;
 2. manufacture better completed specifications;
 3. fit available upgrades to the cars;
-4. start a new design for the weakest area when finances permit;
-5. occasionally invest in the weakest facility when financially strong.
+4. rank development candidates using weakness, accumulated technical familiarity and the season focus;
+5. invest in facilities with a modest preference for infrastructure aligned with the team's evolving technical identity when financially strong.
 
 The player does not have a separate simplified R&D model.
 
@@ -188,8 +188,21 @@ Phase 36 deliberately does not yet implement:
 - full component wear and race-to-race inventory consumption;
 - crash-damage inventory replacement;
 - preseason testing;
-- regulation-change research multipliers;
 - homologation rules;
 - a full multi-project staff allocation UI.
 
 Those are natural follow-ups rather than reasons to duplicate or over-expand this phase.
+
+
+## Stage 16 technical identity
+
+The physical technical lifecycle now feeds a persistent technical-memory model documented in `docs/TECHNICAL_TEAM_EVOLUTION.md`.
+
+Technical identity is derived gameplay state, not a historical rating. It records discipline familiarity earned through completed projects and applies a bounded modifier to future R&D.
+
+At season transitions, enacted technical regulations now affect both:
+
+- physical specification carry-over through the existing regulation-impact model;
+- organisational technical-memory carry-over through the Stage 16 identity model.
+
+The regulation package's `developmentEfficiencyModifier` and `manufacturingCostModifier` now also have real consequences in the existing R&D/manufacturing pipeline.

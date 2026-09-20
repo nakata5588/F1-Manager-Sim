@@ -262,3 +262,23 @@ test("Management Planning presentation does not surface hidden ability fields", 
   const planningSource = source.slice(planningStart, planningEnd);
   assert.doesNotMatch(planningSource, /currentAbility|potentialAbility|current_ability|potential_ability/);
 });
+
+
+test("Technical & Team Evolution presents persistent technical identity without a synthetic team Overall", () => {
+  const source = readFileSync("playtest/technical.js", "utf8");
+  assert.match(source, /Technical Identity & Evolution/);
+  assert.match(source, /Current concept/);
+  assert.match(source, /Established strengths/);
+  assert.match(source, /Developing areas/);
+  assert.match(source, /technical carry-over/);
+  assert.match(source, /development efficiency/);
+  assert.match(source, /manufacturing cost/);
+  assert.match(source, /identity × regulations/);
+  assert.doesNotMatch(source, /Team Overall|Technical Overall/);
+});
+
+test("Technical Identity UI remains a projection over the existing technical endpoint", () => {
+  const source = readFileSync("playtest/technical.js", "utf8");
+  assert.match(source, /technical\.team\?\.evolution/);
+  assert.doesNotMatch(source, /localStorage.*technical|sessionStorage.*technical/);
+});

@@ -24,7 +24,7 @@ Current management/world loop:
 
 The technical lifecycle extends through:
 
-`Supplier -> Preseason Test -> Design / Research -> Specification -> Manufacture -> Inventory -> Fit -> Wear / Failure -> Replace / Rebuild -> Race`
+`Technical Identity -> Supplier -> Preseason Test -> Design / Research -> Learning -> Specification -> Manufacture -> Inventory -> Fit -> Wear / Failure -> Replace / Rebuild -> Race -> Regulation Carry-over`
 
 The talent lifecycle extends through:
 
@@ -47,7 +47,7 @@ The local Developer Playtest exposes:
 - Integrated New Game flow: Database -> Decade -> Season -> Team -> Manager
 - Career / Race Weekend, including manual Save/Load and race-milestone autosave
 - Management Hub, including Inbox, Board, People, Staff, Recruitment, Contracts, Commercial and responsibilities
-- Technical Operations, including suppliers, preseason, reliability, R&D, manufacturing and facilities
+- Technical Operations, including persistent technical identity, suppliers, preseason, reliability, R&D, manufacturing and facilities
 - Governance, including regulation votes and grid/team evolution
 - Offseason & New Season, including season review, readiness, planning and calendar transition
 - F1 World, including world news, history, records and alternative championship history
@@ -84,7 +84,7 @@ The management gameplay boundary is:
 
 The technical gameplay boundary is:
 
-`Historical starting car/supplier -> Preseason -> Design / Research -> Specification -> Manufacture -> Inventory -> Fit -> Wear / Failure -> Maintain -> Race`
+`Historical starting car/supplier -> Derived technical identity -> Preseason -> Design / Research -> Organisational learning -> Specification -> Manufacture -> Inventory -> Fit -> Wear / Failure -> Maintain -> Race -> Regulation carry-over`
 
 The governance boundary is:
 
@@ -102,7 +102,7 @@ The organisation boundary is:
 
 `Authoritative Employment / Board / Team State -> Derived Department Capacity / Quality / Workload -> Advice / Existing-System Modifier`
 
-See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/CAREER_PERSISTENCE_SAVE_LOAD.md`, `docs/INTEGRATED_NEW_GAME_FLOW.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/STAFF_ORGANISATION_DEPTH.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/REGULATIONS_GOVERNANCE_TEAM_EVOLUTION.md`, `docs/OFFSEASON_NEW_SEASON_PREPARATION.md`, `docs/TALENT_PIPELINE_GENERATED_DRIVERS.md`, `docs/WORLD_EVENTS_NEWS_HISTORY.md`, `docs/F1_WORLD_HISTORY_RECORDS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
+See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/CAREER_PERSISTENCE_SAVE_LOAD.md`, `docs/INTEGRATED_NEW_GAME_FLOW.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/STAFF_ORGANISATION_DEPTH.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/TECHNICAL_TEAM_EVOLUTION.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/REGULATIONS_GOVERNANCE_TEAM_EVOLUTION.md`, `docs/OFFSEASON_NEW_SEASON_PREPARATION.md`, `docs/TALENT_PIPELINE_GENERATED_DRIVERS.md`, `docs/WORLD_EVENTS_NEWS_HISTORY.md`, `docs/F1_WORLD_HISTORY_RECORDS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
 
 ## Historical data policy
 
@@ -128,7 +128,7 @@ Management, technical, governance and career systems are deliberately tolerant o
 - starting component/engine condition of `100` is a derived serviceable gameplay baseline, not a historical measurement of wear;
 - historical `teamEngines` provides the opening supplier assignment only; future supplier contracts are Save World state;
 - unknown historical supplier monetary values remain abstract rather than becoming invented costs;
-- technical specifications, reliability ratings, wear, failures, maintenance, preseason preparation and supplier agreements created after career start are simulation state;
+- technical specifications, reliability ratings, technical familiarity/identity, wear, failures, maintenance, preseason preparation and supplier agreements created after career start are simulation state;
 - future historical regulations are reference inputs only and require career governance before becoming active;
 - future team identities are eligibility candidates, not scripted future grid members;
 - generated resources for newly admitted teams are explicit simulation baselines, not historical facts;

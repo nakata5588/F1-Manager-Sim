@@ -14,6 +14,12 @@ import {
   releaseNextSeasonSpecifications,
 } from "../../game/management/technical.js";
 import { controlledTeamSet } from "./controlState.js";
+import {
+  applyTechnicalEvolutionSeasonTransition,
+  initializeTechnicalEvolution,
+  preferredTechnicalFacilities,
+  rankTechnicalDevelopmentCandidates,
+} from "../../game/management/technicalEvolution.js";
 
 export const TEAM_DEVELOPMENT_EVENT = Object.freeze({
   INITIALIZED: TECHNICAL_EVENT.INITIALIZED,
@@ -39,10 +45,9 @@ function controlledTeamMayAutoDevelop(saveWorld, teamId, controlled) {
   catch { return false; }
 }
 
-function weakestComponent(projection) {
-  return Object.entries(projection?.car?.components ?? {})
-    .filter(([, value]) => Number.isFinite(Number(value)))
-    .sort((a, b) => Number(a[1]) - Number(b[1]) || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
+function developmentComponent(saveWorld, teamId, projection) {
+  const focus = developmentFocus(saveWorld, teamId);
+  return rankTechnicalDevelopmentCandidates(saveWorld, teamId, projection?.car?.components ?? {}, focus)[0]?.component ?? null;
 }
 
 function autoSource(controlled, teamId) {
@@ -150,9 +155,15 @@ function maybeStartAiFacilityUpgrade(saveWorld, event, teamId, source) {
   if (cash < Math.max(2_000_000, opening * 1.2)) return null;
   const projection = technicalProjection(saveWorld, teamId);
   if (projection.facilityUpgrades.some((row) => row.status === "active")) return null;
+  const preferred = preferredTechnicalFacilities(saveWorld, teamId);
+  const preference = new Map(preferred.map((id, index) => [id, index]));
   const candidates = projection.facilities
     .filter((row) => row.availabilityStatus !== "unavailable_future_technology" && Number.isFinite(Number(row.level)) && Number(row.level) < 10)
-    .sort((a, b) => Number(a.level) - Number(b.level) || a.id.localeCompare(b.id));
+    .sort((a, b) => {
+      const pa = preference.has(a.id) ? preference.get(a.id) : 99;
+      const pb = preference.has(b.id) ? preference.get(b.id) : 99;
+      return pa - pb || Number(a.level) - Number(b.level) || a.id.localeCompare(b.id);
+    });
   if (!candidates.length) return null;
   const rng = createRng(`${saveWorld.meta.seed}|${event.date}|facility-upgrade|${teamId}`);
   if (rng.next() > 0.04) return null;
@@ -178,7 +189,7 @@ function startAiProjects(saveWorld, event, options) {
 
     const projection = technicalProjection(saveWorld, teamId);
     if (!projection.design.active.length) {
-      const component = weakestComponent(projection);
+      const component = developmentComponent(saveWorld, teamId, projection);
       const finance = saveWorld.world?.teamState?.[teamId];
       const cash = numeric(finance?.cash, 0);
       const reserve = Math.max(numeric(options.minimumCashReserve, 100000), numeric(finance?.openingCash, 0) * reserveRatio(saveWorld, teamId));
@@ -211,10 +222,13 @@ export function createTeamDevelopmentSystem(options = {}) {
     handle({ saveWorld, event }) {
       if (event.type === SIM_EVENT.CAREER_STARTED) {
         const teams = initializeTechnicalWorld(saveWorld, event.date);
-        return { type: TECHNICAL_EVENT.INITIALIZED, payload: { teams } };
+        const identities = initializeTechnicalEvolution(saveWorld);
+        return { type: TECHNICAL_EVENT.INITIALIZED, payload: { teams, technical_identities: identities } };
       }
       if (event.type === SIM_EVENT.SEASON_STARTED) {
-        return releaseNextSeasonSpecifications(saveWorld, event.payload?.season ?? saveWorld.clock.season)
+        const season = event.payload?.season ?? saveWorld.clock.season;
+        applyTechnicalEvolutionSeasonTransition(saveWorld, season);
+        return releaseNextSeasonSpecifications(saveWorld, season)
           .map((row) => ({ type: TECHNICAL_EVENT.NEXT_SEASON_SPEC_RELEASED, payload: { team_id: row.teamId, spec_id: row.specId, component: row.component, target_season: row.targetSeason } }));
       }
       const progressed = advanceTechnicalMonth(saveWorld, event.date);

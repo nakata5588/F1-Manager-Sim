@@ -13,6 +13,13 @@ function fixture() {
       technical: {
         teams: { T1: { teamId: "T1", specs: {} }, T2: { teamId: "T2", specs: {} } },
         suppliers: { teams: { T1: { active: { engineId: "E1" } }, T2: { active: { engineId: "E2" } } } },
+        evolution: {
+          teams: {
+            T1: { teamId: "T1", currentSeason: 1982, disciplines: { aero: { familiarity: 1.08 } } },
+            T2: { teamId: "T2", currentSeason: 1982, disciplines: { chassis: { familiarity: 1.06 } } },
+          },
+          history: [],
+        },
       },
       employment: {
         futureAssignments: {
@@ -42,10 +49,13 @@ test("exited team operational state is archived rather than left active", () => 
   assert.equal(save.world.technical.inactiveTeams.T1.teamId, "T1");
   assert.equal(save.world.technical.suppliers.teams.T1, undefined);
   assert.equal(save.world.technical.inactiveSupplierTeams.T1.active.engineId, "E1");
+  assert.equal(save.world.technical.evolution.teams.T1, undefined);
+  assert.equal(save.world.technical.evolution.inactiveTeams.T1.disciplines.aero.familiarity, 1.08);
 
   // Other active teams must remain untouched.
   assert.equal(save.world.teamState.T2.cash, 2000);
   assert.equal(save.world.technical.teams.T2.teamId, "T2");
+  assert.equal(save.world.technical.evolution.teams.T2.disciplines.chassis.familiarity, 1.06);
 });
 
 test("exited team future employment commitments and vacancies are cancelled", () => {
