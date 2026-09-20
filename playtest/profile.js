@@ -55,6 +55,14 @@ function person(profile) {
   const employment = profile.employment ?? {};
   const team = employment.teamId ? entityLink("team", employment.teamId, employment.teamName ?? employment.teamId) : "Free agent";
   const recent = profile.recentResults ?? [];
+  const availability = profile.availability ?? null;
+  const marketPath = profile.marketPath ?? null;
+  const medical = profile.type === "driver" && availability
+    ? `<article class="profile-card"><h2>Race Availability</h2>${detail("Medical status", human(availability.status))}${detail("Race available", availability.raceAvailable ? "Yes" : "No")}${detail("Injury", availability.injuryClass ? human(availability.injuryClass) : "None")}${detail("Expected return", availability.expectedReturnDate ? humanDate(availability.expectedReturnDate) : "—")}</article>`
+    : "";
+  const market = profile.type === "driver"
+    ? `<article class="profile-card"><h2>Driver Market</h2>${detail("Career path", human(marketPath?.path ?? "unknown"))}${detail("Last F1 season", marketPath?.lastF1Season ?? "—")}${detail("F1 free since", marketPath?.f1FreeSince ?? "—")}${availability?.activeReplacement ? detail("Replacement duty", availability.activeReplacement.teamId ?? "Active") : detail("Replacement duty", "None")}</article>`
+    : "";
   return `<main class="profile-shell">
     <section class="profile-hero">
       <div class="profile-media">${profileMedia(profile, (profile.name ?? "?").split(/\s+/).map((part) => part[0]).slice(0, 2).join(""))}</div>
@@ -64,6 +72,7 @@ function person(profile) {
     <section class="profile-grid">
       <article class="profile-card"><h2>Career Status</h2>${detail("Role", human(employment.role))}${detail("Status", human(employment.status))}${detail("Contract until", employment.contractUntil)}${profile.type === "driver" ? detail("Scouting knowledge", `${Math.round(profile.scoutingKnowledge ?? 0)}%`) : detail("Recruitment", profile.recruitment?.eligible ? "Available through staff market" : human(profile.recruitment?.reason))}</article>
       <article class="profile-card"><h2>Current State</h2>${profile.careerState ? `${detail("Current ability", profile.careerState.currentAbility)}${detail("Potential ability", profile.careerState.potentialAbility)}${detail("Reputation", profile.careerState.reputation)}${detail("Morale", profile.careerState.morale)}` : '<p class="profile-muted">Detailed information is available for people employed by your team.</p>'}</article>
+      ${medical}${market}
       <article class="profile-card wide"><h2>Attributes</h2>${attributes(profile.attributes)}</article>
       ${profile.type === "driver" ? `<article class="profile-card wide"><h2>Recent Race Results</h2>${recent.length ? `<div class="profile-list">${recent.map((row) => `<div class="profile-list-row"><div><strong>${escapeHtml(row.raceName)}</strong><div class="profile-muted">${humanDate(row.date)}${row.teamId ? ` · ${entityLink("team", row.teamId, row.teamName ?? row.teamId)}` : ""}</div></div><span>P${row.position ?? "—"}</span><span>${row.points ?? 0} pts</span></div>`).join("")}</div>` : '<p class="profile-muted">No archived race results yet.</p>'}</article>` : ""}
     </section>

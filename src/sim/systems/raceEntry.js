@@ -61,6 +61,83 @@ function sortEntries(entries) {
     || String(a.driverId).localeCompare(String(b.driverId)));
 }
 
+export function raceEntryForDriver(saveWorld, driverId) {
+  return structuredClone(ensureState(saveWorld).current.find((row) => String(row.driverId) === String(driverId)) ?? null);
+}
+
+export function removeRaceEntryDriver(saveWorld, driverId, reason = "unavailable") {
+  const change = removeDriver(saveWorld, driverId, reason);
+  if (change) ensureState(saveWorld).source = "save_world_dynamic";
+  return change;
+}
+
+export function assignTemporaryRaceReplacement(saveWorld, input = {}) {
+  const absentDriverId = input.absentDriverId ?? input.absent_driver_id;
+  const replacementDriverId = input.replacementDriverId ?? input.replacement_driver_id;
+  const teamId = input.teamId ?? input.team_id;
+  if (!absentDriverId || !replacementDriverId || !teamId) {
+    throw new TypeError("A temporary race replacement requires absent driver, replacement driver and team.");
+  }
+  const state = ensureState(saveWorld);
+  const previous = state.current.find((row) => String(row.driverId) === String(absentDriverId)) ?? null;
+  state.current = state.current.filter((row) =>
+    String(row.driverId) !== String(absentDriverId)
+      && String(row.driverId) !== String(replacementDriverId));
+  state.current.push({
+    driverId: replacementDriverId,
+    teamId,
+    entrantId: input.entrantId ?? input.entrant_id ?? previous?.entrantId ?? null,
+    carNumber: input.carNumber ?? input.car_number ?? previous?.carNumber ?? null,
+    tyreSupplier: input.tyreSupplier ?? input.tyre_supplier ?? previous?.tyreSupplier ?? null,
+    sourceRole: "injury_replacement",
+    source: "temporary_replacement",
+    temporary: true,
+    replacementAgreementId: input.agreementId ?? input.agreement_id ?? null,
+    replacedDriverId: absentDriverId,
+  });
+  sortEntries(state.current);
+  state.source = "save_world_dynamic";
+  state.revision += 1;
+  return {
+    reason: "temporary_replacement",
+    absentDriverId,
+    replacementDriverId,
+    teamId,
+    carNumber: input.carNumber ?? input.car_number ?? previous?.carNumber ?? null,
+    revision: state.revision,
+  };
+}
+
+export function restoreTemporaryRaceSeat(saveWorld, input = {}) {
+  const returningDriverId = input.returningDriverId ?? input.returning_driver_id;
+  const replacementDriverId = input.replacementDriverId ?? input.replacement_driver_id;
+  const teamId = input.teamId ?? input.team_id;
+  if (!returningDriverId || !teamId) throw new TypeError("Restoring a race seat requires a returning driver and team.");
+  const state = ensureState(saveWorld);
+  state.current = state.current.filter((row) =>
+    String(row.driverId) !== String(replacementDriverId ?? "")
+      && String(row.driverId) !== String(returningDriverId));
+  state.current.push({
+    driverId: returningDriverId,
+    teamId,
+    entrantId: input.entrantId ?? input.entrant_id ?? null,
+    carNumber: input.carNumber ?? input.car_number ?? null,
+    tyreSupplier: input.tyreSupplier ?? input.tyre_supplier ?? null,
+    sourceRole: input.sourceRole ?? input.source_role ?? "race_driver",
+    source: "recovered_race_driver",
+  });
+  sortEntries(state.current);
+  state.source = "save_world_dynamic";
+  state.revision += 1;
+  return {
+    reason: "driver_recovered",
+    returningDriverId,
+    replacementDriverId: replacementDriverId ?? null,
+    teamId,
+    revision: state.revision,
+  };
+}
+
 function initialize(saveWorld) {
   const state = ensureState(saveWorld);
   const explicit = (saveWorld.world?.startingRaceEntries ?? [])

@@ -138,6 +138,10 @@ function raceEntryHealth(saveWorld, errors) {
     if (saveWorld.world?.careerState?.drivers?.[entry.driverId]?.status === "retired") {
       errors.push(`Retired driver ${entry.driverId} remains in current race entries.`);
     }
+    const medical = saveWorld.world?.driverAvailability?.drivers?.[entry.driverId];
+    if (medical?.status === "injured") {
+      errors.push(`Injured driver ${entry.driverId} remains in current race entries.`);
+    }
   }
 }
 
@@ -245,6 +249,9 @@ export function validateLongRunWorld(saveWorld, options = {}) {
       employedDrivers: Object.keys(saveWorld.world?.employment?.drivers ?? {}).length,
       employedStaff: Object.keys(saveWorld.world?.employment?.staff ?? {}).length,
       freeDrivers: saveWorld.world?.employment?.freeAgents?.drivers?.length ?? 0,
+      otherMotorsportDrivers: Object.values(saveWorld.world?.driverMarketState?.drivers ?? {}).filter((row) => row?.path === "other_motorsport").length,
+      injuries: saveWorld.world?.driverAvailability?.injuries?.length ?? 0,
+      replacementAgreements: saveWorld.world?.driverAvailability?.replacements?.length ?? 0,
       freeStaff: saveWorld.world?.employment?.freeAgents?.staff?.length ?? 0,
       openVacancies: (saveWorld.world?.employment?.vacancies ?? []).filter((row) => row.status === "open").length,
     },

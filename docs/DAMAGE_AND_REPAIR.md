@@ -87,6 +87,14 @@ The current temporal contract is:
 
 Older resume-state versions remain accepted and receive empty/default damage state when restored.
 
+## Driver medical consequences
+
+Stage 18 consumes the same temporal incident records after the race timeline has been resolved, but driver health remains a separate authority from car damage.
+
+A severe crash may damage the car without injuring the driver, injure the driver without implying a specific historical diagnosis, or do both. The medical roll considers incident severity, terminal/non-terminal crash outcome, an explicit Season Database injury probability when available, era safety input when available, and deterministic Save World randomness.
+
+Injury outcomes are stored under `world.driverAvailability`. They do not mutate the historical database and they do not turn car-damage severity into an invented diagnosis.
+
 ## Future extensions
 
 Likely extensions include:
@@ -97,5 +105,5 @@ Likely extensions include:
 - optional/priority repairs controlled by player or team AI;
 - spare-parts availability and cost;
 - post-race car rebuild consequences;
-- driver injury/safety consequences kept separate from car damage;
-- richer era-specific repair restrictions when supplied by the Season Database.
+- richer era-specific repair restrictions when supplied by the Season Database;
+- richer medical diagnosis/recovery modifiers, rehabilitation and recurrence risk.

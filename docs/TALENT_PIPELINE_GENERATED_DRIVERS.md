@@ -8,7 +8,7 @@ Historical drivers remain immutable starting/reference data. Generated drivers e
 
 The canonical lifecycle is:
 
-`Generated Junior → World Visible → Talent Visible → F1 Eligible → Free Driver / Contract → F1 Career`
+`Generated Junior → World Visible → Talent Visible → F1 Eligible → F1 Free Driver / Contract → F1 Career / Other Motorsport → possible F1 return`
 
 The existing visibility, scouting, employment, contract, career-development and race systems remain authoritative for their own domains.
 
@@ -106,7 +106,8 @@ When a generated driver reaches `f1_eligible_from`:
 1. `entityAvailability` emits the normal eligibility event;
 2. `careerLifecycle` activates the future profile into the live driver world;
 3. `employmentMarket` adds the driver as a free agent when no team contract exists;
-4. scouting, negotiations and AI recruitment use the same rules as for any other driver.
+4. scouting, negotiations and AI recruitment use the same rules as for any other driver;
+5. prolonged absence of an F1 seat can move the driver to `other_motorsport`, where the identity remains active in the Save World and may later return to the F1 market or accept an emergency replacement drive.
 
 There is no automatic F1 debut, team assignment or race entry.
 
@@ -124,6 +125,6 @@ Generated talent begins only after the Save World boundary.
 
 ## Long-career objective
 
-The system is designed to keep the employment/scouting ecosystem populated after historical source coverage becomes sparse and to make two careers from the same historical start capable of producing genuinely different driver generations.
+The system is designed to keep the employment/scouting ecosystem populated after historical source coverage becomes sparse and to make two careers from the same historical start capable of producing genuinely different driver generations. Stage 18 also prevents every F1-eligible driver from accumulating indefinitely in one free-agent bucket.
 
 Future expansion may add deeper feeder-series championships, team academies, national/regional talent pools, junior contracts, pay-driver pathways and staff-generated development programmes. Those systems should extend this pipeline rather than create a parallel driver population model.

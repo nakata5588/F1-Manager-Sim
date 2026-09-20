@@ -48,6 +48,8 @@ export function summarizeLongRunEcosystem(saveWorld, structuralReport = null) {
   const dnfs = classifications.filter((row) => String(row?.status ?? "").toUpperCase() === "DNF").length;
   const generatedDrivers = (saveWorld.world?.drivers ?? []).filter((row) => row?.generated === true || row?.source === "simulation").length;
   const teamStates = Object.values(saveWorld.world?.teamState ?? {});
+  const marketRows = Object.values(saveWorld.world?.driverMarketState?.drivers ?? {});
+  const availabilityRows = Object.values(saveWorld.world?.driverAvailability?.drivers ?? {});
 
   return {
     structuralOk: structuralReport?.ok ?? null,
@@ -68,6 +70,12 @@ export function summarizeLongRunEcosystem(saveWorld, structuralReport = null) {
     activeDriverAges: distribution(activeDriverAges),
     generatedDrivers,
     freeDrivers: saveWorld.world?.employment?.freeAgents?.drivers?.length ?? 0,
+    otherMotorsportDrivers: marketRows.filter((row) => row?.path === "other_motorsport").length,
+    outsideF1Drivers: marketRows.filter((row) => row?.path === "outside_f1").length,
+    temporaryReplacementDrivers: marketRows.filter((row) => row?.path === "temporary_replacement").length,
+    injuredDrivers: availabilityRows.filter((row) => row?.status === "injured").length,
+    injuriesRecorded: saveWorld.world?.driverAvailability?.injuries?.length ?? 0,
+    replacementAgreements: saveWorld.world?.driverAvailability?.replacements?.length ?? 0,
     freeStaff: saveWorld.world?.employment?.freeAgents?.staff?.length ?? 0,
     openVacancies: (saveWorld.world?.employment?.vacancies ?? []).filter((row) => row?.status === "open").length,
     transfers: saveWorld.history?.transfers?.length ?? 0,
@@ -111,7 +119,8 @@ export function runLongRunMatrix(historicalSnapshot, options = {}) {
 
   if (driverChampions.size <= 1 && seasons >= 10) warnings.push("Ecosystem signal: all simulated seasons/seeds produced one driver champion identity.");
   if (constructorChampions.size <= 1 && seasons >= 10) warnings.push("Ecosystem signal: all simulated seasons/seeds produced one constructor champion identity.");
-  if (runs.some((run) => run.ecosystem.freeDrivers === 0) && seasons >= 10) warnings.push("Ecosystem signal: at least one long run ended with no free drivers.");
+  if (runs.some((run) => run.ecosystem.freeDrivers === 0) && seasons >= 10) warnings.push("Ecosystem signal: at least one long run ended with no F1 free drivers.");
+  if (runs.some((run) => run.ecosystem.freeDrivers > run.ecosystem.activeTeams * 8) && seasons >= 10) warnings.push("Ecosystem signal: the F1 free-driver pool remains unusually large relative to the active grid.");
   if (runs.some((run) => run.ecosystem.openVacancies > run.ecosystem.activeTeams * 8)) warnings.push("Ecosystem signal: at least one run ended with unusually high vacancy pressure.");
   if (runs.some((run) => run.ecosystem.distressedTeamShare >= 0.5)) warnings.push("Ecosystem signal: at least half of active teams are financially distressed in one or more long runs; economy calibration should be reviewed.");
   if (runs.some((run) => run.ecosystem.activeDriverAges.count > 0 && run.ecosystem.activeDriverAges.median < 16)) warnings.push("Ecosystem signal: active-driver age distribution is implausibly young and should be audited.");
