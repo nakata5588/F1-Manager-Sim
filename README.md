@@ -34,6 +34,9 @@ The staff/organisation lifecycle extends through:
 
 `Employment / Vacancy -> Functional Department -> Quality / Capacity / Workload -> Advice / Operational Effect -> Staff Change -> Updated Organisation`
 
+Stage 16.5 consolidates core authority before the next depth pass: Race Entry now feeds Race Weekend directly without mutating Employment, save envelopes have an explicit v1 -> v2 migration path, the real 1980 gate composes the current v0.9 circuit package, and CI now includes multi-seed 20-season ecosystem validation. Current release pointers live in `data/release-manifest.json`.
+
+
 Phase 46 turns the Developer Playtest bootstrap into an explicit New Game wizard with Database, Decade, Season, Team and Manager stages. Because 1980 remains the only fully supported starting season, the current runtime exposes only the validated supplied Season Database rather than inventing unavailable historical options. The browser catalog contract is already structured for multiple databases and seasons, so historical expansion can add real career-ready choices without replacing the flow. Final career creation still passes through the existing server-side `createCareerFromSeasonDatabase()` boundary.
 
 Phase 45 adds filesystem save slots and Developer Playtest Save/Load on top of the existing versioned Save World serialization contract. Loading validates the starting Season Database provenance before restoring the mutable career, rebuilds the current application/system wiring without creating a new career, and does not replay `CAREER_STARTED`. A paused live race can be saved and restored into a fresh application session while preserving the deterministic final classification, timeline and championship state. The local playtest also writes a reserved `autosave` slot at key career/race milestones.
@@ -72,7 +75,7 @@ The New Game boundary is:
 
 The persistence boundary is:
 
-`Save World -> Serialization Envelope -> Storage Slot -> Deserialization -> Source Compatibility Gate -> Save World`
+`Save World -> Serialization Envelope -> Ordered Schema Migrations -> Storage Slot -> Deserialization -> Source Compatibility Gate -> Save World`
 
 The race-weekend gameplay boundary is:
 
@@ -149,6 +152,7 @@ Core simulation development requires Node.js 22+. Historical database tooling us
 ```bash
 npm test
 npm run test:data
+npm run sim:ecosystem -- --seasons 20 --seeds 10
 ```
 
 Audit a master workbook without modifying it:
