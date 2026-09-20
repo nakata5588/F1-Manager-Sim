@@ -201,7 +201,8 @@
         "centerlineIndex": 0
       },
       "pit_lane": null,
-      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance."
+      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance.",
+      "source_author": "Gustavo Girardelli"
     },
     {
       "layout_id": "cl_tr_0022_gp_1977",
@@ -425,7 +426,8 @@
         "centerlineIndex": 0
       },
       "pit_lane": null,
-      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance."
+      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance.",
+      "source_author": "Restu20"
     },
     {
       "layout_id": "cl_tr_0026_gp_1975",
@@ -621,7 +623,8 @@
         "centerlineIndex": 0
       },
       "pit_lane": null,
-      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance."
+      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance.",
+      "source_author": "Pitlane02"
     },
     {
       "layout_id": "cl_tr_0028_long_1978",
@@ -901,7 +904,8 @@
         "centerlineIndex": 0
       },
       "pit_lane": null,
-      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance."
+      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance.",
+      "source_author": "Ahnode"
     },
     {
       "layout_id": "cl_tr_0030_gp_1979",
@@ -1097,7 +1101,8 @@
         "centerlineIndex": 0
       },
       "pit_lane": null,
-      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance."
+      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance.",
+      "source_author": "Jiří Žemlička"
     },
     {
       "layout_id": "cl_tr_0035_full_1970",
@@ -1305,7 +1310,8 @@
         "centerlineIndex": 0
       },
       "pit_lane": null,
-      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance."
+      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance.",
+      "source_author": "Arz"
     },
     {
       "layout_id": "cl_tr_0041_gp_1970",
@@ -1513,7 +1519,8 @@
         "centerlineIndex": 0
       },
       "pit_lane": null,
-      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance."
+      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance.",
+      "source_author": "Pitlane02"
     },
     {
       "layout_id": "cl_tr_0047_gp_1974",
@@ -1733,7 +1740,8 @@
         "centerlineIndex": 0
       },
       "pit_lane": null,
-      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance."
+      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance.",
+      "source_author": "Wikimedia uploader / PD-self record"
     },
     {
       "layout_id": "cl_tr_0056_v3_1976",
@@ -1981,7 +1989,8 @@
         "centerlineIndex": 0
       },
       "pit_lane": null,
-      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance."
+      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance.",
+      "source_author": "Mario30095"
     },
     {
       "layout_id": "cl_tr_0058_gp_1980",
@@ -2209,7 +2218,8 @@
         "centerlineIndex": 0
       },
       "pit_lane": null,
-      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance."
+      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance.",
+      "source_author": "SimLola661"
     },
     {
       "layout_id": "cl_tr_0067_gp_1961",
@@ -2381,7 +2391,8 @@
         "centerlineIndex": 0
       },
       "pit_lane": null,
-      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance."
+      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance.",
+      "source_author": "Kroema"
     },
     {
       "layout_id": "cl_tr_0081_gp_1976",
@@ -2621,7 +2632,8 @@
         "centerlineIndex": 0
       },
       "pit_lane": null,
-      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance."
+      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance.",
+      "source_author": "John Chapman"
     },
     {
       "layout_id": "cl_tr_0088_gp_1978",
@@ -2884,7 +2896,8 @@
         "centerlineIndex": 23
       },
       "pit_lane": null,
-      "notes": "The period map explicitly shows separate Start and Finish locations. lapFraction=0 is anchored to the finish/timing line; the starting grid is stored separately. Geometry is intentionally schematic and only drives 2D presentation."
+      "notes": "The period map explicitly shows separate Start and Finish locations. lapFraction=0 is anchored to the finish/timing line; the starting grid is stored separately. Geometry is intentionally schematic and only drives 2D presentation.",
+      "source_author": "Jiří Žemlička"
     },
     {
       "layout_id": "cl_tr_0090_gp_1975",
@@ -3104,7 +3117,8 @@
         "centerlineIndex": 0
       },
       "pit_lane": null,
-      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance."
+      "notes": "Reviewed schematic historical trace for Live Race 2D presentation. Source-locked to the listed period map; not authoritative for physical measurement, race timing or simulation performance.",
+      "source_author": "Hmdwgf"
     }
   ]
 }
