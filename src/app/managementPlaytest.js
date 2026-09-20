@@ -69,6 +69,10 @@ import {
   financialPlanningProjection,
   setFinancialStrategy,
 } from "../game/management/finances.js";
+import {
+  financialCrisisProjection,
+  submitFinancialCrisisResponse,
+} from "../game/management/financialCrisis.js";
 import { BOARD_EVENT } from "../sim/systems/boardManagement.js";
 import { buildManagementPlanning } from "./managementPlanning.js";
 import { createCoreWorldSystems } from "../sim/systems/coreWorldSystems.js";
@@ -126,6 +130,7 @@ export function developerManagementOverview(session) {
     career: managerCareerProjection(saveWorld),
     commercial: commercialSummary(saveWorld, teamId),
     finances: teamId ? financialPlanningProjection(saveWorld, teamId) : null,
+    financialCrisis: teamId ? financialCrisisProjection(saveWorld, teamId) : null,
   };
 }
 
@@ -192,6 +197,10 @@ export function developerResolveInboxDecision(session, itemId, optionId) {
         source: "player_decision",
       },
     });
+  } else if (item.decision.kind === "financial_crisis_response") {
+    const teamId = item.decision.refId;
+    if (!teamId) throw new Error("Financial-crisis decision is missing a team reference.");
+    dispatchManagementEvent(session, submitFinancialCrisisResponse(saveWorld, teamId, optionId, { source: "player_decision" }));
   } else if (item.decision.kind === "manager_job_offer") {
     const career = ensureManagerCareer(saveWorld);
     const offer = career.jobOffers.find((row) => row.id === item.decision.refId && row.status === "open");
@@ -383,6 +392,7 @@ export function developerFinances(session) {
   return {
     teamId: session.controlledTeamId,
     planning: session.controlledTeamId ? financialPlanningProjection(saveWorld, session.controlledTeamId) : null,
+    crisis: session.controlledTeamId ? financialCrisisProjection(saveWorld, session.controlledTeamId) : null,
   };
 }
 
