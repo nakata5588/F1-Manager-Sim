@@ -6,7 +6,7 @@ F1 Manager Sim is a long-form Formula One management and world simulation game. 
 
 ## Current development phase
 
-**Stage 17 — Commercial & Financial Depth**
+**Stage 18 — Driver Availability, Injuries & Replacement Market**
 
 The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market, a persistent physical technical lifecycle, dynamic governance/grid evolution, a playable season-to-season transition, renewable driver population, persistent world news/history/records, an era-safe team-organisation model, resumable career persistence and an explicit New Game selection flow.
 
@@ -34,7 +34,15 @@ The staff/organisation lifecycle extends through:
 
 `Employment / Vacancy -> Functional Department -> Quality / Capacity / Workload -> Advice / Operational Effect -> Staff Change -> Updated Organisation`
 
-Stage 17 turns the existing cash, contracts, sponsors, suppliers and technical costs into one coherent financial decision layer. `world.teamState` remains the cash authority; Financial Planning derives protected reserves, available commitment capacity, runway, salary burden, sponsor coverage and risk from that same state. R&D, facilities, manufacturing, preseason, driver/staff contracts and supplier agreements now evaluate affordability through the common planning boundary, while mandatory reliability work may use reserves without inventing credit. AI teams use the same constraints and distressed teams prioritise commercial revenue. Stage 16.5 remains the integrity baseline: Race Entry authority, Save Schema v2 migrations, 14/14 reviewed 1980 circuit geometry and multi-seed 20-season ecosystem validation.
+The driver-availability lifecycle extends through:
+
+`Race Incident -> Medical Outcome -> Unavailable -> Temporary Replacement -> Race Entry -> Recovery -> Seat Return / Consequence`
+
+The driver-market lifecycle extends through:
+
+`F1 Employed / F1 Free Agent -> Other Motorsport / Outside F1 -> F1 Return or Emergency Replacement -> Retirement`
+
+Stage 18 connects race incidents to persistent driver availability. Temporal race incidents can now create deterministic Save World injuries; unavailable drivers leave Race Entry without losing their underlying employment contract, temporary replacements are selected from team reserve/test drivers, F1 free agents or other-motorsport drivers, and recovery can restore the original seat. The driver market now distinguishes F1 employed, F1 free agent, other motorsport, outside F1, temporary replacement and retired pathways, so a driver can leave the active F1 market without disappearing from the simulated universe. Stage 17 remains the financial foundation and Stage 16.5 remains the integrity baseline.
 
 
 Phase 46 turns the Developer Playtest bootstrap into an explicit New Game wizard with Database, Decade, Season, Team and Manager stages. Because 1980 remains the only fully supported starting season, the current runtime exposes only the validated supplied Season Database rather than inventing unavailable historical options. The browser catalog contract is already structured for multiple databases and seasons, so historical expansion can add real career-ready choices without replacing the flow. Final career creation still passes through the existing server-side `createCareerFromSeasonDatabase()` boundary.
@@ -79,7 +87,7 @@ The persistence boundary is:
 
 The race-weekend gameplay boundary is:
 
-`Practice -> Qualifying -> Grid -> Strategy -> raceStartBaseline -> Live Race -> Classification -> Championship`
+`Available Race Entry -> Practice -> Qualifying -> Grid -> Strategy -> raceStartBaseline -> Live Race -> Classification -> Incident / Medical Consequence -> Championship`
 
 The management gameplay boundary is:
 
@@ -109,9 +117,15 @@ The financial boundary is:
 
 `Existing income/cost authorities -> world.teamState cashflow -> Financial Planning projection -> affordability / AI decision -> Save World consequence`
 
+The driver-availability boundary is:
+
+`Race Timeline incident -> world.driverAvailability medical state -> temporary replacement selection -> world.raceEntryState -> recovery / seat restoration`
+
+Temporary replacement never rewrites the absent driver's Employment contract solely to make the substitute race.
+
 `Finance_Model` is gameplay calibration only. Its estimated burn can inform opening planning/risk, but it is never posted as an invented monthly ledger cost; cashflow records only explicit/authoritative recurring expenses.
 
-See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/CAREER_PERSISTENCE_SAVE_LOAD.md`, `docs/INTEGRATED_NEW_GAME_FLOW.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/STAFF_ORGANISATION_DEPTH.md`, `docs/COMMERCIAL_FINANCIAL_DEPTH.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/TECHNICAL_TEAM_EVOLUTION.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/REGULATIONS_GOVERNANCE_TEAM_EVOLUTION.md`, `docs/OFFSEASON_NEW_SEASON_PREPARATION.md`, `docs/TALENT_PIPELINE_GENERATED_DRIVERS.md`, `docs/WORLD_EVENTS_NEWS_HISTORY.md`, `docs/F1_WORLD_HISTORY_RECORDS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
+See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/CAREER_PERSISTENCE_SAVE_LOAD.md`, `docs/INTEGRATED_NEW_GAME_FLOW.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/STAFF_ORGANISATION_DEPTH.md`, `docs/COMMERCIAL_FINANCIAL_DEPTH.md`, `docs/DRIVER_AVAILABILITY_REPLACEMENT_MARKET.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/TECHNICAL_TEAM_EVOLUTION.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/REGULATIONS_GOVERNANCE_TEAM_EVOLUTION.md`, `docs/OFFSEASON_NEW_SEASON_PREPARATION.md`, `docs/TALENT_PIPELINE_GENERATED_DRIVERS.md`, `docs/WORLD_EVENTS_NEWS_HISTORY.md`, `docs/F1_WORLD_HISTORY_RECORDS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
 
 ## Historical data policy
 
@@ -145,7 +159,8 @@ Management, technical, governance and career systems are deliberately tolerant o
 - offseason strategy, future Board objectives and season-opening financial baselines are Save World state, not historical source data;
 - generated drivers are Save World simulation entities with explicit provenance and visibility gates, never historical source rows;
 - generated feeder performances are simulated career outcomes and never claims about real junior-series history;
-- generated drivers can become free drivers through the normal F1 eligibility and employment-market pipeline, but are never assigned a scripted F1 debut or team;
+- generated drivers can become F1 free drivers through the normal eligibility/employment pipeline, but are never assigned a scripted F1 debut or team; prolonged lack of an F1 seat may move them into simulated other-motorsport status without deleting them from the world;
+- driver injuries, recovery dates and temporary replacement agreements created after career start are Save World simulation outcomes; database accident/safety values are inputs, not scripted historical medical outcomes;
 - facility upgrades never overwrite the historical starting facility rows or reference baselines;
 - source-lock manifests, canonical ID correction maps, technical audits and research/readiness packs remain reference context rather than mutable Save World state.
 
