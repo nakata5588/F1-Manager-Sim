@@ -16,6 +16,8 @@ export { addManagementInboxItem, archiveManagementInboxItem, ensureManagementInb
 export { buildDriverScoutingReport, completeDriverScoutingAssignment, driverScoutingKnowledge, ensureScoutingState, listRecruitmentCandidates, SCOUTING_EVENT, scoutingSummary, setDriverShortlist, startDriverScoutingAssignment } from "./game/management/scouting.js";
 export { acceptDriverContractCounterEvent, CONTRACT_NEGOTIATION_EVENT, contractNegotiationSummary, ensureContractNegotiationState, evaluateDriverContractOffer, listContractNegotiations, openDriverContractNegotiation, submitDriverContractOfferEvent, transferCompensationRequirement, withdrawDriverContractNegotiationEvent } from "./game/management/contracts.js";
 export { activeCompetingOffers, adjustRelationship, ensurePeopleState, ensurePersonState, ensureRelationship, ensureRepresentative, evaluateDriverTransferInterest, peopleSummary, personProfile, personProjection } from "./game/management/people.js";
+export { DRIVER_AVAILABILITY_EVENT, driverAvailabilityProjection, ensureDriverAvailabilityState, ensureDriverMedicalState, initializeDriverAvailability, isDriverRaceAvailable, recoverDueDrivers, resolveDriverInjury } from "./game/management/driverAvailability.js";
+export { driverMarketProjection, ensureDriverMarketState, evolveDriverMarketSeason, holdReplacementDriverFromMarket, initializeDriverMarket, markDriverF1Employed, markDriverF1FreeAgent, markDriverRetired, releaseReplacementDriverToMarket, replacementDriverCandidates } from "./game/management/driverMarket.js";
 export { chooseRivalTeam, createExternalDriverOffer, expireExternalOffers, listOpenExternalOffers, marketPressureForDriver, marketSummary } from "./game/management/market.js";
 export { boardProjection, boardStatus, ensureBoardState, evaluateBoard, initializeBoardTeam, renewBoardSeason, resolveBoardRequest, submitBoardRequest } from "./game/management/board.js";
 export { OFFSEASON_EVENT, completeOffseasonCycle, confirmOffseasonPlan, ensureOffseasonState, finalBoardReviews, offseasonProjection, openOffseasonCycle, prepareNewSeasonFromOffseason, refreshOffseasonCycle, setOffseasonPlan } from "./game/management/offseason.js";
@@ -38,6 +40,10 @@ export { currentStrategyStint, reviseRaceStrategy, reviseStartingTyreCompound, s
 export { evaluateAiLiveStrategyDecision, isAiManagedStrategy, listAiLiveStrategyDecisions } from "./sim/aiLiveStrategy.js";
 export { advanceLiveRaceSession, applyLiveStrategyInstruction, applyPreRaceStartingTyre, clearCompletedLiveRaceSession, getLiveRaceSession, recommendLiveStrategyInstruction, startLiveRaceSession } from "./sim/liveRaceController.js";
 export { createRaceStartBaseline } from "./sim/raceStartBaseline.js";
+export { DRIVER_MARKET_EVENT, createDriverMarketLifecycleSystem } from "./sim/systems/driverMarketLifecycle.js";
+export { createDriverAvailabilitySystem } from "./sim/systems/driverAvailability.js";
+export { createReplacementDriverSystem } from "./sim/systems/replacementDrivers.js";
+export { assignTemporaryRaceReplacement, raceEntryForDriver, removeRaceEntryDriver, restoreTemporaryRaceSeat } from "./sim/systems/raceEntry.js";
 export { adjustWeekendSetup, setupFields } from "./sim/weekendSetup.js";
 export { activeDamagePaceLoss, repairDamageAtPit, resolveDamagePolicy, resolveIncidentDamage } from "./sim/damageModel.js";
 export { advanceTyreThermalState, completeTyreThermalLap, resolveTyreDynamicTraits } from "./sim/tyreDynamics.js";
