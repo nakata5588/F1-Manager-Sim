@@ -5,6 +5,7 @@ import {
   normalizeSeasonDatabaseSnapshot,
 } from "./databaseManagementMaterializer.js";
 import { mergeDatabaseTechnicalFields } from "./databaseTechnicalMaterializer.js";
+import { validateCircuitLayoutCatalog } from "./circuitLayoutCatalog.js";
 
 export const SEASON_DATABASE_FORMAT = "f1-manager-sim-season-database";
 export const SEASON_DATABASE_SCHEMA_VERSION = 1;
@@ -56,13 +57,42 @@ export function mergeSeasonBoundaryReferences(activeSnapshot, globalSnapshot) {
   });
 }
 
+export function attachSeasonCircuitLayoutCatalog(snapshot, catalog = null) {
+  if (!catalog) return snapshot;
+  const season = Number(snapshot?.season);
+  if (!Number.isInteger(season)) throw new TypeError("A season snapshot is required for circuit layout publication.");
+
+  const assignments = (catalog.assignments ?? catalog.seasonCircuitAssignments ?? [])
+    .filter((row) => Number(row?.season ?? row?.year) === season);
+  if (!assignments.length) return snapshot;
+
+  const assignedLayoutIds = new Set(assignments.map((row) => row?.layout_id ?? row?.layoutId).filter(Boolean));
+  const layouts = (catalog.layouts ?? catalog.circuitLayouts ?? [])
+    .filter((row) => assignedLayoutIds.has(row?.layout_id ?? row?.layoutId));
+  const geometries = (catalog.geometries ?? catalog.circuitLayoutGeometry ?? [])
+    .filter((row) => assignedLayoutIds.has(row?.layout_id ?? row?.layoutId));
+
+  const validation = validateCircuitLayoutCatalog({ layouts, assignments, geometries });
+  if (!validation.ok) {
+    throw new Error("Season circuit layout publication failed: " + validation.issues.join(" "));
+  }
+
+  return deepFreeze({
+    ...structuredClone(snapshot),
+    circuitLayouts: structuredClone(layouts),
+    seasonCircuitAssignments: structuredClone(assignments),
+    circuitLayoutGeometry: structuredClone(geometries),
+  });
+}
+
 export function createSeasonDatabasePayload(globalDatabase, season, options = {}) {
   const globalSnapshot = loadHistoricalSeason(globalDatabase, season, {
     allowWarnings: options.allowWarnings ?? true,
   });
-  const snapshot = options.activeSnapshot
+  const boundarySnapshot = options.activeSnapshot
     ? mergeSeasonBoundaryReferences(options.activeSnapshot, globalSnapshot)
     : globalSnapshot;
+  const snapshot = attachSeasonCircuitLayoutCatalog(boundarySnapshot, options.circuitLayoutCatalog ?? null);
 
   return deepFreeze({
     format: SEASON_DATABASE_FORMAT,

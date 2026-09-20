@@ -10,7 +10,7 @@ import {
 function usage() {
   return [
     "Usage:",
-    "  node scripts/materialize-season-database.js <canonical-world.json> --season <year> [--out <season-db.json>]",
+    "  node scripts/materialize-season-database.js <canonical-world.json> --season <year> [--out <season-db.json>] [--circuit-layout-root <directory>] [--no-circuit-layouts]",
     "",
     "Example:",
     "  npm run seasondb:materialize -- build/historical/canonical-world.json --season 1980 --out build/season-databases/1980.json",
@@ -39,7 +39,36 @@ const output = argument("--out", `build/season-databases/${season}.json`);
 const inputPath = resolve(input);
 const outputPath = resolve(output);
 const database = JSON.parse(await readFile(inputPath, "utf8"));
-const payload = createSeasonDatabasePayload(database, season, { createdAt: new Date().toISOString() });
+
+async function optionalJson(path) {
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+let circuitLayoutCatalog = null;
+if (!process.argv.includes("--no-circuit-layouts")) {
+  const circuitRoot = resolve(argument("--circuit-layout-root", "data/circuit-layouts"));
+  const assignmentPayload = await optionalJson(resolve(circuitRoot, "season-assignments", `${season}.json`));
+  if (assignmentPayload) {
+    const layoutPayload = await optionalJson(resolve(circuitRoot, "layouts.json"));
+    if (!layoutPayload) throw new Error(`Circuit assignments exist for ${season}, but layouts.json is missing under ${circuitRoot}.`);
+    const geometryPayload = await optionalJson(resolve(circuitRoot, "geometries", `${season}.json`));
+    circuitLayoutCatalog = {
+      layouts: layoutPayload.layouts ?? [],
+      assignments: assignmentPayload.assignments ?? [],
+      geometries: geometryPayload?.geometries ?? [],
+    };
+  }
+}
+
+const payload = createSeasonDatabasePayload(database, season, {
+  createdAt: new Date().toISOString(),
+  circuitLayoutCatalog,
+});
 validateSeasonDatabasePayload(payload);
 
 await mkdir(dirname(outputPath), { recursive: true });
@@ -56,6 +85,11 @@ console.log(JSON.stringify({
     teams: payload.snapshot.teams?.length ?? 0,
     drivers: payload.snapshot.drivers?.length ?? 0,
     races: payload.snapshot.calendar?.length ?? 0,
+  },
+  circuitLayouts: {
+    layouts: payload.snapshot.circuitLayouts?.length ?? 0,
+    assignments: payload.snapshot.seasonCircuitAssignments?.length ?? 0,
+    reviewedGeometry: payload.snapshot.circuitLayoutGeometry?.length ?? 0,
   },
   history: {
     throughSeason: archive.throughSeason ?? null,
