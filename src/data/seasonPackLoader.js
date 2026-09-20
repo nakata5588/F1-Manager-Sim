@@ -153,9 +153,6 @@ function contextCounts(payload, season) {
     startingRaceEntries: startEntrants(payload, season).length,
     roundEntryReference: sheet(payload, season, "Round_Entry_Reference").length,
     futureEntities: seasonPackSheetRows(payload, `Future_Entity_Queue_${season}`).length,
-    circuitLayoutRegistry: sheet(payload, season, "Circuit_Layout_Registry").length,
-    circuitLayoutAssignments: sheet(payload, season, "Circuit_Layout_Assignments").length,
-    circuitLayoutGeometry: sheet(payload, season, "Circuit_Layout_Geometry").length,
   };
 }
 
