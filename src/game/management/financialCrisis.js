@@ -87,6 +87,7 @@ function initialOwnership(saveWorld, teamId) {
 }
 
 export function ensureFinancialCrisisState(saveWorld) {
+  saveWorld.history ??= {};
   saveWorld.world.financialCrisis ??= {
     sequence: 0,
     initializedAt: null,
@@ -153,7 +154,9 @@ export function initializeFinancialCrisisWorld(saveWorld, date = saveWorld.clock
 function deriveStage(row, finance) {
   const risk = finance?.riskLevel ?? "stable";
   const cash = numeric(finance?.cash, 0);
-  if (risk === "stable" && cash >= 0 && row.distressMonths === 0) return "stable";
+  if (risk === "stable" && cash >= 0 && row.distressMonths === 0) {
+    return row.spendingFreeze === true && Number(row.recoveryMonths ?? 0) < 2 ? "watch" : "stable";
+  }
   if (risk === "tight" && cash >= 0 && row.distressMonths < 2) return "watch";
   if (row.negativeCashMonths >= 6 || row.distressMonths >= 10) return "administration";
   if (row.negativeCashMonths >= 3 || row.distressMonths >= 6) return "emergency";
