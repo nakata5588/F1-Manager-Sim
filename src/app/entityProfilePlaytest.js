@@ -8,6 +8,7 @@ import { driverScoutingKnowledge } from "../game/management/scouting.js";
 import { personProfile, personProjection } from "../game/management/people.js";
 import { staffRecruitmentEligibility } from "../game/management/staffRecruitment.js";
 import { teamVisualIdentity } from "../presentation/teamVisualIdentity.js";
+import { financialPlanningProjection } from "../game/management/finances.js";
 
 function requireSession(session) {
   if (!session || typeof session.requireCareer !== "function") throw new TypeError("A DeveloperPlaytestSession is required.");
@@ -209,6 +210,7 @@ function teamProfileProjection(saveWorld, id) {
       monthlyExpenses: teamState.monthlyExpenses ?? null,
       monthlyNet: teamState.monthlyNet ?? null,
       financialStatus: teamState.financialStatus ?? null,
+      planning: financialPlanningProjection(saveWorld, id),
     } : null,
     evolution: evolution ? {
       enteredSeason: evolution.enteredSeason ?? null,
