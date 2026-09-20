@@ -2,6 +2,13 @@ import { entityLink } from "/entity-links.js";
 import { publicLabel } from "/presentation-labels.js";
 import { renderLiveRaceMap } from "/live-race-map.js";
 import {
+  eventTone,
+  raceControlPresentation,
+  raceDeskSummary,
+  strategyTimeline,
+  weekendStepRows,
+} from "/race-weekend-ux-model.js";
+import {
   CAREER_ENTRY_STORAGE_KEY,
   REDUCED_MOTION_STORAGE_KEY,
   hasLoadableSaves,
@@ -83,19 +90,12 @@ function shell(content, active = "Calendar", showContinue = false) {
 }
 
 function weekendSteps(active) {
-  const steps = [
-    ["practice", "Practice"],
-    ["practice_results", "Setup"],
-    ["qualifying_results", "Qualifying"],
-    ["pre_race", "Pre-Race"],
-    ["race", "Race"],
-  ];
-  return `<div class="session-strip">${steps.map(([id, label]) => `<span class="${id === active ? "active" : ""}">${label}</span>`).join("")}</div>`;
+  return `<div class="session-strip race-weekend-progress">${weekendStepRows(active).map((row, index) => `<span class="${row.state}"><b>${index + 1}</b>${escapeHtml(row.label)}</span>`).join("")}</div>`;
 }
 
 function weekendHero(label, title, copy) {
   const weekend = state.raceWeekend;
-  return `${weekendSteps(state.screen)}<section class="hero weekend-hero"><div class="eyebrow">${escapeHtml(label)}</div><h1>${escapeHtml(title)}</h1><p>${escapeHtml(copy)}</p><div class="weekend-meta"><span>Round ${weekend?.round ?? "—"}</span><span>${escapeHtml(weekend?.trackName ?? "Circuit")}</span><span>${humanDate(weekend?.date)}</span><span>${escapeHtml(weekend?.weather ?? "Weather unspecified")}</span></div></section>`;
+  return `${weekendSteps(state.screen)}<section class="hero weekend-hero race-weekend-hero"><div><div class="eyebrow">${escapeHtml(label)}</div><h1>${escapeHtml(title)}</h1><p>${escapeHtml(copy)}</p></div><div class="weekend-meta race-weekend-meta"><span><small>Round</small><strong>${weekend?.round ?? "—"}</strong></span><span><small>Circuit</small><strong>${escapeHtml(weekend?.trackName ?? "Circuit")}</strong></span><span><small>Date</small><strong>${humanDate(weekend?.date)}</strong></span><span><small>Weather</small><strong>${escapeHtml(weekend?.weather ?? "Unspecified")}</strong></span></div></section>`;
 }
 
 function savedAtLabel(value) {
@@ -374,8 +374,12 @@ function renderPreRace() {
   stopAuto();
   const weekend = state.raceWeekend;
   const strategies = state.liveRace?.strategies ?? weekend.strategies;
-  shell(`${weekendHero("Pre-Race", weekend.name, "The grid is set. Confirm the starting tyre for each car before lights out.")}
-    <section class="grid"><article class="card span-7"><h2>Starting Grid</h2>${gridTable(weekend.grid)}</article><div class="span-5 strategy-stack">${strategies.map((plan) => `<article class="card tyre-card" data-driver="${escapeHtml(plan.driverId)}"><div class="eyebrow">${entityLink("driver", plan.driverId, plan.driverName)}</div><h2>Race Strategy</h2><div class="row"><span>Planned stops</span><strong>${plan.plannedStops}</strong></div><label class="field-label">Starting tyre<select name="startingCompound">${tyreOptions(state.liveRace.tyreOptions, plan.startingCompoundId)}</select></label><button class="secondary" data-action="starting-tyre">APPLY STARTING TYRE</button><div class="stints">${plan.stints.map((stint) => `<span>${stint.stint}: ${escapeHtml(stint.compoundId ?? "N/A")} · ${stint.targetLaps}L</span>`).join("")}</div></article>`).join("")}</div><article class="card span-12 action-row"><div><h2>Ready for lights out</h2><div class="muted">Only the live race result will be committed to history and championship standings.</div></div><button class="primary race-start" data-action="start-race">START RACE</button></article></section>`);
+  shell(`${weekendHero("Pre-Race", weekend.name, "The grid is set. Review strategy and confirm the starting tyre before lights out.")}
+    <section class="grid pre-race-grid">
+      <article class="card span-7"><div class="race-card-head"><div><div class="eyebrow">Grid</div><h2>Starting Grid</h2></div><small>${weekend.grid?.length ?? 0} starters</small></div>${gridTable(weekend.grid)}</article>
+      <div class="span-5 strategy-stack">${strategies.map((plan) => `<article class="card tyre-card pre-race-strategy" data-driver="${escapeHtml(plan.driverId)}"><div class="driver-card-head"><div><div class="eyebrow">${entityLink("driver", plan.driverId, plan.driverName)}</div><h2>Race Strategy</h2></div><span class="strategy-stop-count">${plan.plannedStops} stop${plan.plannedStops === 1 ? "" : "s"}</span></div>${strategyTimelineMarkup(plan, 0)}<label class="field-label">Starting tyre<select name="startingCompound">${tyreOptions(state.liveRace.tyreOptions, plan.startingCompoundId)}</select></label><button class="secondary" data-action="starting-tyre">APPLY STARTING TYRE</button></article>`).join("")}</div>
+      <article class="card span-12 action-row pre-race-launch"><div><div class="eyebrow">Race Start</div><h2>Ready for lights out</h2><div class="muted">Only the live race result will be committed to history and championship standings.</div></div><button class="primary race-start" data-action="start-race">START RACE</button></article>
+    </section>`);
 }
 
 function feedLabel(event) {
@@ -390,22 +394,71 @@ function feedLabel(event) {
 }
 
 function raceFeed(events) {
-  if (!events?.length) return '<div class="muted">No notable events in the last simulated lap.</div>';
-  return `<div class="feed">${[...events].reverse().map((event) => `<div class="feed-row"><span class="feed-lap">L${event.lap ?? "—"}</span><span>${escapeHtml(feedLabel(event))}</span></div>`).join("")}</div>`;
+  if (!events?.length) return '<div class="race-feed-empty">No notable events in the last simulated lap.</div>';
+  return `<div class="feed race-event-feed">${[...events].reverse().map((event) => `<div class="feed-row ${eventTone(event.type)}"><span class="feed-lap">L${event.lap ?? "—"}</span><div><strong>${escapeHtml(feedLabel(event))}</strong><small>${escapeHtml(publicLabel(event.type ?? "event", "Event"))}</small></div></div>`).join("")}</div>`;
+}
+
+function strategyTimelineMarkup(plan, currentLap) {
+  const rows = strategyTimeline(plan, currentLap);
+  if (!rows.length) return '<div class="muted small">No stint plan available.</div>';
+  return `<div class="strategy-timeline">${rows.map((stint) => `<div class="strategy-stint ${stint.state}"><span>${escapeHtml(stint.compoundId ?? "N/A")}</span><small>L${stint.startLap}–${stint.endLap}</small></div>`).join("")}</div>`;
 }
 
 function pitWallCards(race) {
-  return race.strategies.map((plan) => `<article class="pit-card" data-driver="${escapeHtml(plan.driverId)}"><div><strong>${entityLink("driver", plan.driverId, plan.driverName)}</strong><div class="muted small">Start ${escapeHtml(plan.startingCompoundId ?? "N/A")} · ${plan.plannedStops} planned stop${plan.plannedStops === 1 ? "" : "s"}</div></div><select name="boxCompound">${tyreOptions(race.tyreOptions, plan.startingCompoundId)}</select><button class="secondary compact" data-action="box-driver">BOX NEXT LAP</button></article>`).join("");
+  const order = new Map((race.order ?? []).map((row) => [String(row.driverId), row]));
+  return race.strategies.map((plan) => {
+    const car = order.get(String(plan.driverId)) ?? {};
+    return `<article class="pit-card pit-wall-car" data-driver="${escapeHtml(plan.driverId)}">
+      <div class="pit-card-head"><div><strong>${entityLink("driver", plan.driverId, plan.driverName)}</strong><small>${car.position ? `P${car.position}` : "Position —"} · ${escapeHtml(car.compoundId ?? plan.startingCompoundId ?? "Tyre —")} · ${car.tyreWearPercent === null || car.tyreWearPercent === undefined ? "Wear —" : `${car.tyreWearPercent}% wear`}</small></div><span class="status">${escapeHtml(publicLabel(car.status, "Running"))}</span></div>
+      ${strategyTimelineMarkup(plan, race.currentLap)}
+      <div class="pit-call-row"><select name="boxCompound">${tyreOptions(race.tyreOptions, car.compoundId ?? plan.startingCompoundId)}</select><button class="secondary compact" data-action="box-driver">BOX NEXT LAP</button></div>
+    </article>`;
+  }).join("");
+}
+
+function timingTower(race) {
+  return `<div class="timing-tower">${(race.order ?? []).map((row) => `<div class="timing-row ${row.controlled ? "controlled" : ""} ${String(row.status ?? "").toLowerCase()}">
+    <b>P${row.position}</b>
+    <div class="timing-driver"><strong>${entityLink("driver", row.driverId, row.driverName)}</strong><small>${entityLink("team", row.teamId, row.teamName)}</small></div>
+    <span class="timing-gap">${row.position === 1 ? "LEADER" : `+${number(row.gapIndex, 0)}`}</span>
+    <span class="timing-tyre">${escapeHtml(row.compoundId ?? "—")}</span>
+    <span class="timing-status">${escapeHtml(publicLabel(row.status, "Status"))}</span>
+  </div>`).join("")}</div>`;
+}
+
+function raceStatusStrip(race, weekend) {
+  const desk = raceDeskSummary(race);
+  const control = raceControlPresentation(race.activeControl);
+  return `<section class="race-status-strip">
+    <div><span>Lap</span><strong>${race.currentLap} / ${race.totalLaps}</strong><small>${desk.progressPercent}% complete</small></div>
+    <div><span>Weather</span><strong>${escapeHtml(race.weather ?? weekend?.weather ?? "Unspecified")}</strong><small>Current race condition</small></div>
+    <div><span>Track Status</span><strong class="tone-${control.tone}">${escapeHtml(control.label)}</strong><small>${escapeHtml(control.detail)}</small></div>
+    <div><span>Field</span><strong>${desk.running} running</strong><small>${desk.retired} retired · ${desk.fieldSize} starters</small></div>
+    <div><span>Map Precision</span><strong>${escapeHtml(publicLabel(desk.mapPrecision, "Unavailable"))}</strong><small>Position telemetry</small></div>
+  </section>`;
+}
+
+function raceControlBanner(race) {
+  const control = raceControlPresentation(race.activeControl);
+  const attention = race.attentionRequired ? " · Simulation paused for attention" : "";
+  return `<div class="race-control-banner ${control.tone}"><span>Race Control</span><strong>${escapeHtml(control.label)}</strong><em>${escapeHtml(control.detail + attention)}</em></div>`;
 }
 
 function renderRace() {
   const race = state.liveRace;
   const weekend = state.raceWeekend;
   const speedButtons = [1, 2, 4, 8].map((speed) => `<button class="${runSpeed === speed ? "selected" : ""}" data-speed="${speed}">${speed}×</button>`).join("");
-  shell(`${weekendSteps("race")}<div class="race-head"><div><div class="eyebrow">Live Race · ${escapeHtml(race.weather ?? "conditions unknown")}${race.activeControl ? ` · ${escapeHtml(publicLabel(race.activeControl))}` : ""}</div><h1>${escapeHtml(weekend?.name ?? race.gpId ?? "Grand Prix")}</h1></div><div class="lap">LAP ${race.currentLap} / ${race.totalLaps}</div></div>
-    <div class="race-controls"><button data-action="pause" class="${runSpeed === 0 ? "selected" : ""}">PAUSE</button>${speedButtons}<button data-race-laps="1">STEP +1</button><button class="finish" data-action="finish-race">SIM TO FINISH</button></div>
-    ${race.attentionRequired ? '<div class="attention">Simulation paused on a notable race event.</div>' : ""}
-    <section class="grid race-grid">${renderLiveRaceMap({ geometry: weekend?.geometry, positions: race.trackPositions, trackName: weekend?.trackName })}<article class="card span-8"><h2>Live Timing <span class="muted small">Gap Index is simulation-relative, not seconds.</span></h2><div class="table-wrap"><table><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Gap Index</th><th>Tyre</th><th>Wear</th><th>Temp</th><th>Fuel</th><th>Status</th></tr></thead><tbody>${race.order.map((row) => `<tr class="${row.controlled ? "controlled" : ""}"><td><strong>${row.position}</strong></td><td>${entityLink("driver", row.driverId, row.driverName)}</td><td>${entityLink("team", row.teamId, row.teamName)}</td><td>${row.position === 1 ? "LEADER" : `+${number(row.gapIndex, 0)}`}</td><td>${escapeHtml(row.compoundId ?? "—")}</td><td>${row.tyreWearPercent === null ? "—" : `${row.tyreWearPercent}%`}</td><td>${escapeHtml(row.tyreTemperature ?? "—")}</td><td>${row.fuelKg === null ? "—" : `${row.fuelKg} kg`}</td><td><span class="status">${escapeHtml(publicLabel(row.status, "Status"))}</span></td></tr>`).join("")}</tbody></table></div></article><div class="span-4 side-stack"><article class="card"><h2>Race Control Feed</h2>${raceFeed(race.latestEvents)}</article><article class="card"><h2>Pit Wall</h2><div class="pit-wall">${pitWallCards(race)}</div></article><article class="card"><h2>Race State</h2><div class="row"><span>Progress</span><strong>${Math.round((race.progress ?? 0) * 100)}%</strong></div><div class="row"><span>Strategy revisions</span><strong>${race.strategyRevisions.length}</strong></div></article></div></section>`);
+  shell(`${weekendSteps("race")}<div class="race-head race-desk-head"><div><div class="eyebrow">Race Day</div><h1>${escapeHtml(weekend?.name ?? race.gpId ?? "Grand Prix")}</h1><p>${escapeHtml(weekend?.trackName ?? "Circuit")} · ${humanDate(weekend?.date)}</p></div><div class="lap">LAP ${race.currentLap} / ${race.totalLaps}</div></div>
+    ${raceStatusStrip(race, weekend)}
+    ${raceControlBanner(race)}
+    <div class="race-controls race-command-bar"><div class="race-speed-group"><span>Simulation</span><button data-action="pause" class="${runSpeed === 0 ? "selected" : ""}">PAUSE</button>${speedButtons}</div><div class="race-command-actions"><button data-race-laps="1">STEP +1 LAP</button><button class="finish" data-action="finish-race">SIM TO FINISH</button></div></div>
+    <section class="grid race-grid race-desk-grid">
+      ${renderLiveRaceMap({ geometry: weekend?.geometry, positions: race.trackPositions, trackName: weekend?.trackName, spanClass: "span-8" })}
+      <article class="card span-4 timing-tower-card"><div class="race-card-head"><div><div class="eyebrow">Live Timing</div><h2>Timing Tower</h2></div><small>Gap Index · simulation-relative</small></div>${timingTower(race)}</article>
+      <article class="card span-8 pit-wall-card"><div class="race-card-head"><div><div class="eyebrow">Strategy</div><h2>Pit Wall</h2></div><small>Calls apply at authoritative lap boundaries</small></div><div class="pit-wall">${pitWallCards(race)}</div></article>
+      <article class="card span-4 race-feed-card"><div class="race-card-head"><div><div class="eyebrow">Race Control</div><h2>Event Feed</h2></div><small>Latest simulated events</small></div>${raceFeed(race.latestEvents)}</article>
+      <article class="card span-12 race-detail-table"><div class="race-card-head"><div><div class="eyebrow">Engineering</div><h2>Field Detail</h2></div><small>Gap Index is not seconds</small></div><div class="table-wrap"><table><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Gap Index</th><th>Tyre</th><th>Wear</th><th>Temp</th><th>Fuel</th><th>Damage</th><th>Stops</th><th>Status</th></tr></thead><tbody>${race.order.map((row) => `<tr class="${row.controlled ? "controlled" : ""}"><td><strong>${row.position}</strong></td><td>${entityLink("driver", row.driverId, row.driverName)}</td><td>${entityLink("team", row.teamId, row.teamName)}</td><td>${row.position === 1 ? "LEADER" : `+${number(row.gapIndex, 0)}`}</td><td>${escapeHtml(row.compoundId ?? "—")}</td><td>${row.tyreWearPercent === null ? "—" : `${row.tyreWearPercent}%`}</td><td>${escapeHtml(row.tyreTemperature ?? "—")}</td><td>${row.fuelKg === null ? "—" : `${row.fuelKg} kg`}</td><td>${row.damagePaceLoss ? number(row.damagePaceLoss, 0) : "—"}</td><td>${row.pitStops ?? 0}</td><td><span class="status">${escapeHtml(publicLabel(row.status, "Status"))}</span></td></tr>`).join("")}</tbody></table></div></article>
+    </section>`);
 }
 
 function resultsTable() {
@@ -415,7 +468,8 @@ function resultsTable() {
 
 function renderResults() {
   stopAuto();
-  shell(`<section class="hero"><div class="eyebrow">Race Results</div><h1>${escapeHtml(state.lastRace?.name ?? "Grand Prix complete")}</h1><p>The race result is now part of your career history and championship standings.</p></section><section class="grid"><article class="card span-8"><h2>Classification</h2>${resultsTable()}</article><article class="card span-4"><h2>Next Grand Prix</h2>${state.nextRace ? `<strong>${escapeHtml(state.nextRace.name)}</strong><div class="muted">${humanDate(state.nextRace.date)}</div>` : '<div class="muted">No remaining race in this season.</div>'}</article><article class="card span-6"><h2>Drivers' Championship</h2>${standingsList(state.standings.drivers, "driver")}</article><article class="card span-6"><h2>Constructors' Championship</h2>${standingsList(state.standings.constructors, "team")}</article></section>`, "Standings", true);
+  const winner = state.lastRace?.classification?.[0] ?? null;
+  shell(`${weekendSteps("race_results")}<section class="hero race-results-hero"><div><div class="eyebrow">Race Results</div><h1>${escapeHtml(state.lastRace?.name ?? "Grand Prix complete")}</h1><p>The race result is now part of your career history and championship standings.</p></div>${winner ? `<div class="race-winner"><span>Winner</span><strong>${entityLink("driver", winner.driverId, winner.driverName)}</strong><small>${entityLink("team", winner.teamId, winner.teamName)}</small></div>` : ""}</section><section class="grid"><article class="card span-8"><div class="race-card-head"><div><div class="eyebrow">Classification</div><h2>Race Result</h2></div></div>${resultsTable()}</article><article class="card span-4"><div class="race-card-head"><div><div class="eyebrow">Calendar</div><h2>Next Grand Prix</h2></div></div>${state.nextRace ? `<strong>${escapeHtml(state.nextRace.name)}</strong><div class="muted">${humanDate(state.nextRace.date)}</div>` : '<div class="muted">No remaining race in this season.</div>'}</article><article class="card span-6"><h2>Drivers' Championship</h2>${standingsList(state.standings.drivers, "driver")}</article><article class="card span-6"><h2>Constructors' Championship</h2>${standingsList(state.standings.constructors, "team")}</article></section>`, "Standings", true);
 }
 
 function render() {
