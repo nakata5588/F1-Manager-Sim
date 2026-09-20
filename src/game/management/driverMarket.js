@@ -162,6 +162,7 @@ function leaveF1Probability(saveWorld, driverId, row, season) {
   const career = saveWorld.world?.careerState?.drivers?.[driverId] ?? {};
   const yearsFree = Math.max(0, season - Number(row.f1FreeSince ?? season));
   if (yearsFree < 3) return 0;
+  if (yearsFree >= 7) return 1;
   const age = numeric(career.age);
   const reputation = normalized(career.reputation, 50);
   const ability = normalized(career.currentAbility, 50);
