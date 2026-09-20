@@ -54,13 +54,13 @@ For each team the financial projection exposes:
 
 The 1980 Season Pack contains a gameplay `Finance_Model`. These values are not exact historical currency claims.
 
-When the runtime has no explicit operating-cost row, Stage 17 may use `estimated_monthly_operating_burn` as a gameplay calibration target.
+When the runtime has no explicit operating-cost row, Stage 17 may use `estimated_monthly_operating_burn` as an opening planning/risk calibration signal, but not as a monthly ledger debit.
 
 Known recurring costs are calculated first:
 
 `driver payroll + staff payroll + facilities + engine supplier`
 
-Only the positive remainder becomes model-derived operating cost. This means the estimate is never added on top of those same known costs and therefore cannot double-count them.
+The modeled burn remains a planning/calibration signal rather than a ledger transaction. Known payroll, facilities, supplier costs and any explicit operating-cost rows are the only recurring expenses posted to cash. This prevents a starting gameplay estimate from becoming an invented permanent historical bill.
 
 ## Affordability
 
