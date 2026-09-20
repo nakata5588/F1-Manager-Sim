@@ -16,6 +16,7 @@ import {
   developerContractNegotiations,
   developerInbox,
   developerManagementOverview,
+  developerManagementPlanning,
   developerManagerCareer,
   developerMarkInboxRead,
   developerMarket,
@@ -368,6 +369,7 @@ const server = createServer(async (request, response) => {
     }
 
     if (url.pathname === "/api/management" && request.method === "GET") return json(response, 200, developerManagementOverview(session));
+    if (url.pathname === "/api/management/planning" && request.method === "GET") return json(response, 200, developerManagementPlanning(session));
     if (url.pathname === "/api/people" && request.method === "GET") return json(response, 200, developerPeople(session));
     if (url.pathname === "/api/market" && request.method === "GET") return json(response, 200, developerMarket(session));
     if (url.pathname === "/api/board" && request.method === "GET") return json(response, 200, developerBoard(session));
