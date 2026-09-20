@@ -56,6 +56,7 @@ for (const path of [
 for (const path of [
   "scripts/playtest-server.js",
   "src/app/developerPersistence.js",
+  "src/app/managementPlanning.js",
   "src/app/technicalPlaytest.js",
   "src/app/governancePlaytest.js",
   "src/app/offseasonPlaytest.js",
