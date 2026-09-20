@@ -115,7 +115,6 @@ export function initializeDriverMarket(saveWorld, date = saveWorld.clock?.date) 
     if (!driverId || state.drivers[driverId]) continue;
     const career = saveWorld.world?.careerState?.drivers?.[driverId] ?? {};
     const assignment = employment.drivers?.[driverId] ?? null;
-    if (activeReplacementIds.has(String(driverId))) continue;
     let path;
     if (career.status === "retired") path = "retired";
     else if (assignment?.status === "employed") path = "f1_employed";
@@ -206,6 +205,7 @@ export function evolveDriverMarketSeason(saveWorld, seasonInput, date = saveWorl
   for (const [driverId, row] of Object.entries(state.drivers).sort(([a], [b]) => a.localeCompare(b))) {
     const career = saveWorld.world?.careerState?.drivers?.[driverId] ?? {};
     const assignment = employment.drivers?.[driverId] ?? null;
+    if (activeReplacementIds.has(String(driverId))) continue;
     if (career.status === "retired") {
       markDriverRetired(saveWorld, driverId, date);
       continue;
