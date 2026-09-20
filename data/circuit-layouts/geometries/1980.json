@@ -2651,7 +2651,7 @@
       "original_source": "Long Beach 1978.jpg — United States Grand Prix West 1978-1981",
       "license": "Public Domain (PD-self)",
       "retrieved_at": "2026-09-18",
-      "geometry_hash": "bc5652309c2855b30d5a4bcc09c8280ee3fc5a33a6096221ded04c6308bd9877",
+      "geometry_hash": "aa0db1d66b59d469ecd7e7fc73c74ee58bceb35088e30fbebdaacdc432ba83ab",
       "lap_length_km": 3.251,
       "coordinate_system": "source_map_normalized",
       "precision": "schematic_historical_trace",
@@ -2678,7 +2678,8 @@
         "direction_basis": "direction arrow on source map",
         "finish_basis": "finish marker on Ocean Boulevard in source map",
         "start_basis": "separate Start marker on source map",
-        "pit_lane_available": false
+        "pit_lane_available": false,
+        "topology_sanity": "simple_closed_polyline_no_self_intersections"
       },
       "centerline": [
         [
@@ -2735,11 +2736,7 @@
         ],
         [
           0.12,
-          0.56
-        ],
-        [
-          0.11,
-          0.61
+          0.57
         ],
         [
           0.1,
@@ -2754,8 +2751,12 @@
           0.66
         ],
         [
+          0.11,
+          0.61
+        ],
+        [
           0.12,
-          0.57
+          0.56
         ],
         [
           0.15,
