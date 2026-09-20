@@ -186,7 +186,7 @@ The loop automatically pauses when a new notable event is returned, including in
 
 The Management Hub projects persistent Inbox and decision state, Team Planning, Board confidence/objectives, manager career, people/mentality, staff recruitment, driver recruitment/contracts, external market, commercial management and responsibility delegation. Team Planning combines current contract horizons, retention pressure, organisation workload/vacancies and shortlist context without exposing hidden CA/PA.
 
-Technical Operations exposes the physical technical lifecycle, suppliers, reliability/condition, manufacturing, fitment, facilities and preseason work.
+Technical Operations exposes persistent technical identity/evolution alongside the physical technical lifecycle, suppliers, reliability/condition, manufacturing, fitment, facilities and preseason work. Technical familiarity is Save World organisational memory and never replaces staff, facilities or component specifications with a single Overall.
 
 Governance exposes regulation proposals/votes and team entry/exit/rebrand evolution.
 
