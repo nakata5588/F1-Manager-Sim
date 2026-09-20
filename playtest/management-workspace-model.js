@@ -11,6 +11,7 @@ export const MANAGEMENT_PRIMARY_SECTIONS = Object.freeze([
 export const MANAGEMENT_SUBSECTIONS = Object.freeze({
   team: [
     { id: "team", label: "Overview" },
+    { id: "planning", label: "Planning" },
     { id: "responsibilities", label: "Responsibilities" },
   ],
   drivers: [
@@ -32,6 +33,7 @@ const LEGACY_ALIASES = Object.freeze({
 const VIEW_TO_PRIMARY = Object.freeze({
   inbox: "inbox",
   team: "team",
+  planning: "team",
   responsibilities: "team",
   drivers: "drivers",
   recruitment: "drivers",
