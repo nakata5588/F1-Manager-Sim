@@ -133,24 +133,22 @@ function facilityMaintenance(saveWorld, teamId) {
   return (historical + dynamic) / 12;
 }
 
-function operatingCost(saveWorld, teamId, knownRecurring = 0) {
+function operatingCost(saveWorld, teamId) {
   const team = (saveWorld.world?.teams ?? []).find((row) => row.team_id === teamId) ?? {};
   const brand = teamBrand(saveWorld, teamId);
   const annual = Number(team.annual_operating_cost ?? brand.annual_operating_cost);
   if (Number.isFinite(annual)) return { value: annual / 12, source: "historical_or_team_operating_cost" };
 
-  // Finance_Model is an explicit gameplay estimate, not historical truth. When
-  // no sourced operating cost exists, use its total monthly burn only as a
-  // residual after already-known payroll/facility/supplier commitments. This
-  // calibrates the economy without double-counting known recurring expenses.
-  const modeledBurn = financeModelMonthlyBurn(saveWorld, teamId);
-  if (Number.isFinite(modeledBurn) && modeledBurn > 0) {
-    return {
-      value: Math.max(0, modeledBurn - Math.max(0, knownRecurring)),
-      source: "gameplay_finance_model_residual",
-    };
-  }
-  return { value: 0, source: "unavailable" };
+  // Finance_Model remains a planning/calibration signal only. Turning an
+  // estimated burn into a real monthly ledger debit would invent accounting
+  // detail and, over many seasons, compound a starting calibration as if it
+  // were an immutable historical operating bill.
+  return {
+    value: 0,
+    source: financeModelMonthlyBurn(saveWorld, teamId) !== null
+      ? "unavailable_model_is_planning_only"
+      : "unavailable",
+  };
 }
 
 function applyContractTransaction(saveWorld, event) {
@@ -201,7 +199,7 @@ function closeMonth(saveWorld, event) {
     const maintenance = facilityMaintenance(saveWorld, teamId);
     const engineSupplier = technicalSupplierMonthlyCost(saveWorld, teamId);
     const knownRecurring = driverSalaries + staffSalaries + maintenance + engineSupplier;
-    const operations = operatingCost(saveWorld, teamId, knownRecurring);
+    const operations = operatingCost(saveWorld, teamId);
     const income = sponsors;
     const expenses = knownRecurring + operations.value;
     const net = income - expenses;
