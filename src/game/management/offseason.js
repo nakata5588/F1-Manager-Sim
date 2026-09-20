@@ -4,6 +4,7 @@ import { preseasonProjection } from "./preseason.js";
 import { regulationProjection } from "./regulations.js";
 import { supplierProjection } from "./suppliers.js";
 import { teamEvolutionProjection } from "./teamEvolution.js";
+import { refreshFinancialPlanningState, setFinancialStrategy } from "./finances.js";
 
 export const OFFSEASON_EVENT = Object.freeze({
   OPENED: "offseason.opened",
@@ -315,6 +316,9 @@ function resetFinanceForSeason(saveWorld, teamId, season, date) {
   finance.monthlyIncome = 0;
   finance.monthlyExpenses = 0;
   finance.monthlyNet = 0;
+  finance.projectedMonthlyIncome = null;
+  finance.projectedMonthlyExpenses = null;
+  refreshFinancialPlanningState(saveWorld, teamId);
   return finance;
 }
 
@@ -350,6 +354,7 @@ export function prepareNewSeasonFromOffseason(saveWorld, seasonInput, options = 
         appliedAt: options.date ?? saveWorld.clock?.date ?? null,
       };
     }
+    if (finance) setFinancialStrategy(saveWorld, id, row.plan.financialRisk);
     prepared.push({
       teamId: id,
       openingCash: finance?.openingCash ?? null,
