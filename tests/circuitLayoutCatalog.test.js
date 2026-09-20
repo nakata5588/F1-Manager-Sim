@@ -124,12 +124,13 @@ test("candidate ranking rejects same-venue modern layouts by length without inve
   assert.equal(automaticCandidateStatus(match), "CANDIDATE_LENGTH_MISMATCH");
 });
 
-test("1980 source-lock audit resolves 14 layouts, 14 historical maps and zero reviewed runtime geometries", async () => {
+test("1980 source-lock audit resolves 14 historical maps and the first reviewed runtime geometry", async () => {
   const layouts = (await json("layouts.json")).layouts;
   const assignments = (await json("season-assignments/1980.json")).assignments;
   const candidates = (await json("candidate-libraries/bacinger-f1-circuits.manifest.json")).candidates;
   const curated = (await json("audits/1980.json")).rows;
   const historicalMapSources = (await json("historical-map-sources/1980.json")).sources;
+  const geometries = (await json("geometries/1980.json")).geometries;
   const report = buildCircuitLayoutCoverage({
     season: 1980,
     layouts,
@@ -137,14 +138,17 @@ test("1980 source-lock audit resolves 14 layouts, 14 historical maps and zero re
     candidates,
     curatedRows: curated,
     historicalMapSources,
+    geometries,
   });
 
   assert.equal(report.summary.assignments, 14);
   assert.equal(report.summary.identifiedLayouts, 14);
   assert.equal(report.summary.candidatesFound, 11);
   assert.equal(report.summary.historicalMapSourcesReady, 14);
-  assert.equal(report.summary.runtimeGeometryReviewed, 0);
-  assert.equal(report.summary.reviewedGeometry, 0);
+  assert.equal(report.summary.runtimeGeometryReviewed, 1);
+  assert.equal(report.summary.reviewedGeometry, 1);
+  assert.equal(report.summary.runtimeGeometryStatusCounts.MATCHED_REVIEWED_SCHEMATIC, 1);
+  assert.equal(report.summary.runtimeGeometryStatusCounts.GEOMETRY_UNAVAILABLE, 13);
   assert.equal(report.summary.statusCounts.GEOMETRY_MISSING, 3);
   assert.equal(report.summary.statusCounts.CANDIDATE_CONFIGURATION_MISMATCH, 2);
   assert.equal(report.summary.statusCounts.MATCHED_NEEDS_REVIEW ?? 0, 0);
@@ -203,4 +207,25 @@ test("near-equal lap length does not hide known historical topology mismatches",
   assert.match(paulRicard.notes, /Mistral Straight/);
   assert.equal(watkinsGlen.geometry_status, "CANDIDATE_CONFIGURATION_MISMATCH");
   assert.match(watkinsGlen.notes, /Esses chicane/);
+});
+
+test("Long Beach 1978-81 geometry is reviewed only for schematic historical 2D use", async () => {
+  const layouts = (await json("layouts.json")).layouts;
+  const assignments = (await json("season-assignments/1980.json")).assignments;
+  const geometries = (await json("geometries/1980.json")).geometries;
+  const geometry = geometries.find((row) => row.layout_id === "cl_tr_0088_gp_1978");
+
+  assert.ok(geometry);
+  assert.equal(geometry.track_id, "tr_0088");
+  assert.equal(geometry.geometry_status, "MATCHED_REVIEWED_SCHEMATIC");
+  assert.equal(geometry.precision, "schematic_historical_trace");
+  assert.equal(geometry.centerline.length, 53);
+  assert.equal(geometry.geometry_hash, "bc5652309c2855b30d5a4bcc09c8280ee3fc5a33a6096221ded04c6308bd9877");
+  assert.notEqual(geometry.finish_line.centerlineIndex, geometry.start_grid.centerlineIndex);
+  assert.ok(geometry.reviewed_for.includes("2d_track_presentation"));
+  assert.ok(geometry.not_authoritative_for.includes("car_performance"));
+
+  const validation = validateCircuitLayoutCatalog({ layouts, assignments, geometries });
+  assert.deepEqual(validation, { ok: true, issues: [] });
+  assert.equal(isReviewedCircuitGeometry(geometry), true);
 });

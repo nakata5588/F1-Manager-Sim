@@ -6,7 +6,8 @@
     "layout_registry": "data/circuit-layouts/layouts.json",
     "season_assignments": "data/circuit-layouts/season-assignments/1980.json",
     "candidate_library": "data/circuit-layouts/candidate-libraries/bacinger-f1-circuits.manifest.json",
-    "historical_map_sources": "data/circuit-layouts/historical-map-sources/1980.json"
+    "historical_map_sources": "data/circuit-layouts/historical-map-sources/1980.json",
+    "runtime_geometry": "data/circuit-layouts/geometries/1980.json"
   },
   "policy": "Candidate matching never promotes geometry to reviewed. Historical layout identity, historical map source-lock, and runtime geometry approval are separate review gates.",
   "summary": {
@@ -22,7 +23,10 @@
     "current_layout_only": 4,
     "candidate_length_mismatch": 5,
     "geometry_missing": 3,
-    "baseline_data_issues": 1
+    "baseline_data_issues": 1,
+    "runtime_geometry_reviewed": 1,
+    "runtime_geometry_reviewed_schematic": 1,
+    "runtime_geometry_unavailable": 13
   },
   "rows": [
     {
@@ -47,7 +51,12 @@
       "notes": "Upstream line is a much shorter current/different configuration; reject for 1980 geometry.",
       "historical_map_source_id": "commons_buenos_aires_no15",
       "historical_map_license": "CC BY-SA 4.0",
-      "historical_map_ready": true
+      "historical_map_ready": true,
+      "candidate_review_status": "CANDIDATE_LENGTH_MISMATCH",
+      "runtime_geometry_status": "GEOMETRY_UNAVAILABLE",
+      "runtime_geometry_reviewed": false,
+      "runtime_geometry_precision": null,
+      "reviewed_geometry_status": null
     },
     {
       "round": 2,
@@ -71,7 +80,12 @@
       "notes": "Upstream line is the modern short Interlagos, not the original 7.873 km circuit.",
       "historical_map_source_id": "commons_interlagos_1977",
       "historical_map_license": "Public Domain (PD-self)",
-      "historical_map_ready": true
+      "historical_map_ready": true,
+      "candidate_review_status": "CANDIDATE_LENGTH_MISMATCH",
+      "runtime_geometry_status": "GEOMETRY_UNAVAILABLE",
+      "runtime_geometry_reviewed": false,
+      "runtime_geometry_precision": null,
+      "reviewed_geometry_status": null
     },
     {
       "round": 3,
@@ -95,7 +109,12 @@
       "notes": "Upstream geometry represents rebuilt Kyalami, not the original 1961-87 course.",
       "historical_map_source_id": "commons_kyalami_1961_1988",
       "historical_map_license": "CC BY-SA 4.0",
-      "historical_map_ready": true
+      "historical_map_ready": true,
+      "candidate_review_status": "CANDIDATE_LENGTH_MISMATCH",
+      "runtime_geometry_status": "GEOMETRY_UNAVAILABLE",
+      "runtime_geometry_reviewed": false,
+      "runtime_geometry_precision": null,
+      "reviewed_geometry_status": null
     },
     {
       "round": 4,
@@ -115,11 +134,16 @@
       "historical_confidence": "HIGH",
       "geometry_status": "GEOMETRY_MISSING",
       "historical_status": "VERIFIED_LAYOUT_IDENTITY",
-      "needs_research": true,
-      "notes": "No same-venue bacinger candidate exists. A public-domain historical map source for the exact 1978-1981 route is source-locked for future vector extraction.",
+      "needs_research": false,
+      "notes": "No same-venue bacinger candidate exists, but a Public Domain 1978-1981 period map has now been traced and reviewed as schematic historical geometry for Live Race 2D. It is not authoritative for distance, performance or exact corner coordinates.",
       "historical_map_source_id": "commons_long_beach_1978",
       "historical_map_license": "Public Domain (PD-self)",
-      "historical_map_ready": true
+      "historical_map_ready": true,
+      "candidate_review_status": "GEOMETRY_MISSING",
+      "runtime_geometry_status": "MATCHED_REVIEWED_SCHEMATIC",
+      "runtime_geometry_reviewed": true,
+      "runtime_geometry_precision": "schematic_historical_trace",
+      "reviewed_geometry_status": "MATCHED_REVIEWED_SCHEMATIC"
     },
     {
       "round": 5,
@@ -143,7 +167,12 @@
       "notes": "The Belgian upstream entry is Spa, not Zolder.",
       "historical_map_source_id": "commons_zolder_1975_1985",
       "historical_map_license": "CC BY-SA 3.0",
-      "historical_map_ready": true
+      "historical_map_ready": true,
+      "candidate_review_status": "GEOMETRY_MISSING",
+      "runtime_geometry_status": "GEOMETRY_UNAVAILABLE",
+      "runtime_geometry_reviewed": false,
+      "runtime_geometry_precision": null,
+      "reviewed_geometry_status": null
     },
     {
       "round": 6,
@@ -167,7 +196,12 @@
       "notes": "Length is close, but Monaco changed in 1986, 1997 and 2003. A modern line cannot be promoted on length alone.",
       "historical_map_source_id": "commons_monaco_1976",
       "historical_map_license": "CC BY-SA 3.0",
-      "historical_map_ready": true
+      "historical_map_ready": true,
+      "candidate_review_status": "CURRENT_LAYOUT_ONLY",
+      "runtime_geometry_status": "GEOMETRY_UNAVAILABLE",
+      "runtime_geometry_reviewed": false,
+      "runtime_geometry_precision": null,
+      "reviewed_geometry_status": null
     },
     {
       "round": 7,
@@ -191,7 +225,12 @@
       "notes": "Reject bacinger geometry for 1980: the historical full course requires an uninterrupted ~1.8 km Mistral Straight, while the candidate's longest near-straight run is only about 1.03 km, indicating a later/chicaned configuration.",
       "historical_map_source_id": "commons_paul_ricard_1970_1999",
       "historical_map_license": "Public Domain (PD-self)",
-      "historical_map_ready": true
+      "historical_map_ready": true,
+      "candidate_review_status": "CANDIDATE_CONFIGURATION_MISMATCH",
+      "runtime_geometry_status": "GEOMETRY_UNAVAILABLE",
+      "runtime_geometry_reviewed": false,
+      "runtime_geometry_precision": null,
+      "reviewed_geometry_status": null
     },
     {
       "round": 8,
@@ -215,7 +254,12 @@
       "notes": "The UK upstream entry is Silverstone, not Brands Hatch.",
       "historical_map_source_id": "commons_brands_hatch_1976_1987",
       "historical_map_license": "CC BY-SA 4.0",
-      "historical_map_ready": true
+      "historical_map_ready": true,
+      "candidate_review_status": "GEOMETRY_MISSING",
+      "runtime_geometry_status": "GEOMETRY_UNAVAILABLE",
+      "runtime_geometry_reviewed": false,
+      "runtime_geometry_precision": null,
+      "reviewed_geometry_status": null
     },
     {
       "round": 9,
@@ -239,7 +283,12 @@
       "notes": "Upstream line is shortened modern Hockenheim; 1980 requires the forest circuit.",
       "historical_map_source_id": "commons_hockenheim_1970",
       "historical_map_license": "CC BY-SA 3.0",
-      "historical_map_ready": true
+      "historical_map_ready": true,
+      "candidate_review_status": "CANDIDATE_LENGTH_MISMATCH",
+      "runtime_geometry_status": "GEOMETRY_UNAVAILABLE",
+      "runtime_geometry_reviewed": false,
+      "runtime_geometry_precision": null,
+      "reviewed_geometry_status": null
     },
     {
       "round": 10,
@@ -263,7 +312,12 @@
       "notes": "Upstream line is Red Bull Ring, not the long Österreichring.",
       "historical_map_source_id": "commons_osterreichring_1977_1987",
       "historical_map_license": "CC BY-SA 4.0",
-      "historical_map_ready": true
+      "historical_map_ready": true,
+      "candidate_review_status": "CANDIDATE_LENGTH_MISMATCH",
+      "runtime_geometry_status": "GEOMETRY_UNAVAILABLE",
+      "runtime_geometry_reviewed": false,
+      "runtime_geometry_precision": null,
+      "reviewed_geometry_status": null
     },
     {
       "round": 11,
@@ -287,7 +341,12 @@
       "notes": "Modern rebuilt/banked Zandvoort is not the 1980 Marlboro-chicane configuration despite similar lap length.",
       "historical_map_source_id": "commons_zandvoort_1980_1989",
       "historical_map_license": "CC BY-SA 4.0",
-      "historical_map_ready": true
+      "historical_map_ready": true,
+      "candidate_review_status": "CURRENT_LAYOUT_ONLY",
+      "runtime_geometry_status": "GEOMETRY_UNAVAILABLE",
+      "runtime_geometry_reviewed": false,
+      "runtime_geometry_precision": null,
+      "reviewed_geometry_status": null
     },
     {
       "round": 12,
@@ -311,7 +370,12 @@
       "notes": "Current Imola is post-1994 redesign. Separate data issue: baseline 5.040 km conflicts with 1980 references around 5.000 km; do not silently correct here.",
       "historical_map_source_id": "commons_imola_1980",
       "historical_map_license": "Public Domain (PD-self)",
-      "historical_map_ready": true
+      "historical_map_ready": true,
+      "candidate_review_status": "CURRENT_LAYOUT_ONLY",
+      "runtime_geometry_status": "GEOMETRY_UNAVAILABLE",
+      "runtime_geometry_reviewed": false,
+      "runtime_geometry_precision": null,
+      "reviewed_geometry_status": null
     },
     {
       "round": 13,
@@ -335,7 +399,12 @@
       "notes": "The 1980 race belongs to the 1979-1981 configuration. Later pit/start-finish changes require a separate layout identity for 1982 onward.",
       "historical_map_source_id": "commons_montreal_1979",
       "historical_map_license": "Public Domain (PD-self)",
-      "historical_map_ready": true
+      "historical_map_ready": true,
+      "candidate_review_status": "CURRENT_LAYOUT_ONLY",
+      "runtime_geometry_status": "GEOMETRY_UNAVAILABLE",
+      "runtime_geometry_reviewed": false,
+      "runtime_geometry_precision": null,
+      "reviewed_geometry_status": null
     },
     {
       "round": 14,
@@ -359,7 +428,12 @@
       "notes": "Reject automatic promotion despite near-identical lap length: the 1980 F1 layout requires the temporary Esses chicane introduced in 1975; the generic same-venue candidate does not prove that period topology.",
       "historical_map_source_id": "commons_watkins_glen_1975_1983",
       "historical_map_license": "CC BY-SA 4.0",
-      "historical_map_ready": true
+      "historical_map_ready": true,
+      "candidate_review_status": "CANDIDATE_CONFIGURATION_MISMATCH",
+      "runtime_geometry_status": "GEOMETRY_UNAVAILABLE",
+      "runtime_geometry_reviewed": false,
+      "runtime_geometry_precision": null,
+      "reviewed_geometry_status": null
     }
   ]
 }

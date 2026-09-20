@@ -188,3 +188,20 @@ test("direct centerline fields are supported for future Season Database geometry
   assert.equal(geometry.dataStatus, "reviewed");
   assert.equal(geometry.centerline.length, 4);
 });
+
+test("historical circuits can keep a start grid separate from the lap timing line", () => {
+  const track = explicitTrack();
+  track.geometry.finishLine = { centerlineIndex: 0 };
+  track.geometry.startGrid = { centerlineIndex: 2 };
+  delete track.geometry.startFinish;
+
+  const geometry = resolveCircuitGeometry(track);
+
+  assert.equal(geometry.available, true);
+  assert.deepEqual(geometry.finishLine, geometry.startFinish);
+  assert.deepEqual(geometry.timingLine, geometry.startFinish);
+  assert.ok(geometry.startGrid);
+  assert.equal(geometry.startGrid.pathFraction, geometry.segments[2].startFraction);
+  assert.notEqual(geometry.startGrid.pathFraction, geometry.startFinish.pathFraction);
+  assert.equal(pointAtLapFraction(geometry, 0).pathFraction, geometry.finishLine.pathFraction);
+});

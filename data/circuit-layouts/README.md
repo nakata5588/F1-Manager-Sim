@@ -15,6 +15,7 @@ track_id is a stable venue identity and must never be repurposed to mean a layou
 - season-assignments/<year>.json — one historical layout assignment per Grand Prix.
 - candidate-libraries/ — provenance-aware geometry candidate manifests. Candidates are research inputs, not runtime geometry.
 - historical-map-sources/<year>.json — licensed period-correct map sources used to lock historical topology before geometry extraction.
+- geometries/<year>.json — reviewed runtime geometry keyed by stable layout_id; may be schematic/presentation-only when explicitly labelled.
 - audits/<year>.json|csv — research/coverage matrix for a season.
 
 Runtime-reviewed geometry is intentionally not stored in a venue-wide track_id field. The future authoritative geometry collection uses layout_id and must carry source URL/repository, original source, license, retrieval date, geometry hash, geometry status and historical status.
@@ -29,7 +30,7 @@ The safe progression is:
       -> topology + direction review
       -> start/finish + pit-lane review
       -> geometry hash + provenance lock
-      -> MATCHED_REVIEWED
+      -> MATCHED_REVIEWED / MATCHED_REVIEWED_SCHEMATIC
 
 Generic candidate libraries remain useful for discovery, but a close lap length is never enough. A candidate can be CURRENT_LAYOUT_ONLY, CANDIDATE_LENGTH_MISMATCH or CANDIDATE_CONFIGURATION_MISMATCH even when it belongs to the correct venue.
 
@@ -37,8 +38,18 @@ Automated venue and length matching can never emit MATCHED_REVIEWED. Only review
 
 ## 1980 pilot
 
-The 1980 registry has 14/14 stable season assignments, 14/14 historical layout identities and 14/14 licensed historical map sources. Runtime geometry remains 0/14 reviewed until those maps are converted into centerlines and separately checked.
+The 1980 registry has 14/14 stable season assignments, 14/14 historical layout identities and 14/14 licensed historical map sources. Runtime geometry is now 1/14 reviewed: Long Beach 1978-1981 is available as a Public Domain-derived schematic historical trace for Live Race 2D. The remaining 13 layouts deliberately stay unavailable until separately extracted and checked.
 
 The first bacinger/f1-circuits audit still finds 11 same-venue candidates, but none is promoted to reviewed geometry. Three venues (Long Beach, Zolder and Brands Hatch) have no matching venue line in that upstream library. Paul Ricard and Watkins Glen are now explicitly treated as configuration mismatches despite close lap lengths, because their period topology requirements are not satisfied by the generic candidates.
 
 The same importer, matcher and validator are designed to be reused as later seasons and additional historical sources are added. Do not create season-specific geometry code.
+
+## Season Pack boundary
+
+Historical layout data is injected into a Season Pack through three optional sheets:
+
+- `<season>_Circuit_Layout_Registry`
+- `<season>_Circuit_Layout_Assignments`
+- `<season>_Circuit_Layout_Geometry`
+
+The overlay keeps global `track_id` / `gp_id` values stable while carrying explicit `runtime_track_id` / `runtime_gp_id` aliases for older Season Pack identifiers. The opening-state materializer resolves the selected layout, attaches only reviewed geometry, then moves the source catalogs out of mutable Save World state.

@@ -12,7 +12,9 @@ Performance data such as power sensitivity, aero sensitivity, brake stress, over
 
 Circuit geometry is historical starting data only when the selected Season Database supplies reviewed coordinates.
 
-The current 1980 database audit explicitly marks exact 1980 geometry coordinates as `deferred_research`. Therefore the runtime must not fabricate a Buenos Aires, Interlagos, Monaco or other 1980 track shape and present it as historical.
+The 1980 research pipeline now distinguishes three independent gates: historical layout identity, period-map source-lock, and reviewed runtime geometry. A source-locked map is not automatically drawable geometry.
+
+The first reviewed 1980 runtime geometry is Long Beach 1978-1981. It is explicitly classified as `MATCHED_REVIEWED_SCHEMATIC`: suitable for historical Live Race 2D topology, but not authoritative for distance measurement, car performance, race timing or exact corner coordinates. Other 1980 layouts remain `geometry_unavailable` until their extracted geometry passes the same review gate.
 
 For coordinate-free tracks:
 
@@ -43,6 +45,9 @@ Geometry payloads may contain:
 ```text
 centerline
 startFinish / start_finish
+finishLine / finish_line
+timingLine / timing_line
+startGrid / start_grid / startLine / start_line
 sectors / sectorBoundaries
 corners / turns
 pitLane / pit_lane
@@ -73,7 +78,8 @@ The bounding box includes:
 - centerline;
 - pit lane;
 - coordinate-based corner markers;
-- coordinate-based start/finish markers.
+- coordinate-based timing/finish markers;
+- coordinate-based starting-grid markers.
 
 This prevents a pit lane outside the centerline bounds from being clipped simply because it sits beside the racing surface.
 
@@ -99,29 +105,33 @@ The normalized path length is presentation geometry only. It is not a replacemen
 `lapFraction` is the stable position language for future race presentation.
 
 ```text
-0.0 = start / finish
+0.0 = lap timing / finish line
 0.25 = quarter lap
 0.5 = half lap
 0.75 = three-quarter lap
 ```
 
-The raw centerline may begin at any point. `pathOriginFraction` maps the canonical race origin to the explicit start/finish marker.
+The raw centerline may begin at any point. `pathOriginFraction` maps the canonical race origin to the explicit timing/finish marker.
 
-`pointAtLapFraction()` therefore always treats `lapFraction = 0` as start/finish rather than blindly using the first source point.
+`pointAtLapFraction()` therefore always treats `lapFraction = 0` as the lap timing/finish line rather than blindly using the first source point. The physical starting grid may be stored separately and does not redefine lap timing.
 
 The function wraps fractions around the closed circuit, so `1.0`, `0.0` and `-1.0` resolve to the same race position.
 
-### Start / finish
+### Timing / finish and starting grid
 
-Start/finish can be supplied using:
+Historical circuits do not always use the same physical line for the race start and lap timing/finish. The geometry contract therefore preserves both concepts.
+
+The lap anchor may be supplied through `timingLine`, `finishLine` or the backwards-compatible `startFinish`. Priority is timing line, then finish line, then start/finish. It can use:
 
 - path/lap fraction;
 - centerline point index;
 - explicit coordinate.
 
-A path fraction or centerline index anchors the canonical lap origin.
+A path fraction or centerline index anchors the canonical lap origin. `startGrid` / `startLine` is an independent presentation marker and never changes `lapFraction = 0`.
 
 An isolated coordinate is preserved visually but is labelled `explicit_coordinate_unanchored`; the runtime does not guess which crossing/segment it belongs to.
+
+Long Beach 1978-1981 is the first production case: the period map shows different START and FINISH locations, and Live Race 2D renders both.
 
 ### Sectors
 
@@ -216,3 +226,23 @@ Race state
 Stage 13 now renders `raceWeekend.geometry` plus `liveRace.trackPositions` as Live Race 2D v0 without changing the simulation model. Coordinate-free circuits use an explicit no-map fallback.
 
 This separation means different resolutions, zoom levels or UI renderers can all consume the same geometry and race-position projection.
+
+## Reviewed schematic geometry
+
+`MATCHED_REVIEWED_SCHEMATIC` is a deliberately narrow reviewed state. It means the historical topology and presentation trace have been checked sufficiently for Live Race 2D, while provenance explicitly lists what the geometry is and is not authoritative for.
+
+Typical fields are:
+
+```text
+precision: schematic_historical_trace
+reviewedFor:
+  - historical_topology
+  - 2d_track_presentation
+notAuthoritativeFor:
+  - distance_measurement
+  - car_performance
+  - race_timing
+  - exact_corner_coordinates
+```
+
+Circuit geometry remains presentation data. It must never become an implicit source for pace, overtaking, tyre wear, reliability or other race-engine performance calculations.

@@ -63,6 +63,9 @@ function geometryPayload(track = {}, options = {}) {
       sectors: parseJson(track.geometry_sectors ?? track.sector_geometry),
       corners: parseJson(track.corners ?? track.corner_geometry),
       startFinish: parseJson(track.start_finish ?? track.startFinish),
+      finishLine: parseJson(track.finish_line ?? track.finishLine),
+      timingLine: parseJson(track.timing_line ?? track.timingLine),
+      startGrid: parseJson(track.start_grid ?? track.startGrid ?? track.start_line ?? track.startLine),
       source: track.geometry_source ?? track.geometrySource ?? null,
       dataStatus: track.geometry_data_status ?? track.geometryDataStatus ?? null,
     };
@@ -251,6 +254,19 @@ function startFinishDescriptor(raw, transform, centerline, segments) {
   };
 }
 
+function markerDescriptor(raw, transform, centerline, segments, originFraction = 0) {
+  const value = parseJson(raw);
+  if (!value || typeof value !== "object") return null;
+  const descriptor = startFinishDescriptor(value, transform, centerline, segments);
+  const point = descriptor.point;
+  if (!point) return null;
+  const pathFraction = numeric(point.pathFraction);
+  return {
+    ...point,
+    lapFraction: pathFraction === null ? null : round(wrapFraction(pathFraction - originFraction), 8),
+  };
+}
+
 function pointAtRaceFraction(centerline, segments, lapFraction, originFraction = 0) {
   const raceFraction = wrapFraction(lapFraction);
   const pathFraction = wrapFraction(raceFraction + originFraction);
@@ -377,6 +393,9 @@ function unavailableGeometry(track, reason = "no_explicit_centerline") {
     corners: [],
     pitLane: { available: false, points: [], entryFraction: null, exitFraction: null },
     startFinish: null,
+    finishLine: null,
+    timingLine: null,
+    startGrid: null,
     lapLengthKm: numeric(track.lap_length_km ?? track.lapLengthKm),
   };
 }
@@ -401,8 +420,12 @@ export function resolveCircuitGeometry(track = {}, options = {}) {
       ? parseJson(payload.corners ?? payload.turns ?? payload.cornerMarkers ?? payload.corner_markers).map((row) => rawPoint(row)).filter(Boolean)
       : []),
   ];
-  const startCoordinate = rawPoint(parseJson(payload.startFinish ?? payload.start_finish));
-  if (startCoordinate) auxiliaryPoints.push(startCoordinate);
+  const timingRaw = payload.timingLine ?? payload.timing_line ?? payload.finishLine ?? payload.finish_line ?? payload.startFinish ?? payload.start_finish;
+  const startGridRaw = payload.startGrid ?? payload.start_grid ?? payload.startLine ?? payload.start_line;
+  const timingCoordinate = rawPoint(parseJson(timingRaw));
+  const startGridCoordinate = rawPoint(parseJson(startGridRaw));
+  if (timingCoordinate) auxiliaryPoints.push(timingCoordinate);
+  if (startGridCoordinate) auxiliaryPoints.push(startGridCoordinate);
 
   const bounds = boundsFor([...rawCenterline, ...auxiliaryPoints]);
   if (!bounds) return unavailableGeometry(track, "degenerate_centerline");
@@ -423,7 +446,8 @@ export function resolveCircuitGeometry(track = {}, options = {}) {
     ?? track.geometryDataStatus
     ?? "explicit_geometry";
 
-  const startFinish = startFinishDescriptor(payload.startFinish ?? payload.start_finish, transform, centerline, built.segments);
+  const startFinish = startFinishDescriptor(timingRaw, transform, centerline, built.segments);
+  const startGrid = markerDescriptor(startGridRaw, transform, centerline, built.segments, startFinish.originFraction);
 
   return {
     available: true,
@@ -447,6 +471,9 @@ export function resolveCircuitGeometry(track = {}, options = {}) {
     segments: built.segments,
     normalizedPathLength: built.total,
     startFinish: startFinish.point,
+    finishLine: startFinish.point,
+    timingLine: startFinish.point,
+    startGrid,
     sectors: sectorRows(payload, track),
     corners: cornerRows(payload, transform, centerline, built.segments, startFinish.originFraction),
     pitLane: pitLaneProjection(payload, transform),

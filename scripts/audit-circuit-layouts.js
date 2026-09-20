@@ -39,10 +39,18 @@ try {
   if (error?.code !== "ENOENT") throw error;
 }
 
+let geometryPayload = { geometries: [] };
+try {
+  geometryPayload = await json(arg("--geometries", root + "/geometries/" + season + ".json"));
+} catch (error) {
+  if (error?.code !== "ENOENT") throw error;
+}
+
 const layouts = layoutPayload.layouts ?? [];
 const assignments = assignmentPayload.assignments ?? [];
 const historicalMapSources = historicalMapPayload.sources ?? [];
-const validation = validateCircuitLayoutCatalog({ layouts, assignments, geometries: [] });
+const geometries = geometryPayload.geometries ?? [];
+const validation = validateCircuitLayoutCatalog({ layouts, assignments, geometries });
 if (!validation.ok) {
   for (const issue of validation.issues) console.error("- " + issue);
   process.exitCode = 1;
@@ -69,6 +77,7 @@ const report = buildCircuitLayoutCoverage({
   candidates: candidatePayload.candidates ?? [],
   curatedRows: curatedPayload.rows ?? [],
   historicalMapSources,
+  geometries,
 });
 report.historicalMapSourceSummary = summarizeHistoricalMapSources({
   layouts: seasonLayouts,

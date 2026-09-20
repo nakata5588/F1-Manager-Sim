@@ -16,10 +16,10 @@ function usage() {
   return [
     "Usage:",
     "  node scripts/materialize-season-pack.js <season-pack.json> [output-save.json] [seed]",
-    "  node scripts/materialize-season-pack.js --season-pack <payload.json> [--overlay <overlay.json|overlay.json.gz>] [--global-world <canonical-world.json>] [--out <save.json>] [--seed <seed>] [--start-date YYYY-MM-DD]",
+    "  node scripts/materialize-season-pack.js --season-pack <payload.json> [--overlay <overlay.json|overlay.json.gz>]... [--global-world <canonical-world.json>] [--out <save.json>] [--seed <seed>] [--start-date YYYY-MM-DD]",
     "",
-    "Canonical 1980 v0.8 example with Global history boundary:",
-    "  npm run seasonpack:materialize -- --season-pack data/season-packs/1980/season-pack-1980.v0.7.json --overlay data/season-packs/1980/season-pack-1980.v0.8.overlay.json.gz --global-world build/historical/canonical-world.json --out tmp/1980-loader-test.save.json --seed 1980-loader-test",
+    "Canonical 1980 example with stacked overlays and Global history boundary:",
+    "  npm run seasonpack:materialize -- --season-pack data/season-packs/1980/season-pack-1980.v0.7.json --overlay data/season-packs/1980/season-pack-1980.v0.8.overlay.json.gz --overlay data/season-packs/1980/season-pack-1980.v0.9.circuit-layout.overlay.json --global-world build/historical/canonical-world.json --out tmp/1980-loader-test.save.json --seed 1980-loader-test",
   ].join("\n");
 }
 
@@ -28,7 +28,7 @@ function parseArguments(argv) {
   if (!argv[0].startsWith("--")) {
     return {
       seasonPack: argv[0],
-      overlay: null,
+      overlays: [],
       globalWorld: null,
       out: argv[1] ?? null,
       seed: argv[2] ?? null,
@@ -37,19 +37,21 @@ function parseArguments(argv) {
   }
 
   const parsed = {};
+  const overlays = [];
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (!token.startsWith("--")) throw new Error(`Unexpected argument '${token}'.\n${usage()}`);
     const key = token.slice(2);
     const value = argv[index + 1];
     if (value === undefined || value.startsWith("--")) throw new Error(`Missing value for --${key}.\n${usage()}`);
-    parsed[key] = value;
+    if (key === "overlay") overlays.push(value);
+    else parsed[key] = value;
     index += 1;
   }
   if (!parsed["season-pack"]) throw new Error(`--season-pack is required.\n${usage()}`);
   return {
     seasonPack: parsed["season-pack"],
-    overlay: parsed.overlay ?? null,
+    overlays,
     globalWorld: parsed["global-world"] ?? null,
     out: parsed.out ?? null,
     seed: parsed.seed ?? null,
@@ -70,13 +72,24 @@ async function main() {
   let sourceChecksum = createHash("sha256").update(raw).digest("hex");
   let sourcePath = inputPath;
 
-  if (args.overlay) {
-    const overlayPath = resolve(args.overlay);
+  const overlayBytes = [];
+  const overlayPaths = [];
+  for (const requestedPath of args.overlays ?? []) {
+    const overlayPath = resolve(requestedPath);
     const overlayRaw = await readFile(overlayPath);
     const overlay = parseOverlay(overlayRaw, overlayPath);
     payload = applySeasonPackOverlay(payload, overlay);
+    overlayBytes.push(overlayRaw);
+    overlayPaths.push(overlayPath);
     sourceChecksum = overlaySourceChecksum(overlay) ?? createHash("sha256").update(JSON.stringify(payload)).digest("hex");
-    sourcePath = `${inputPath} + ${overlayPath}`;
+  }
+  if (overlayPaths.length === 1) {
+    sourcePath = `${inputPath} + ${overlayPaths[0]}`;
+  } else if (overlayPaths.length > 1) {
+    const composed = createHash("sha256").update(raw);
+    for (const bytes of overlayBytes) composed.update(bytes);
+    sourceChecksum = composed.digest("hex");
+    sourcePath = [inputPath, ...overlayPaths].join(" + ");
   }
 
   validateSeasonPackRuntimePayload(payload);

@@ -156,7 +156,7 @@ test("Live Race 2D renders explicit and sector-level markers from Race Position 
   assert.match(markup, /Driver One · Team One · explicit/);
   assert.match(markup, /Driver Two · Team Two · sector_only/);
   assert.match(markup, /live-race-map-pit/);
-  assert.match(markup, />S\/F</);
+  assert.match(markup, />FINISH</);
   assert.equal(status.status, "mixed_precision");
   assert.equal(status.drawableCars, 2);
   assert.equal(status.approximateCars, 1);
@@ -180,4 +180,27 @@ test("Live Race 2D escapes player-facing circuit and entity text", () => {
 
   assert.doesNotMatch(markup, /<img/);
   assert.match(markup, /&lt;img/);
+});
+
+test("Live Race 2D renders separate START and FINISH markers for historical layouts that used different lines", () => {
+  const track = resolveCircuitGeometry({
+    track_id: "TR_HISTORIC_START",
+    track_name: "Historic Street Circuit",
+    geometry: {
+      source: "historical_schematic",
+      dataStatus: "MATCHED_REVIEWED_SCHEMATIC",
+      centerline: [[0, 0], [4, 0], [4, 2], [0, 2]],
+      finishLine: { centerlineIndex: 0 },
+      startGrid: { centerlineIndex: 2 },
+    },
+  });
+  const markup = renderLiveRaceMap({
+    geometry: track,
+    positions: positions([], "geometry_only"),
+  });
+
+  assert.match(markup, /live-race-map-start/);
+  assert.match(markup, />FINISH</);
+  assert.match(markup, /live-race-map-grid/);
+  assert.match(markup, />START</);
 });

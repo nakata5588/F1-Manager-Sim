@@ -1,6 +1,14 @@
 import { automaticCandidateStatus, rankGeometryCandidates } from "./geometryPipeline.js";
 import { historicalMapSourceByLayout, summarizeHistoricalMapSources } from "./historicalMapSources.js";
 
+const REVIEWED_RUNTIME_GEOMETRY_STATUSES = new Set([
+  "MATCHED_REVIEWED",
+  "MATCHED_REVIEWED_SCHEMATIC",
+  "REVIEWED",
+  "reviewed",
+  "source_locked_geometry",
+]);
+
 function numeric(value, fallback = null) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -10,6 +18,10 @@ function layoutId(row) {
   return row?.layout_id ?? row?.layoutId ?? null;
 }
 
+function runtimeGeometryReviewed(row) {
+  return REVIEWED_RUNTIME_GEOMETRY_STATUSES.has(String(row?.geometry_status ?? row?.geometryStatus ?? ""));
+}
+
 export function buildCircuitLayoutCoverage({
   season,
   layouts = [],
@@ -17,12 +29,14 @@ export function buildCircuitLayoutCoverage({
   candidates = [],
   curatedRows = [],
   historicalMapSources = [],
+  geometries = [],
 } = {}) {
   const targetSeason = numeric(season);
   if (!Number.isInteger(targetSeason)) throw new TypeError("Circuit layout coverage requires an integer season.");
   const layoutById = new Map(layouts.map((row) => [layoutId(row), row]));
   const curatedByKey = new Map(curatedRows.map((row) => [(row.gp_id ?? "") + ":" + (row.track_id ?? ""), row]));
   const mapSourceByLayout = historicalMapSourceByLayout(historicalMapSources);
+  const geometryByLayout = new Map(geometries.map((row) => [layoutId(row), row]).filter(([id]) => id));
   const seasonAssignments = assignments
     .filter((row) => numeric(row.season ?? row.year) === targetSeason)
     .sort((a, b) => numeric(a.round, 999) - numeric(b.round, 999));
@@ -35,6 +49,8 @@ export function buildCircuitLayoutCoverage({
     const best = ranked[0] ?? null;
     const curated = curatedByKey.get((assignment.gp_id ?? "") + ":" + (assignment.track_id ?? "")) ?? null;
     const historicalMap = mapSourceByLayout.get(targetLayoutId) ?? null;
+    const geometry = geometryByLayout.get(targetLayoutId) ?? null;
+    const candidateReviewStatus = curated?.geometry_status ?? automaticCandidateStatus(best);
     return {
       season: targetSeason,
       round: numeric(assignment.round),
@@ -50,21 +66,25 @@ export function buildCircuitLayoutCoverage({
       auto_candidate_length_km: numeric(best?.candidate?.declared_length_km ?? best?.candidate?.computed_length_km),
       auto_length_difference_percent: best?.lengthDifferencePercent ?? null,
       auto_status: automaticCandidateStatus(best),
-      reviewed_geometry_status: curated?.geometry_status ?? null,
+      candidate_review_status: candidateReviewStatus,
+      reviewed_geometry_status: geometry?.geometry_status ?? null,
+      runtime_geometry_status: geometry?.geometry_status ?? null,
+      runtime_geometry_reviewed: runtimeGeometryReviewed(geometry),
+      runtime_geometry_precision: geometry?.precision ?? null,
       shape_confidence: curated?.shape_confidence ?? null,
       historical_confidence: curated?.historical_confidence ?? null,
       historical_map_source_id: historicalMap?.source_id ?? null,
       historical_map_license: historicalMap?.license ?? null,
       historical_map_media_type: historicalMap?.media_type ?? null,
       historical_map_ready: historicalMap?.source_status === "HISTORICAL_MAP_READY",
-      needs_research: curated?.needs_research ?? true,
-      notes: curated?.notes ?? null,
+      needs_research: geometry ? !runtimeGeometryReviewed(geometry) : (curated?.needs_research ?? true),
+      notes: curated?.notes ?? geometry?.notes ?? null,
     };
   });
 
   const statusCounts = {};
   for (const row of rows) {
-    const status = row.reviewed_geometry_status ?? row.auto_status;
+    const status = row.candidate_review_status ?? row.auto_status;
     statusCounts[status] = (statusCounts[status] ?? 0) + 1;
   }
   const sourceSummary = summarizeHistoricalMapSources({
@@ -80,9 +100,14 @@ export function buildCircuitLayoutCoverage({
       identifiedLayouts: rows.filter((row) => row.layout_id).length,
       candidatesFound: rows.filter((row) => row.auto_candidate_id).length,
       historicalMapSourcesReady: rows.filter((row) => row.historical_map_ready).length,
-      runtimeGeometryReviewed: rows.filter((row) => row.reviewed_geometry_status === "MATCHED_REVIEWED").length,
-      reviewedGeometry: rows.filter((row) => row.reviewed_geometry_status === "MATCHED_REVIEWED").length,
+      runtimeGeometryReviewed: rows.filter((row) => row.runtime_geometry_reviewed).length,
+      reviewedGeometry: rows.filter((row) => row.runtime_geometry_reviewed).length,
       statusCounts,
+      runtimeGeometryStatusCounts: rows.reduce((counts, row) => {
+        const status = row.runtime_geometry_status ?? "GEOMETRY_UNAVAILABLE";
+        counts[status] = (counts[status] ?? 0) + 1;
+        return counts;
+      }, {}),
       historicalMapLicenseBuckets: sourceSummary.licenseBuckets,
     },
     rows,

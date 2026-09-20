@@ -33,7 +33,7 @@ This is deliberately compatible with src/sim/circuitGeometry.js. Unreviewed/miss
       -> direction + S/F + pit-lane verification
       -> coordinate normalization / simplification
       -> geometry hash + provenance + license lock
-      -> MATCHED_REVIEWED
+      -> MATCHED_REVIEWED / MATCHED_REVIEWED_SCHEMATIC
       -> runtime CircuitLayoutGeometry
 
 ### Candidate import
@@ -64,7 +64,7 @@ scripts/audit-circuit-layouts.js --season 1980 validates stable layout IDs, seas
 
 ## 1980 findings
 
-The required historical layout and a licensed period-correct map source are now identified for all 14 rounds. Runtime geometry is still 0/14 reviewed; that is intentional.
+The required historical layout and a licensed period-correct map source are identified for all 14 rounds. Runtime geometry is now 1/14 reviewed: Long Beach 1978-1981 is the first `MATCHED_REVIEWED_SCHEMATIC` layout. The remaining 13 circuits still fail closed as `geometry_unavailable`.
 
 The generic bacinger/f1-circuits library remains useful for candidate discovery, but its 1980 venue coverage is mostly modern geometry:
 
@@ -76,6 +76,26 @@ The generic bacinger/f1-circuits library remains useful for candidate discovery,
 Paul Ricard demonstrates why length matching is insufficient: the 1980 full course requires an uninterrupted roughly 1.8 km Mistral Straight, while the generic candidate has no comparable continuous straight. Watkins Glen likewise requires the temporary Formula One Esses chicane introduced in 1975.
 
 The source pack also tightens two historical identities: Long Beach 1980 belongs to the 1978-1981 route, and Montréal 1980 belongs to the 1979-1981 configuration. Later configurations receive separate stable layout IDs when those seasons are added.
+
+Long Beach also exposed an era-model requirement: its period map uses separate START and FINISH locations. Circuit Geometry therefore stores the lap timing/finish line separately from the starting grid. `lapFraction=0` remains tied to timing/finish; the grid is presentation metadata.
+
+### Season Pack integration
+
+The historical circuit catalog is carried into a Season Pack with three optional sheets:
+
+    <season>_Circuit_Layout_Registry
+    <season>_Circuit_Layout_Assignments
+    <season>_Circuit_Layout_Geometry
+
+These sheets are optional so older packs remain loadable. Assignments preserve stable global IDs and may also provide explicit Season Pack aliases such as `runtime_track_id` and `runtime_gp_id`. The runtime uses those aliases only to locate the legacy row; it does not replace the global historical identity.
+
+`scripts/build-circuit-layout-season-overlay.js` generates a small versioned overlay from the static historical registry. For 1980 the chain is:
+
+    v0.7 base
+      -> v0.8 technical/management overlay
+      -> v0.9 circuit-layout overlay
+
+`scripts/materialize-season-pack.js` accepts repeated `--overlay` arguments so overlays compose in order.
 
 ## Historical verification notes
 
