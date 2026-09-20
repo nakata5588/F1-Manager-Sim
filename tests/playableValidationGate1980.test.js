@@ -4,6 +4,8 @@ import test from "node:test";
 import { gunzipSync } from "node:zlib";
 
 import { DeveloperPlaytestSession } from "../src/app/developerPlaytest.js";
+import { entityProfileProjection } from "../src/app/entityProfilePlaytest.js";
+import { deserializeSaveWorld, serializeSaveWorld } from "../src/save/serialization.js";
 import { applySeasonPackOverlay } from "../src/data/seasonPackOverlay.js";
 import { loadSeasonPackRuntimePayload } from "../src/data/seasonPackRuntime.js";
 import {
@@ -14,6 +16,7 @@ import {
 
 const BASE_PACK_URL = new URL("../data/season-packs/1980/season-pack-1980.v0.7.json", import.meta.url);
 const OVERLAY_URL = new URL("../data/season-packs/1980/season-pack-1980.v0.8.overlay.json.gz", import.meta.url);
+const CIRCUIT_OVERLAY_URL = new URL("../data/season-packs/1980/season-pack-1980.v0.9.circuit-layout.overlay.json", import.meta.url);
 const BASELINE_URL = new URL(
   "../data/database-baselines/v1.2.16-1980-canonical-closure-audit-consistency-candidate/baseline.json",
   import.meta.url,
@@ -26,9 +29,11 @@ async function runtimeFixture() {
   if (!fixturePromise) fixturePromise = (async () => {
     const base = JSON.parse(await readFile(BASE_PACK_URL, "utf8"));
     const overlay = JSON.parse(gunzipSync(await readFile(OVERLAY_URL)).toString("utf8"));
-    const snapshot = loadSeasonPackRuntimePayload(applySeasonPackOverlay(base, overlay), {
-      sourceChecksum: overlay.sourcePayloadSha256,
-      sourcePath: "season-pack-1980.v0.7.json + season-pack-1980.v0.8.overlay.json.gz",
+    const circuitOverlay = JSON.parse(await readFile(CIRCUIT_OVERLAY_URL, "utf8"));
+    const payload = applySeasonPackOverlay(applySeasonPackOverlay(base, overlay), circuitOverlay);
+    const snapshot = loadSeasonPackRuntimePayload(payload, {
+      sourceChecksum: circuitOverlay.sourcePayloadSha256 ?? overlay.sourcePayloadSha256,
+      sourcePath: "season-pack-1980.v0.7.json + v0.8 systems + v0.9 circuit layouts",
     });
 
     const mutable = structuredClone(snapshot);
@@ -174,14 +179,34 @@ test("Playable Validation Gate #1 completes New Game -> Williams -> Argentine GP
   assert.equal(pointsAreZero(state.standings.constructors), true);
   assertNoFutureLeak(state, "Career Home state");
 
+  // Application-profile smoke on the real 1980 world: stable IDs must survive
+  // projection and a save round-trip before the first race weekend.
+  const controlledDriverId = session.saveWorld.world.raceEntryState.current
+    .find((row) => String(row.teamId) === String(williams.id))?.driverId;
+  assert.ok(controlledDriverId);
+  const driverProfile = entityProfileProjection(session.saveWorld, "driver", controlledDriverId);
+  assert.equal(driverProfile.type, "driver");
+  assert.equal(driverProfile.controlled, true);
+  assert.ok(driverProfile.name);
+
+  const teamProfile = entityProfileProjection(session.saveWorld, "team", williams.id);
+  assert.equal(teamProfile.type, "team");
+  assert.equal(teamProfile.controlled, true);
+  assert.equal(teamProfile.name, "Williams");
+
+  const restoredWorld = deserializeSaveWorld(serializeSaveWorld(session.saveWorld));
+  const restoredDriverProfile = entityProfileProjection(restoredWorld, "driver", controlledDriverId);
+  assert.equal(restoredDriverProfile.name, driverProfile.name);
+  assert.equal(restoredWorld.meta.saveSchemaVersion, 2);
+
   state = session.continue();
   assert.equal(state.screen, "practice");
   assert.equal(state.career.date, "1980-01-13");
   assert.equal(state.raceWeekend.name, "Argentine Grand Prix");
   assert.equal(state.raceWeekend.round, 1);
-  assert.equal(state.raceWeekend.geometry.available, false, "current 1980 runtime must not fabricate deferred circuit coordinates");
-  assert.equal(state.raceWeekend.geometry.dataStatus, "geometry_unavailable");
-  assert.equal(state.raceWeekend.geometry.reason, "no_explicit_centerline");
+  assert.equal(state.raceWeekend.geometry.available, true, "reviewed 1980 schematic geometry should be available for presentation");
+  assert.equal(state.raceWeekend.geometry.dataStatus, "MATCHED_REVIEWED_SCHEMATIC");
+  assert.ok(state.raceWeekend.geometry.centerline.length >= 3);
 
   state = session.advanceWeekend();
   assert.equal(state.screen, "practice_results");
@@ -196,10 +221,10 @@ test("Playable Validation Gate #1 completes New Game -> Williams -> Argentine GP
   assert.ok(state.raceWeekend.grid.length > 0);
   assert.equal(state.liveRace.currentLap, 0);
   assert.equal(state.liveRace.trackPositions.schemaVersion, 1);
-  assert.equal(state.liveRace.trackPositions.geometryAvailable, false);
+  assert.equal(state.liveRace.trackPositions.geometryAvailable, true);
   assert.equal(state.liveRace.trackPositions.telemetryMode, "lap_boundary_only");
-  assert.equal(state.liveRace.trackPositions.summary.mapPositionsAvailable, 0);
-  assert.ok(state.liveRace.trackPositions.cars.every((row) => row.x === null && row.y === null));
+  assert.ok(state.liveRace.trackPositions.summary.mapPositionsAvailable > 0);
+  assert.ok(state.liveRace.trackPositions.cars.every((row) => Number.isFinite(row.x) && Number.isFinite(row.y)));
   assert.equal(session.saveWorld.history.races.length, 0, "race history must remain empty before lights out");
 
   state = session.startRace();
