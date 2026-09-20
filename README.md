@@ -16,7 +16,7 @@ Current career path:
 
 Current persistence path:
 
-`Save World -> Versioned Save Envelope -> Ordered Schema Migrations -> Manual Slot / Autosave -> Provenance Validation -> Restored Save World -> Resumed Career`
+`Save World -> Versioned Save Envelope -> Manual Slot / Autosave -> Ordered Schema Migrations -> Provenance Validation -> Restored Save World -> Resumed Career`
 
 Current management/world loop:
 
@@ -75,7 +75,7 @@ The New Game boundary is:
 
 The persistence boundary is:
 
-`Save World -> Serialization Envelope -> Ordered Schema Migrations -> Storage Slot -> Deserialization -> Source Compatibility Gate -> Save World`
+`Save World -> Serialization Envelope -> Storage Slot -> Deserialization / Ordered Schema Migrations -> Source Compatibility Gate -> Save World`
 
 The race-weekend gameplay boundary is:
 
