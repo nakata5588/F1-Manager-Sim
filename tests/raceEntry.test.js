@@ -84,7 +84,8 @@ test("explicit race entry can start a contractually test-role driver without cha
   assert.equal(save.history.races[0].entrants.length, 2);
   assert.ok(save.history.races[0].entrants.some((row) => row.driverId === "TEST"));
   assert.equal(save.world.employment.drivers.TEST.role, "test_driver");
-  assert.equal(save.simulation.systemState["race.entries"].projection, null);
+  assert.equal(save.world.employment.drivers.TEST.raceEntryProjection, undefined);
+  assert.equal(save.simulation.systemState["race.entries"], undefined, "Race Entry no longer projects participation into Employment");
 });
 
 test("without explicit Season Pack entries, race-entry state falls back to race-role employment", () => {
@@ -166,4 +167,24 @@ test("a simulation signing reassigns an existing race entry and stale old-team e
   }], entrySystems);
 
   assert.equal(save.world.raceEntryState.current.find((row) => row.driverId === "TEST").teamId, "TEAM2");
+});
+
+test("Race Weekend reads authoritative Race Entry state directly and never needs employment projection", () => {
+  const save = saveWorld();
+  dispatchSimulationEvents(save, [{ type: SIM_EVENT.CAREER_STARTED, date: "1980-01-01", payload: { season: 1980 } }], entrySystems);
+
+  save.world.employment.drivers.TEST.role = "test_driver";
+  const raceSystem = createRaceWeekendSystem();
+  const events = dispatchSimulationEvents(save, [{
+    type: SIM_EVENT.RACE_DAY,
+    date: "1980-01-13",
+    payload: { gp_id: "ARG", track_id: "TR", round: 1 },
+  }], [raceSystem]);
+
+  const started = events.find((event) => event.type === "race.weekend_started");
+  assert.equal(started.payload.entrants, 2);
+  const weekend = save.world.raceWeekendState.active["1980:ARG"];
+  assert.deepEqual(weekend.entrants.map((row) => row.driverId).sort(), ["RACE", "TEST"]);
+  assert.equal(save.world.employment.drivers.TEST.role, "test_driver");
+  assert.equal(save.world.employment.drivers.TEST.raceEntryProjection, undefined);
 });
