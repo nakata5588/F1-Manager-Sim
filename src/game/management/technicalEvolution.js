@@ -207,6 +207,11 @@ function regulationDevelopmentModifier(saveWorld) {
   return clamp(value, 0.5, 1.5);
 }
 
+export function technicalManufacturingCostModifier(saveWorld) {
+  const value = numeric(regulationPackage(saveWorld)?.technical?.manufacturingCostModifier, 1);
+  return clamp(value, 0.5, 1.5);
+}
+
 export function technicalDevelopmentModifier(saveWorld, teamId, component, focus = "balanced") {
   const identity = ensureTechnicalIdentity(saveWorld, teamId);
   const disciplineId = technicalDisciplineForComponent(component);
