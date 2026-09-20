@@ -91,11 +91,13 @@ export function ensureFinancialCrisisState(saveWorld) {
     sequence: 0,
     initializedAt: null,
     teams: {},
+    inactiveTeams: {},
     ownershipChanges: [],
     interventions: [],
   };
   const state = saveWorld.world.financialCrisis;
   state.teams ??= {};
+  state.inactiveTeams ??= {};
   state.ownershipChanges ??= [];
   state.interventions ??= [];
   state.sequence = Math.max(0, Math.round(numeric(state.sequence, 0)));
