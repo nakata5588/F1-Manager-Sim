@@ -49,6 +49,7 @@ export const CAREER_NAV_GROUPS = Object.freeze([
 const MANAGEMENT_HASH_TO_NAV = Object.freeze({
   inbox: "inbox",
   team: "team",
+  planning: "team",
   board: "team",
   career: "team",
   people: "team",
@@ -141,6 +142,7 @@ export function careerPageLabel(location = {}) {
     const detail = {
       inbox: ["inbox", "Inbox", "Career"],
       team: ["team", "Team", "Team"],
+      planning: ["team", "Team Planning", "Team"],
       responsibilities: ["team", "Responsibilities", "Team"],
       drivers: ["drivers", "Drivers", "Team"],
       recruitment: ["drivers", "Driver Recruitment", "Team"],
