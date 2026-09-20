@@ -58,7 +58,10 @@ test("filesystem slot store atomically saves, lists and restores Save World", ()
     assert.equal(rows[0].databaseVersion, "test-db");
 
     const restored = store.load("manual-1");
-    assert.deepEqual(restored.saveWorld, original);
+    assert.equal(restored.saveWorld.meta.saveSchemaVersion, 2);
+    const comparable = structuredClone(restored.saveWorld);
+    delete comparable.meta.saveSchemaVersion;
+    assert.deepEqual(comparable, original);
     restored.saveWorld.clock.date = "1980-03-03";
     assert.equal(original.clock.date, "1980-03-02", "loaded state must be independent from the source object");
 
@@ -80,6 +83,29 @@ test("slot listing isolates a corrupt save instead of crashing all save discover
     assert.equal(rows.length, 2);
     assert.equal(rows.find((row) => row.slot === "autosave").invalid, undefined);
     assert.equal(rows.find((row) => row.slot === "broken").invalid, true);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+test("filesystem slot store transparently loads a schema-v1 save through the migration chain", () => {
+  const directory = mkdtempSync(join(tmpdir(), "f1-manager-save-slots-v1-"));
+  try {
+    const legacy = {
+      format: "f1-manager-sim-save",
+      schemaVersion: 1,
+      savedAt: "2026-09-16T21:30:00.000Z",
+      save: saveWorld(),
+    };
+    writeFileSync(join(directory, "legacy.json"), JSON.stringify(legacy), "utf8");
+
+    const store = new FileSaveSlotStore(directory);
+    const rows = store.list();
+    assert.equal(rows.find((row) => row.slot === "legacy")?.invalid, undefined);
+
+    const restored = store.load("legacy");
+    assert.equal(restored.saveWorld.meta.saveSchemaVersion, 2);
+    assert.equal(restored.saveWorld.player.manager.name, "Test Manager");
+    assert.equal(restored.summary.liveRace.currentLap, 4);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
