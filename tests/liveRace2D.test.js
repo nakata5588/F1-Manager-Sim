@@ -156,7 +156,7 @@ test("Live Race 2D renders explicit and sector-level markers from Race Position 
   assert.match(markup, /Driver One · Team One · explicit/);
   assert.match(markup, /Driver Two · Team Two · sector_only/);
   assert.match(markup, /live-race-map-pit/);
-  assert.match(markup, />S\/F</);
+  assert.match(markup, />FINISH</);
   assert.equal(status.status, "mixed_precision");
   assert.equal(status.drawableCars, 2);
   assert.equal(status.approximateCars, 1);
