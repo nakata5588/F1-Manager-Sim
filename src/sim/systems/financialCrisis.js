@@ -314,6 +314,7 @@ export function createFinancialCrisisSystem(options = {}) {
     eventTypes: [
       SIM_EVENT.CAREER_STARTED,
       TEAM_FINANCE_EVENT.MONTH_CLOSED,
+      TEAM_EVOLUTION_EVENT.ENTRY_ACCEPTED,
       FINANCIAL_CRISIS_EVENT.RESPONSE_SUBMITTED,
     ],
     handle({ saveWorld, event }) {
@@ -321,6 +322,12 @@ export function createFinancialCrisisSystem(options = {}) {
       if (event.type === SIM_EVENT.CAREER_STARTED) {
         const summary = initializeFinancialCrisisWorld(saveWorld, event.date);
         return { type: FINANCIAL_CRISIS_EVENT.INITIALIZED, payload: summary };
+      }
+      if (event.type === TEAM_EVOLUTION_EVENT.ENTRY_ACCEPTED) {
+        if (event.payload?.activated === true && event.payload?.team_id) {
+          ensureFinancialCrisisTeam(saveWorld, event.payload.team_id, event.date);
+        }
+        return null;
       }
       if (event.type === FINANCIAL_CRISIS_EVENT.RESPONSE_SUBMITTED) {
         return applyResponse(saveWorld, event);
