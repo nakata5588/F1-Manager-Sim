@@ -38,7 +38,7 @@ Automated venue and length matching can never emit MATCHED_REVIEWED. Only review
 
 ## 1980 pilot
 
-The 1980 registry has 14/14 stable season assignments, 14/14 historical layout identities and 14/14 licensed historical map sources. Runtime geometry is now 1/14 reviewed: Long Beach 1978-1981 is available as a Public Domain-derived schematic historical trace for Live Race 2D. The remaining 13 layouts deliberately stay unavailable until separately extracted and checked.
+The 1980 registry has 14/14 stable season assignments, 14/14 historical layout identities and 14/14 licensed historical map sources. Runtime geometry is now 14/14 reviewed at schematic historical-trace precision for Live Race 2D. Every 1980 layout has explicit period-map provenance and remains presentation-only: none of these traces owns distance measurement, race timing or car-performance calculations.
 
 The first bacinger/f1-circuits audit still finds 11 same-venue candidates, but none is promoted to reviewed geometry. Three venues (Long Beach, Zolder and Brands Hatch) have no matching venue line in that upstream library. Paul Ricard and Watkins Glen are now explicitly treated as configuration mismatches despite close lap lengths, because their period topology requirements are not satisfied by the generic candidates.
 
