@@ -4,8 +4,8 @@
   "updatedAt": "2026-09-20",
   "application": {
     "version": "0.1.0",
-    "developmentStage": "18",
-    "stageName": "Driver Availability, Injuries & Replacement Market"
+    "developmentStage": "19",
+    "stageName": "Team Financial Crisis & Ownership"
   },
   "persistence": {
     "saveSchemaVersion": 2,
@@ -34,6 +34,9 @@
     "financialPlanning": "save_world_projection_over_existing_cost_authorities",
     "driverMedicalAuthority": "world.driverAvailability",
     "driverMarketAuthority": "world.driverMarketState",
-    "temporaryRaceReplacement": "race_entry_only_no_employment_mutation"
+    "temporaryRaceReplacement": "race_entry_only_no_employment_mutation",
+    "financialCrisisAuthority": "world.financialCrisis",
+    "ownershipChangePolicy": "save_world_dynamic_preserve_team_id",
+    "insolvencyExitAuthority": "team.financial-crisis"
   }
 }
