@@ -8,6 +8,9 @@ import { createRetirementSystem } from "./retirement.js";
 import { createRetirementEmploymentSystem } from "./retirementEmployment.js";
 import { createAiEmploymentDecisionSystem, createEmploymentMarketSystem } from "./employmentMarket.js";
 import { createOpeningAvailabilityGuardSystem } from "./openingAvailabilityGuard.js";
+import { createDriverMarketLifecycleSystem } from "./driverMarketLifecycle.js";
+import { createDriverAvailabilitySystem } from "./driverAvailability.js";
+import { createReplacementDriverSystem } from "./replacementDrivers.js";
 import { createTransferVacancySystem } from "./transferVacancy.js";
 import { createPeopleDynamicsSystem } from "./peopleDynamics.js";
 import { createScoutingManagementSystem } from "./scoutingManagement.js";
@@ -59,6 +62,7 @@ export function createCoreWorldSystems(options = {}) {
     createTransferVacancySystem(),
     createEmploymentMarketSystem(),
     createOpeningAvailabilityGuardSystem(),
+    createDriverMarketLifecycleSystem(),
     createRetirementEmploymentSystem(),
     createAiEmploymentDecisionSystem({
       controlledTeamIds: options.controlledTeamIds ?? [],
@@ -99,6 +103,8 @@ export function createCoreWorldSystems(options = {}) {
     createDatabaseWeatherSystem(),
     createRaceWeekendSystem(),
     createRaceTimelineSystem(),
+    createDriverAvailabilitySystem(),
+    createReplacementDriverSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createRaceControlSystem(),
     createChampionshipSystem(),
     createWorldNarrativeSystem(),
