@@ -101,7 +101,7 @@ These sheets are optional so older packs remain loadable. Assignments preserve s
 
 The first 1980 layout identity pass uses circuit-history references including RacingCircuits.info, while the map source-lock uses explicitly licensed period maps, primarily Wikimedia Commons. These source assets are references for geometry extraction; they are never silently treated as runtime centerlines.
 
-One database discrepancy is explicitly retained for follow-up: the current Imola 1980 baseline says 5.040 km, while period/race references commonly give about 5.000 km. The pipeline flags the conflict rather than silently rewriting the baseline.
+The Imola discrepancy is now resolved in the current historical layout catalog: 1980 uses 5.000 km. The older v1.2.11 recovery baseline remains untouched at 5.040 km as an auditable legacy artefact; it is not allowed to redefine the reviewed 1980 layout.
 
 ## Expansion beyond 1980
 
