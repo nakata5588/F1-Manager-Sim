@@ -184,16 +184,17 @@ Tests also prohibit a synthetic fallback track.
 
 This keeps presentation uncertainty explicit.
 
-## Next stage
+## Race Weekend UX v2 integration
 
-Stage 14 — Race Weekend UX v2 can improve the complete race-management surface around this map:
+Stage 14 now embeds Live Race 2D v0 inside the unified Race Desk alongside:
 
-- timing tower hierarchy;
-- weather / track-state strip;
+- Timing Tower;
+- weather / track-status strip;
 - Race Control banner;
-- strategy timeline;
-- clearer pit-wall actions;
-- richer event feed;
-- responsive map/timing composition.
+- Pit Wall strategy timelines;
+- event feed;
+- engineering field detail.
 
-A later telemetry refinement can upgrade the 2D markers from lap-boundary-only to continuous intra-sector movement without changing the v0 geometry/rendering contract.
+The map contract remains unchanged. It still consumes Circuit Geometry + Race Position Projection and keeps the no-fabrication fallback for circuits without reviewed coordinates.
+
+A later telemetry refinement can upgrade markers from lap-boundary-only/withheld positions to continuous intra-sector movement without changing the Race Desk ownership model.
