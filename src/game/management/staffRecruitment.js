@@ -311,9 +311,9 @@ function normalizeOffer(negotiation, input = {}) {
 
 function assertStaffOfferAffordable(saveWorld, negotiation, offer) {
   if (offer?.compensationMode !== "currency" || !saveWorld.world?.teamState?.[negotiation.teamId]) return null;
-  const current = currentAssignment(saveWorld, negotiation.staffId);
+  const current = assignment(saveWorld, negotiation.staffId);
   const currentAnnual = current?.teamId === negotiation.teamId
-    ? currentStaffSalary(saveWorld, negotiation.staffId) ?? 0
+    ? knownSalary(saveWorld, negotiation.staffId) ?? 0
     : 0;
   const salaryDelta = Math.max(0, numeric(offer.annualSalary, 0) - currentAnnual);
   return assertFinancialCommitment(saveWorld, negotiation.teamId, {
