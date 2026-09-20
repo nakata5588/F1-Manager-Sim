@@ -23,6 +23,7 @@ let staffRecruitment = { summary: {}, candidates: [] };
 let staffContracts = { summary: {}, negotiations: [] };
 let commercial = { summary: {}, team: null, market: [], negotiations: [] };
 let teamProfile = null;
+let planning = { teamId: null, priorities: [], drivers: [], staff: [], organization: null, shortlist: [], scouting: {}, negotiations: { drivers: [], staff: [] } };
 let recruitmentRequest = "/api/recruitment";
 let staffRequest = "/api/staff-recruitment";
 let commercialTier = "partner";
@@ -99,7 +100,7 @@ async function refreshAll() {
     return;
   }
   const teamId = careerState.career?.controlledTeamId ?? null;
-  [overview, inbox, recruitment, contracts, people, market, boardData, managerCareer, responsibilities, staffRecruitment, staffContracts, commercial, teamProfile] = await Promise.all([
+  [overview, inbox, recruitment, contracts, people, market, boardData, managerCareer, responsibilities, staffRecruitment, staffContracts, commercial, teamProfile, planning] = await Promise.all([
     api("/api/management"),
     api("/api/inbox"),
     api(recruitmentRequest),
@@ -113,6 +114,7 @@ async function refreshAll() {
     api("/api/staff-contracts"),
     api(commercialRequest),
     teamId ? api(`/api/profile?type=team&id=${encodeURIComponent(teamId)}`).catch(() => null) : Promise.resolve(null),
+    api("/api/management/planning"),
   ]);
   selectedNegotiation = contracts.negotiations.find((row) => row.id === selectedNegotiation?.id) ?? null;
   selectedStaffNegotiation = staffContracts.negotiations.find((row) => row.id === selectedStaffNegotiation?.id) ?? null;
@@ -122,6 +124,7 @@ async function refreshAll() {
 
 function sectionBadge(id) {
   if (id === "inbox") return Number(overview?.inbox?.unread ?? 0);
+  if (id === "team") return Number(planning?.priorities?.filter((row) => ["critical", "high"].includes(row.severity)).length ?? 0);
   if (id === "drivers") return Number(overview?.contracts?.active ?? 0) + Number(overview?.market?.openOffers ?? 0);
   if (id === "staff") return Number(overview?.staffContracts?.active ?? 0);
   if (id === "commercial") return Number(overview?.commercial?.openNegotiations ?? 0);
