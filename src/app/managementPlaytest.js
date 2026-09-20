@@ -66,6 +66,7 @@ import {
   withdrawSponsorNegotiationEvent,
 } from "../game/management/commercial.js";
 import { BOARD_EVENT } from "../sim/systems/boardManagement.js";
+import { buildManagementPlanning } from "./managementPlanning.js";
 import { createCoreWorldSystems } from "../sim/systems/coreWorldSystems.js";
 import { dispatchSimulationEvents } from "../sim/timeEngine.js";
 
@@ -121,6 +122,11 @@ export function developerManagementOverview(session) {
     career: managerCareerProjection(saveWorld),
     commercial: commercialSummary(saveWorld, teamId),
   };
+}
+
+export function developerManagementPlanning(session) {
+  const saveWorld = requireSession(session);
+  return buildManagementPlanning(saveWorld, session.controlledTeamId);
 }
 
 export function developerInbox(session, options = {}) {
