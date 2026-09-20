@@ -50,6 +50,14 @@ Staff careers use a much later age curve.
 
 Extremely old active workers have a forced upper horizon to prevent impossible immortal careers. This is a simulation safeguard, not a historical retirement date.
 
+## Driver availability and other motorsport
+
+Race incidents can now create persistent medical unavailability. An injured driver keeps the underlying Employment contract unless a separate contract/career event changes it. Race participation is removed from Race Entry instead.
+
+A temporary replacement can come from a reserve/test/development driver already employed by the team, an F1 free agent, or a driver currently represented as competing outside F1. Temporary race duty is not promoted to a normal Employment contract automatically.
+
+Being outside the active F1 market is also distinct from retirement. A driver without an F1 seat for several seasons may continue in `other_motorsport`, remain part of the simulated world and later return to the F1 market or accept an emergency substitute drive.
+
 ## Employment consequences
 
 When an employed driver or staff member retires:
@@ -70,4 +78,4 @@ This allows a simulation to be reproduced while still permitting different saves
 
 ## Future work
 
-Later systems will feed career evolution with race participation, performance, injuries, morale, team quality, development programmes, testing mileage and reputation changes. The annual model is intentionally modular so those inputs can be added without coupling it to a specific Master Database or Season Database schema.
+Later systems will feed career evolution more deeply with race participation, performance, injury after-effects, rehabilitation, morale, team quality, development programmes, testing mileage and reputation changes. The annual model is intentionally modular so those inputs can be added without coupling it to a specific Master Database or Season Database schema.
