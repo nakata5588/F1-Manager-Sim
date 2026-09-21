@@ -13,6 +13,7 @@ import { financialCrisisProjection } from "../game/management/financialCrisis.js
 import { driverAvailabilityProjection } from "../game/management/driverAvailability.js";
 import { driverMarketProjection } from "../game/management/driverMarket.js";
 import { developmentProjection } from "../game/management/development.js";
+import { driverTalentProjection } from "../game/management/talentProfile.js";
 
 function requireSession(session) {
   if (!session || typeof session.requireCareer !== "function") throw new TypeError("A DeveloperPlaytestSession is required.");
@@ -155,6 +156,7 @@ function personProfileProjection(saveWorld, type, id) {
     profile.availability = driverAvailabilityProjection(saveWorld, id);
     profile.marketPath = driverMarketProjection(saveWorld, id);
     profile.development = developmentProjection(saveWorld, "driver", id);
+    profile.talent = driverTalentProjection(saveWorld, id);
     profile.recentResults = recentDriverResults(saveWorld, id);
   } else {
     profile.recruitment = staffRecruitmentEligibility(saveWorld, id);
