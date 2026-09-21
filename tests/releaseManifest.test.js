@@ -22,4 +22,7 @@ test("release manifest points at current save/database/circuit authorities", asy
   assert.equal(manifest.seasonPacks["1980"].reviewedCircuitLayouts, 14);
   assert.equal(manifest.seasonPacks["1980"].assignedCircuitLayouts, 14);
   assert.equal(manifest.policies.raceParticipationAuthority, "world.raceEntryState.current");
+  assert.equal(manifest.policies.financialCrisisAuthority, "world.financialCrisis");
+  assert.equal(manifest.policies.ownershipChangePolicy, "save_world_dynamic_preserve_team_id");
+  assert.equal(manifest.policies.insolvencyExitAuthority, "team.financial-crisis");
 });
