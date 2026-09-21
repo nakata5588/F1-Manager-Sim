@@ -75,7 +75,7 @@ function normalizedEventRows(rows = []) {
       const count = Number(seen.get(base) ?? 0) + 1;
       seen.set(base, count);
       const key = count === 1 ? base : `${base}#${count}`;
-      return { ...copy(row), calendar_event_key: row?.calendar_event_key ?? key };
+      return { ...copy(row), calendar_event_key: key };
     });
 }
 
@@ -353,20 +353,29 @@ function dynamicGpId(row, season, index) {
 function scheduleDates(selected, referenceRows, previousRows, season) {
   const referenceByKey = new Map(referenceRows.map((row) => [row.calendar_event_key, row]));
   const previousByKey = new Map(previousRows.map((row) => [row.calendar_event_key, row]));
+  const start = `${season}-03-01`;
+  const end = `${season}-12-15`;
+  const minimumGapDays = selected.length > 1
+    ? Math.max(3, Math.min(14, Math.floor(260 / (selected.length - 1))))
+    : 7;
   let lastDate = null;
+
   return selected.map((row, index) => {
     const ref = referenceByKey.get(row.calendar_event_key);
     const prior = previousByKey.get(row.calendar_event_key);
+    const remaining = selected.length - index - 1;
+    const fallback = addDays(start, index * minimumGapDays);
     let date = shiftDateToYear(
       ref?.race_date ?? ref?.date ?? prior?.race_date ?? prior?.date,
       season,
-    );
-    if (!date) {
-      const start = `${season}-03-01`;
-      date = addDays(start, index * 14);
-    }
-    if (lastDate && date <= lastDate) date = addDays(lastDate, 7);
-    if (Number(date.slice(0, 4)) > season) date = `${season}-12-31`;
+    ) ?? fallback;
+
+    const earliest = lastDate ? addDays(lastDate, minimumGapDays) : `${season}-01-01`;
+    const latest = addDays(end, -remaining * minimumGapDays);
+    if (date < earliest) date = earliest;
+    if (date > latest) date = latest;
+    if (Number(date.slice(0, 4)) !== season) date = latest;
+
     lastDate = date;
     return date;
   });
