@@ -284,21 +284,33 @@ function inactiveContractCandidates(state) {
     }));
 }
 
+function calendarRoundBounds(profile, previousCount) {
+  const minimum = previousCount >= profile.minRounds
+    ? profile.minRounds
+    : Math.max(1, previousCount - profile.maxAnnualChange);
+  const maximum = previousCount <= profile.maxRounds
+    ? profile.maxRounds
+    : previousCount + profile.maxAnnualChange;
+  return { minimum, maximum };
+}
+
 function desiredRaceCount(saveWorld, season, previousCount, referenceCount, options = {}) {
   const profile = calendarEraProfile(season);
+  const bounds = calendarRoundBounds(profile, previousCount);
   if (Number.isInteger(Number(options.targetRaceCount))) {
-    return clamp(Math.round(Number(options.targetRaceCount)), profile.minRounds, profile.maxRounds);
+    return clamp(Math.round(Number(options.targetRaceCount)), bounds.minimum, bounds.maximum);
   }
   const rng = createRng(`${saveWorld.meta?.seed ?? "calendar"}|${season}|calendar-size`);
   const structuralSignal = referenceCount > 0
     ? previousCount * 0.72 + referenceCount * 0.28
     : previousCount;
-  const randomStep = rng.next() < 0.18 ? -1 : rng.next() > 0.82 ? 1 : 0;
+  const roll = rng.next();
+  const randomStep = roll < 0.18 ? -1 : roll > 0.82 ? 1 : 0;
   const raw = Math.round(structuralSignal + randomStep);
   return clamp(
     raw,
-    Math.max(profile.minRounds, previousCount - profile.maxAnnualChange),
-    Math.min(profile.maxRounds, previousCount + profile.maxAnnualChange),
+    Math.max(bounds.minimum, previousCount - profile.maxAnnualChange),
+    Math.min(bounds.maximum, previousCount + profile.maxAnnualChange),
   );
 }
 
@@ -377,6 +389,7 @@ export function planDynamicCalendar(saveWorld, seasonInput, options = {}) {
   const referenceRows = referenceCalendar(saveWorld, season);
   const profile = calendarEraProfile(season);
   const desired = desiredRaceCount(saveWorld, season, previousRows.length, referenceRows.length, options);
+  const roundBounds = calendarRoundBounds(profile, previousRows.length);
   const retained = [];
   const dropped = [];
   const renewed = [];
@@ -435,7 +448,7 @@ export function planDynamicCalendar(saveWorld, seasonInput, options = {}) {
 
   const selected = [...retained];
   const added = [];
-  const maximumTarget = Math.min(profile.maxRounds, Math.max(desired, profile.minRounds));
+  const maximumTarget = Math.min(roundBounds.maximum, Math.max(desired, roundBounds.minimum));
   for (const candidate of candidates) {
     if (selected.length >= maximumTarget) break;
     const row = candidate.row;
@@ -465,9 +478,9 @@ export function planDynamicCalendar(saveWorld, seasonInput, options = {}) {
     recordDecision(state, { season, date: options.date ?? saveWorld.clock?.date ?? null, type: "event_added", ...addition });
   }
 
-  if (selected.length < profile.minRounds) {
+  if (selected.length < roundBounds.minimum) {
     for (const row of previousRows) {
-      if (selected.length >= profile.minRounds) break;
+      if (selected.length >= roundBounds.minimum) break;
       if (retainedKeys.has(row.calendar_event_key)) continue;
       let contract = state.contracts[row.calendar_event_key];
       if (!contract || contract.status !== "active") {
@@ -535,6 +548,8 @@ export function planDynamicCalendar(saveWorld, seasonInput, options = {}) {
     targetRaceCount: desired,
     raceCount: calendar.length,
     era: profile.era,
+    minimumViableRounds: roundBounds.minimum,
+    maximumViableRounds: roundBounds.maximum,
     calendar,
     eventKeys: calendar.map((row) => row.calendar_event_key),
     added,
@@ -550,6 +565,8 @@ export function planDynamicCalendar(saveWorld, seasonInput, options = {}) {
     raceCount: plan.raceCount,
     targetRaceCount: plan.targetRaceCount,
     referenceRaceCount: plan.referenceRaceCount,
+    minimumViableRounds: plan.minimumViableRounds,
+    maximumViableRounds: plan.maximumViableRounds,
     eventKeys: copy(plan.eventKeys),
     added: copy(added),
     dropped: copy(dropped),
