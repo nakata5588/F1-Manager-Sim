@@ -145,3 +145,36 @@ test("November promoter review finalizes next season before rollover applies it"
   assert.equal(save.world.calendarEvolution.seasons["1981"].status, "active");
   assert.equal(save.world.calendarEvolution.plans["1981"].appliedAt, "1981-01-01");
 });
+
+
+test("duplicate event keys are normalized and dense modern calendars stay inside the target year", () => {
+  const season = 2020;
+  const rows = Array.from({ length: 26 }, (_, index) => ({
+    year: season,
+    round: index + 1,
+    gp_id: `GP-${index + 1}`,
+    gp_name: `Grand Prix ${index + 1}`,
+    calendar_event_key: index < 2 ? "duplicate-key" : `event-${index + 1}`,
+    track_id: `MODERN-${index + 1}`,
+  }));
+  const save = {
+    meta: { seed: "dense-modern-calendar", sourceSeason: season },
+    clock: { season, date: `${season}-01-01`, day: 1 },
+    world: { season, calendar: rows, tracks: rows.map((row) => ({ track_id: row.track_id })) },
+    reference: { futureStructure: { calendars: {}, tracks: [] } },
+    history: { seasons: [] },
+    simulation: { nextEventSequence: 0, systemState: {} },
+  };
+
+  initializeCalendarPromoters(save, `${season}-01-01`);
+  const plan = planDynamicCalendar(save, season + 1, {
+    date: `${season}-11-01`,
+    targetRaceCount: 26,
+  });
+
+  const keys = plan.calendar.map((row) => row.calendar_event_key);
+  const dates = plan.calendar.map((row) => row.race_date);
+  assert.equal(new Set(keys).size, plan.calendar.length);
+  assert.equal(new Set(dates).size, plan.calendar.length);
+  assert.ok(dates.every((date) => date.startsWith(`${season + 1}-`)));
+});
