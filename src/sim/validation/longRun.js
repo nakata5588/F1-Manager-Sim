@@ -1,4 +1,5 @@
 import { createSaveWorld } from "../../save/createSaveWorld.js";
+import { calendarEraProfile } from "../../game/management/calendarPromoters.js";
 import { advanceDays, initializeSimulation } from "../timeEngine.js";
 import { createCoreWorldSystems } from "../systems/coreWorldSystems.js";
 
@@ -226,6 +227,37 @@ function developmentHealth(saveWorld, errors, warnings) {
   }
 }
 
+function calendarEvolutionHealth(saveWorld, expectedSeasons, errors, warnings) {
+  const state = saveWorld.world?.calendarEvolution;
+  if (!state) {
+    if (expectedSeasons.length > 1) warnings.push("Dynamic calendar/promoter state is missing.");
+    return;
+  }
+
+  for (const season of expectedSeasons.slice(1)) {
+    const summary = state.seasons?.[String(season)];
+    if (!summary) {
+      errors.push(`Season ${season} has no dynamic calendar/promoter summary.`);
+      continue;
+    }
+    const raceCount = numeric(summary.raceCount);
+    if (raceCount === null || raceCount <= 0) errors.push(`Season ${season} has an invalid dynamic calendar race count.`);
+    const profile = calendarEraProfile(season);
+    if (raceCount !== null && (raceCount < profile.minRounds || raceCount > profile.maxRounds)) {
+      errors.push(`Season ${season} calendar has ${raceCount} rounds outside era bounds ${profile.minRounds}-${profile.maxRounds}.`);
+    }
+    const keys = summary.eventKeys ?? [];
+    const duplicates = duplicateValues(keys.filter(Boolean));
+    if (duplicates.length) errors.push(`Season ${season} dynamic calendar contains duplicate event keys: ${duplicates.join(", ")}.`);
+  }
+
+  const decisions = state.history ?? [];
+  for (const row of decisions) {
+    if (!row?.type) errors.push("Calendar promoter history contains a decision without a type.");
+    if (row?.season !== undefined && !Number.isInteger(Number(row.season))) errors.push("Calendar promoter history contains an invalid season.");
+  }
+}
+
 function raceCountsForSeasons(saveWorld, expectedSeasons) {
   const grouped = groupBySeason(saveWorld.history?.races ?? []);
   return Object.fromEntries(expectedSeasons.map((season) => [season, (grouped.get(season) ?? []).length]));
@@ -245,15 +277,12 @@ function expectedRaceCountMap(options, expectedSeasons) {
 
 function expectedRaceCountsFromSnapshot(snapshot, startSeason, seasons) {
   const result = {};
-  let fallback = Array.isArray(snapshot.calendar) ? snapshot.calendar.length : null;
+  const openingCount = Array.isArray(snapshot.calendar) ? snapshot.calendar.length : null;
   for (let season = startSeason; season < startSeason + seasons; season += 1) {
-    if (season === startSeason) {
-      result[season] = fallback;
-      continue;
-    }
-    const reference = snapshot.futureStructure?.calendars?.[String(season)];
-    if (Array.isArray(reference) && reference.length) fallback = reference.length;
-    result[season] = fallback;
+    // The opening historical calendar is authoritative. Future historical
+    // calendars are structural references/candidates only, so long-run
+    // validation must not require the simulation to reproduce their race count.
+    result[season] = season === startSeason ? openingCount : null;
   }
   return result;
 }
@@ -328,6 +357,11 @@ export function validateLongRunWorld(saveWorld, options = {}) {
       crisisDebt: Object.values(saveWorld.world?.financialCrisis?.teams ?? {}).reduce((sum, row) => sum + Math.max(0, numeric(row?.debtPrincipal, 0)), 0),
       developmentSeasonsArchived: saveWorld.world?.developmentState?.history?.length ?? 0,
       developmentRecords: (saveWorld.history?.development ?? []).filter((row) => row?.type === "worker_development").length,
+      calendarPlanSeasons: Object.keys(saveWorld.world?.calendarEvolution?.seasons ?? {}).length,
+      calendarEventsAdded: Object.values(saveWorld.world?.calendarEvolution?.seasons ?? {}).reduce((sum, row) => sum + (row?.added?.length ?? 0), 0),
+      calendarEventsDropped: Object.values(saveWorld.world?.calendarEvolution?.seasons ?? {}).reduce((sum, row) => sum + (row?.dropped?.length ?? 0), 0),
+      calendarContractsRenewed: Object.values(saveWorld.world?.calendarEvolution?.seasons ?? {}).reduce((sum, row) => sum + (row?.renewed?.length ?? 0), 0),
+      activePromoterContracts: Object.values(saveWorld.world?.calendarEvolution?.contracts ?? {}).filter((row) => row?.status === "active").length,
       freeStaff: saveWorld.world?.employment?.freeAgents?.staff?.length ?? 0,
       openVacancies: (saveWorld.world?.employment?.vacancies ?? []).filter((row) => row.status === "open").length,
     },
