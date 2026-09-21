@@ -41,6 +41,11 @@
     "developmentEvidenceAuthority": "world.developmentState",
     "careerRatingAuthority": "world.careerState",
     "developmentPotentialPolicy": "dynamic_attributes_ca_capped_by_pa",
-    "racePerformancePolicy": "attributes_plus_car_team_circuit_conditions_strategy_reliability_not_ca_only"
+    "racePerformancePolicy": "attributes_plus_car_team_circuit_conditions_strategy_reliability_not_ca_only",
+    "driverTalentAuthority": "world.careerState.drivers[*].talentProfile",
+    "driverTalentReference": "historical_yearly_ratings_collapsed_to_static_attribute_ceilings",
+    "driverCareerStages": "academy_prospect_rookie_developing_prime_veteran_decline",
+    "driverAbilityPolicy": "ca_pa_derived_from_current_attributes_and_static_ceilings",
+    "futureDriverRatings": "not_loaded_as_scripted_yearly_progression"
   }
 }
