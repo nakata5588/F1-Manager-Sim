@@ -269,7 +269,8 @@ function expectedRaceCountMap(options, expectedSeasons) {
   const explicit = options.expectedRaceCounts;
   if (explicit && typeof explicit === "object") {
     return Object.fromEntries(expectedSeasons.map((season) => {
-      const value = numeric(explicit[season] ?? explicit[String(season)]);
+      const raw = explicit[season] ?? explicit[String(season)];
+      const value = raw === null || raw === undefined || raw === "" ? null : numeric(raw);
       return [season, value];
     }));
   }
