@@ -8,6 +8,7 @@ import {
 import { MANAGER_EVENT } from "../../game/management/managerCareer.js";
 import { REGULATION_EVENT } from "../../game/management/regulations.js";
 import { TEAM_EVOLUTION_EVENT } from "../../game/management/teamEvolution.js";
+import { FINANCIAL_CRISIS_EVENT } from "./financialCrisis.js";
 import { SIM_EVENT } from "../timeEngine.js";
 import { CAREER_EVENT } from "./careerLifecycle.js";
 import { CHAMPIONSHIP_EVENT } from "./championship.js";
@@ -365,6 +366,59 @@ function teamEvolutionStory(saveWorld, event) {
   return null;
 }
 
+function financialCrisisStory(saveWorld, event) {
+  const payload = event.payload ?? {};
+  const teamId = payload.team_id ?? null;
+  if (!teamId) return null;
+  const name = teamName(saveWorld, teamId);
+
+  if (event.type === FINANCIAL_CRISIS_EVENT.OWNERSHIP_CHANGED) {
+    emitStory(saveWorld, event, {
+      storyKey: `ownership-change:${teamId}:${payload.ownership_change_id ?? event.date}`,
+      historyType: "team_ownership_changed",
+      category: "teams",
+      importance: "major",
+      headline: `${name} completes ownership change`,
+      summary: `A new ownership group has recapitalised ${name} with ${Math.round(Number(payload.capital_injection ?? 0))} of new capital while preserving the team's stable identity.`,
+      entities: [entity("team", teamId, name)],
+      tags: ["team", "ownership", "finance"],
+      data: payload,
+    });
+    return null;
+  }
+
+  if (event.type === FINANCIAL_CRISIS_EVENT.ADMINISTRATION) {
+    emitStory(saveWorld, event, {
+      storyKey: `financial-administration:${teamId}:${event.date}`,
+      historyType: "team_financial_administration",
+      category: "teams",
+      importance: "major",
+      headline: `${name} enters financial administration`,
+      summary: "The team remains on the grid while administrators pursue funding, restructuring or a buyer. Withdrawal is not automatic.",
+      entities: [entity("team", teamId, name)],
+      tags: ["team", "finance", "administration"],
+      data: payload,
+    });
+    return null;
+  }
+
+  if (event.type === FINANCIAL_CRISIS_EVENT.RECOVERED) {
+    emitStory(saveWorld, event, {
+      storyKey: `financial-recovery:${teamId}:${event.date}`,
+      historyType: "team_financial_recovery",
+      category: "teams",
+      importance: "normal",
+      headline: `${name} exits financial crisis`,
+      summary: "Liquidity and operating runway have recovered enough for formal crisis restrictions to be lifted.",
+      entities: [entity("team", teamId, name)],
+      tags: ["team", "finance", "recovery"],
+      data: payload,
+    });
+    return null;
+  }
+  return null;
+}
+
 function managerStory(saveWorld, event) {
   const payload = event.payload ?? {};
   const teamId = payload.team_id ?? null;
@@ -415,6 +469,9 @@ export function createWorldNarrativeSystem() {
       TEAM_EVOLUTION_EVENT.ENTRY_REJECTED,
       TEAM_EVOLUTION_EVENT.TEAM_EXITED,
       TEAM_EVOLUTION_EVENT.TEAM_REBRANDED,
+      FINANCIAL_CRISIS_EVENT.OWNERSHIP_CHANGED,
+      FINANCIAL_CRISIS_EVENT.ADMINISTRATION,
+      FINANCIAL_CRISIS_EVENT.RECOVERED,
       MANAGER_EVENT.APPOINTED,
       MANAGER_EVENT.DISMISSED,
     ],
@@ -442,6 +499,7 @@ export function createWorldNarrativeSystem() {
       if (event.type === CAREER_EVENT.RETIRED) return retirementStory(saveWorld, event);
       if ([REGULATION_EVENT.PROPOSAL_RESOLVED, REGULATION_EVENT.PACKAGE_ENACTED].includes(event.type)) return regulationStory(saveWorld, event);
       if ([TEAM_EVOLUTION_EVENT.ENTRY_ACCEPTED, TEAM_EVOLUTION_EVENT.ENTRY_REJECTED, TEAM_EVOLUTION_EVENT.TEAM_EXITED, TEAM_EVOLUTION_EVENT.TEAM_REBRANDED].includes(event.type)) return teamEvolutionStory(saveWorld, event);
+      if ([FINANCIAL_CRISIS_EVENT.OWNERSHIP_CHANGED, FINANCIAL_CRISIS_EVENT.ADMINISTRATION, FINANCIAL_CRISIS_EVENT.RECOVERED].includes(event.type)) return financialCrisisStory(saveWorld, event);
       if ([MANAGER_EVENT.APPOINTED, MANAGER_EVENT.DISMISSED].includes(event.type)) return managerStory(saveWorld, event);
       return null;
     },

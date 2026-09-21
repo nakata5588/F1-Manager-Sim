@@ -31,6 +31,7 @@ import { createTeamExitCleanupSystem } from "./teamExitCleanup.js";
 import { createManagementInboxSystem } from "./managementInbox.js";
 import { createRaceEntrySystem } from "./raceEntry.js";
 import { createTeamEconomySystem } from "./teamEconomy.js";
+import { createFinancialCrisisSystem } from "./financialCrisis.js";
 import { createTeamDevelopmentSystem } from "./teamDevelopment.js";
 import { createSeasonRolloverSystem } from "./seasonRollover.js";
 import { createOffseasonManagementSystem } from "./offseasonManagement.js";
@@ -79,6 +80,7 @@ export function createCoreWorldSystems(options = {}) {
     }),
     createRaceEntrySystem(),
     createTeamEconomySystem(),
+    createFinancialCrisisSystem({ controlledTeamIds: options.controlledTeamIds ?? [] }),
     createTeamDevelopmentSystem({
       controlledTeamIds: options.controlledTeamIds ?? [],
       minimumCashReserve: options.minimumCashReserve,

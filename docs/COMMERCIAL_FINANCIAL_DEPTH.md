@@ -96,3 +96,18 @@ The browser calls server/domain actions; it never calculates authoritative affor
 Stage 17 must pass the full Node regression suite, database tooling, financial-depth tests, the real 1980 Playable Validation Gate and the CI 20-season multi-seed ecosystem gate.
 
 The Stage 16.5 diagnostic baseline was 12 financially distressed teams out of 18 after 20 seasons in both sampled seeds. Stage 17 uses that number as a comparison signal, not as a scripted target or historical fact.
+
+
+## Stage 19 extension — crisis and ownership
+
+Stage 19 keeps Stage 17's `world.teamState` cash authority and layers a persistent crisis state over it:
+
+`Team Economy -> Financial Planning -> Financial Crisis -> Rescue / Debt / Administration -> Team Evolution`
+
+Financial distress no longer removes a team through a single annual probability roll. Crisis escalation is month-based and can impose a spending freeze before reaching emergency or administration.
+
+Owner funding, bridge finance and ownership recapitalisation are explicit Save World transactions. Bridge finance creates debt whose interest and principal service are posted through the normal monthly Team Economy. Ownership rescue preserves the constructor's stable `teamId`.
+
+Opening owner support/patience/risk values are deterministic gameplay profiles with explicit derived provenance. They are not claims about exact historical owner wealth or future ownership outcomes.
+
+Controlled teams receive crisis-response decisions through the Inbox; AI teams use the same underlying intervention functions. A withdrawal remains subject to the active regulation package's minimum-grid rule.

@@ -14,7 +14,6 @@ import {
   TEAM_EVOLUTION_EVENT,
   activateAcceptedTeamEntry,
   decideTeamEntryApplication,
-  exitTeam,
   initializeTeamEvolutionState,
   listTeamEntryCandidates,
   submitTeamEntryApplication,
@@ -248,16 +247,11 @@ function applySeasonGovernance(saveWorld, event, options) {
     output.push({ type: REGULATION_EVENT.TECHNICAL_TRANSITION_APPLIED, payload: transition });
   }
 
-  const distress = updateTeamDistress(saveWorld, [...controlled]);
-  if (distress.length) {
-    const id = distress[0];
-    const rng = createRng(`${saveWorld.meta.seed}|${season}|team-exit|${id}`);
-    if (rng.next() < 0.45) {
-      const exited = exitTeam(saveWorld, id, { reason: "multi_season_financial_distress" });
-      output.push({ type: TEAM_EVOLUTION_EVENT.TEAM_EXITED, payload: { team_id: id, season, reason: exited.reason, released_workers: exited.releasedWorkers } });
-      for (const worker of exited.released ?? []) output.push({ type: EMPLOYMENT_EVENT.FREE_AGENT, payload: { worker_type: worker.type, worker_id: worker.id, reason: "team_exit" } });
-    }
-  }
+  // Governance still tracks multi-season distress for grid history/projection,
+  // but Stage 19 moves all financial rescue/administration/exit decisions into
+  // the dedicated financial-crisis system. A team no longer disappears from a
+  // single annual 45% roll after two distressed seasons.
+  updateTeamDistress(saveWorld, [...controlled]);
 
   const applications = teamEvolutionProjection(saveWorld).applications
     .filter((row) => row.status === "accepted" && Number(row.targetSeason) <= season);

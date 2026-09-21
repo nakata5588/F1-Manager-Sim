@@ -27,6 +27,8 @@ On each month boundary the economy system records:
 - staff salaries;
 - facility maintenance;
 - operating costs;
+- dynamic owner operating support from an active post-acquisition guarantee when applicable;
+- emergency crisis-debt interest and principal service when applicable;
 - monthly net result;
 - closing cash;
 - protected reserve target;
@@ -50,7 +52,7 @@ The projection derives:
 - annualised net position;
 - Stable / Tight / Distressed / Critical risk.
 
-Discretionary technical investment, preseason testing and new currency-denominated driver/staff/supplier commitments use this shared affordability boundary. Mandatory reliability repairs may breach the protected reserve but cannot spend cash that does not exist.
+Discretionary technical investment, preseason testing and new currency-denominated driver/staff/supplier commitments use this shared affordability boundary. Mandatory reliability repairs may breach the protected reserve but cannot spend cash that does not exist. When a Stage 19 crisis spending freeze is active, new discretionary commitments are blocked while essential reliability/supplier commitments remain eligible for the normal cash checks.
 
 `Finance_Model.estimated_monthly_operating_burn` is a planning/calibration signal only. It can shape the opening risk/reserve projection, but it is not posted to the monthly ledger as an invented operating bill. Monthly cashflow contains only authoritative/explicit recurring costs. This avoids double-counting and prevents a one-season gameplay estimate from compounding as historical truth across alternative seasons.
 
@@ -79,3 +81,16 @@ Human-controlled teams do not auto-start R&D projects. Later player-facing manag
 ## Architectural boundary
 
 The Master Database can continue growing independently. The Season Database materializes only the economic and technical starting data required for the chosen season, and the Save World owns every subsequent financial and development change.
+
+
+## Financial crisis and ownership
+
+Stage 19 adds `world.financialCrisis` without replacing `world.teamState`. Cash remains authoritative in Team Economy; the crisis layer interprets sustained pressure and records interventions.
+
+The crisis path is:
+
+`Stable -> Watch -> Warning -> Spending Freeze -> Emergency -> Administration`
+
+Possible consequences include owner capital injection, bridge debt, ownership recapitalisation and, only after unresolved administration and minimum-grid validation, team withdrawal.
+
+Exited teams retain their crisis/ownership record in the inactive archive so completed history remains coherent.

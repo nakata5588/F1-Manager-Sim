@@ -50,6 +50,17 @@ export function summarizeLongRunEcosystem(saveWorld, structuralReport = null) {
   const teamStates = Object.values(saveWorld.world?.teamState ?? {});
   const marketRows = Object.values(saveWorld.world?.driverMarketState?.drivers ?? {});
   const availabilityRows = Object.values(saveWorld.world?.driverAvailability?.drivers ?? {});
+  const crisisRows = Object.values(saveWorld.world?.financialCrisis?.teams ?? {});
+  const crisisInterventions = saveWorld.world?.financialCrisis?.interventions ?? [];
+  const ownershipChanges = saveWorld.world?.financialCrisis?.ownershipChanges ?? [];
+  const crisisDebt = crisisRows.map((row) => numeric(row?.debtPrincipal)).filter(Number.isFinite);
+  const crisisStages = crisisRows.reduce((acc, row) => {
+    const stage = String(row?.stage ?? "stable");
+    acc[stage] = Number(acc[stage] ?? 0) + 1;
+    return acc;
+  }, {});
+  const crisisExits = (saveWorld.world?.inactiveTeams ?? []).filter((row) =>
+    /financial|administration/i.test(String(row?.exit_reason ?? ""))).length;
 
   return {
     structuralOk: structuralReport?.ok ?? null,
@@ -67,6 +78,14 @@ export function summarizeLongRunEcosystem(saveWorld, structuralReport = null) {
     distressedTeamShare: teamStates.length
       ? round(teamStates.filter((row) => row?.financialStatus === "distressed").length / teamStates.length, 4)
       : 0,
+    financialCrisisStages: crisisStages,
+    teamsInAdministration: crisisRows.filter((row) => row?.stage === "administration").length,
+    teamsUnderSpendingFreeze: crisisRows.filter((row) => row?.spendingFreeze === true).length,
+    crisisDebt: distribution(crisisDebt),
+    ownershipChanges: ownershipChanges.length,
+    ownerFundingInterventions: crisisInterventions.filter((row) => row?.type === "owner_funding" && row?.approved !== false).length,
+    bridgeFinanceInterventions: crisisInterventions.filter((row) => row?.type === "bridge_finance" && row?.approved !== false).length,
+    financialCrisisTeamExits: crisisExits,
     activeDriverAges: distribution(activeDriverAges),
     generatedDrivers,
     freeDrivers: saveWorld.world?.employment?.freeAgents?.drivers?.length ?? 0,
@@ -113,6 +132,9 @@ export function runLongRunMatrix(historicalSnapshot, options = {}) {
   const constructorChampions = new Set(runs.flatMap((run) => run.ecosystem.constructorChampionIds));
   const activeTeams = runs.map((run) => run.ecosystem.activeTeams);
   const distressedTeams = runs.map((run) => run.ecosystem.financiallyDistressedTeams);
+  const administrations = runs.map((run) => run.ecosystem.teamsInAdministration);
+  const ownershipChanges = runs.map((run) => run.ecosystem.ownershipChanges);
+  const crisisExits = runs.map((run) => run.ecosystem.financialCrisisTeamExits);
   const dnfRates = runs.map((run) => run.ecosystem.dnfRate);
   const errors = runs.flatMap((run) => run.structural.errors.map((message) => `[${run.seed}] ${message}`));
   const warnings = runs.flatMap((run) => run.structural.warnings.map((message) => `[${run.seed}] ${message}`));
@@ -122,7 +144,12 @@ export function runLongRunMatrix(historicalSnapshot, options = {}) {
   if (runs.some((run) => run.ecosystem.freeDrivers === 0) && seasons >= 10) warnings.push("Ecosystem signal: at least one long run ended with no F1 free drivers.");
   if (runs.some((run) => run.ecosystem.freeDrivers > run.ecosystem.activeTeams * 8) && seasons >= 10) warnings.push("Ecosystem signal: the F1 free-driver pool remains unusually large relative to the active grid.");
   if (runs.some((run) => run.ecosystem.openVacancies > run.ecosystem.activeTeams * 8)) warnings.push("Ecosystem signal: at least one run ended with unusually high vacancy pressure.");
-  if (runs.some((run) => run.ecosystem.distressedTeamShare >= 0.5)) warnings.push("Ecosystem signal: at least half of active teams are financially distressed in one or more long runs; economy calibration should be reviewed.");
+  if (runs.some((run) => run.ecosystem.distressedTeamShare >= 0.5)) warnings.push("Ecosystem signal: at least half of active teams are financially distressed in one or more long runs; economy/crisis calibration should be reviewed.");
+  if (runs.some((run) => run.ecosystem.teamsInAdministration >= Math.max(3, Math.ceil(run.ecosystem.activeTeams * 0.25)))) warnings.push("Ecosystem signal: too many active teams remain in administration at the endpoint.");
+  if (runs.some((run) => {
+    const teamSeasons = Math.max(1, run.ecosystem.activeTeams * seasons);
+    return run.ecosystem.ownershipChanges / teamSeasons > 0.12;
+  })) warnings.push("Ecosystem signal: ownership turnover exceeds 0.12 changes per active-team season and should be calibrated.");
   if (runs.some((run) => run.ecosystem.activeDriverAges.count > 0 && run.ecosystem.activeDriverAges.median < 16)) warnings.push("Ecosystem signal: active-driver age distribution is implausibly young and should be audited.");
 
   return {
@@ -138,6 +165,9 @@ export function runLongRunMatrix(historicalSnapshot, options = {}) {
       constructorChampionIds: [...constructorChampions].sort(),
       finalActiveTeams: distribution(activeTeams),
       finalDistressedTeams: distribution(distressedTeams),
+      finalAdministrations: distribution(administrations),
+      ownershipChanges: distribution(ownershipChanges),
+      financialCrisisTeamExits: distribution(crisisExits),
       dnfRate: distribution(dnfRates),
     },
     errors,

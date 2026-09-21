@@ -9,6 +9,7 @@ import { personProfile, personProjection } from "../game/management/people.js";
 import { staffRecruitmentEligibility } from "../game/management/staffRecruitment.js";
 import { teamVisualIdentity } from "../presentation/teamVisualIdentity.js";
 import { financialPlanningProjection } from "../game/management/finances.js";
+import { financialCrisisProjection } from "../game/management/financialCrisis.js";
 import { driverAvailabilityProjection } from "../game/management/driverAvailability.js";
 import { driverMarketProjection } from "../game/management/driverMarket.js";
 
@@ -215,6 +216,7 @@ function teamProfileProjection(saveWorld, id) {
       monthlyNet: teamState.monthlyNet ?? null,
       financialStatus: teamState.financialStatus ?? null,
       planning: financialPlanningProjection(saveWorld, id),
+      crisis: financialCrisisProjection(saveWorld, id),
     } : null,
     evolution: evolution ? {
       enteredSeason: evolution.enteredSeason ?? null,

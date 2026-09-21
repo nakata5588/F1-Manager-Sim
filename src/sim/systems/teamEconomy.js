@@ -7,6 +7,11 @@ import {
   financeModelMonthlyBurn,
   refreshFinancialPlanningState,
 } from "../../game/management/finances.js";
+import {
+  applyCrisisDebtService,
+  consumeOwnerOperatingSupport,
+  monthlyCrisisDebtService,
+} from "../../game/management/financialCrisis.js";
 
 export const TEAM_FINANCE_EVENT = Object.freeze({
   INITIALIZED: "team.finance_initialized",
@@ -194,13 +199,15 @@ function closeMonth(saveWorld, event) {
   for (const teamId of Object.keys(state).sort()) {
     const team = state[teamId];
     const sponsors = sponsorIncome(saveWorld, teamId, season);
+    const ownerOperatingSupport = consumeOwnerOperatingSupport(saveWorld, teamId, event.date);
     const driverSalaries = assignmentSalary(saveWorld, teamId, "driver", season);
     const staffSalaries = assignmentSalary(saveWorld, teamId, "staff", season);
     const maintenance = facilityMaintenance(saveWorld, teamId);
     const engineSupplier = technicalSupplierMonthlyCost(saveWorld, teamId);
-    const knownRecurring = driverSalaries + staffSalaries + maintenance + engineSupplier;
+    const debtService = monthlyCrisisDebtService(saveWorld, teamId);
+    const knownRecurring = driverSalaries + staffSalaries + maintenance + engineSupplier + debtService.total;
     const operations = operatingCost(saveWorld, teamId);
-    const income = sponsors;
+    const income = sponsors + ownerOperatingSupport;
     const expenses = knownRecurring + operations.value;
     const net = income - expenses;
     team.cash = roundMoney(numeric(team.cash) + net);
@@ -211,6 +218,7 @@ function closeMonth(saveWorld, event) {
     team.projectedMonthlyExpenses = team.monthlyExpenses;
     team.lastIncomeBreakdown = {
       sponsors: roundMoney(sponsors),
+      ownerOperatingSupport: roundMoney(ownerOperatingSupport),
     };
     team.lastExpenseBreakdown = {
       driverSalaries: roundMoney(driverSalaries),
@@ -219,7 +227,11 @@ function closeMonth(saveWorld, event) {
       operations: roundMoney(operations.value),
       operationsSource: operations.source,
       engineSupplier: roundMoney(engineSupplier),
+      crisisDebtService: roundMoney(debtService.total),
+      crisisDebtInterest: roundMoney(debtService.interest),
+      crisisDebtPrincipal: roundMoney(debtService.principal),
     };
+    applyCrisisDebtService(saveWorld, teamId, debtService, event.date);
     team.lastFinanceDate = event.date;
     const financialPlanning = refreshFinancialPlanningState(saveWorld, teamId);
     const record = {
@@ -237,12 +249,16 @@ function closeMonth(saveWorld, event) {
       runwayMonths: financialPlanning?.runwayMonths ?? null,
       breakdown: {
         sponsors: roundMoney(sponsors),
+        ownerOperatingSupport: roundMoney(ownerOperatingSupport),
         driverSalaries: roundMoney(driverSalaries),
         staffSalaries: roundMoney(staffSalaries),
         facilityMaintenance: roundMoney(maintenance),
         operations: roundMoney(operations.value),
         operationsSource: operations.source,
         engineSupplier: roundMoney(engineSupplier),
+        crisisDebtService: roundMoney(debtService.total),
+        crisisDebtInterest: roundMoney(debtService.interest),
+        crisisDebtPrincipal: roundMoney(debtService.principal),
       },
     };
     saveWorld.history.finances.push(record);
