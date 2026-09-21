@@ -158,6 +158,7 @@ function personProfileProjection(saveWorld, type, id) {
     profile.recentResults = recentDriverResults(saveWorld, id);
   } else {
     profile.recruitment = staffRecruitmentEligibility(saveWorld, id);
+    profile.development = developmentProjection(saveWorld, "staff", id);
     profile.recentResults = [];
   }
   return profile;
