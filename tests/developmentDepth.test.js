@@ -15,6 +15,7 @@ import {
   createSeasonSnapshot,
   dispatchSimulationEvents,
   driverDevelopmentEvidence,
+  driverStageFactor,
   initializeSimulation,
   staffDevelopmentEvidence,
 } from "../src/index.js";
@@ -268,6 +269,13 @@ test("confidence changes potential realization without bypassing PA", () => {
   assert.ok(high.save.world.careerState.drivers.YOUNG.currentAbility <= high.save.world.careerState.drivers.YOUNG.potentialAbility);
   assert.equal(lowDev.payload.confidence, 20);
   assert.equal(highDev.payload.confidence, 80);
+});
+
+test("career-stage curves let raw pace decline earlier than experience-led racecraft", () => {
+  assert.ok(driverStageFactor("decline", 1, "pace") < driverStageFactor("decline", 1, "racecraft"));
+  assert.ok(driverStageFactor("veteran", 1, "pace") < driverStageFactor("veteran", 1, "technical_feedback"));
+  assert.equal(driverStageFactor("prime", 1, "pace"), 1);
+  assert.equal(driverStageFactor("prime", 1, "racecraft"), 1);
 });
 
 test("driver CA and PA are derived from current attributes and static ceilings", () => {
