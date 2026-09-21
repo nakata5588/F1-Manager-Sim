@@ -1,4 +1,5 @@
 import { boardProjection, evaluateBoard, renewBoardSeason } from "./board.js";
+import { calendarPromoterProjection } from "./calendarPromoters.js";
 import { commercialProjection } from "./commercial.js";
 import { preseasonProjection } from "./preseason.js";
 import { regulationProjection } from "./regulations.js";
@@ -136,6 +137,8 @@ function preparationStatus(saveWorld, teamId, closingSeason, targetSeason) {
   const targetProposals = (regulations?.openProposals ?? []).filter((row) => Number(row.targetSeason) === targetSeason);
   const targetApplications = (evolution?.applications ?? []).filter((row) => Number(row.targetSeason) === targetSeason && ["pending", "accepted"].includes(row.status));
   const preseason = Number(saveWorld.clock?.season) === targetSeason ? preseasonProjection(saveWorld, teamId) : null;
+  const calendarPromoters = calendarPromoterProjection(saveWorld);
+  const calendarPlan = calendarPromoters.plans.find((row) => Number(row.season) === Number(targetSeason)) ?? null;
 
   return {
     contracts: {
@@ -159,6 +162,15 @@ function preparationStatus(saveWorld, teamId, closingSeason, targetSeason) {
       openTargetSeasonProposals: targetProposals.length,
       targetSeasonEntryApplications: targetApplications.length,
       status: targetProposals.length || targetApplications.some((row) => row.status === "pending") ? "pending" : "ready",
+    },
+    calendar: {
+      targetSeason,
+      plannedGrandPrixCount: calendarPlan?.raceCount ?? null,
+      targetGrandPrixCount: calendarPlan?.targetRaceCount ?? null,
+      addedEvents: calendarPlan?.added?.length ?? 0,
+      droppedEvents: calendarPlan?.dropped?.length ?? 0,
+      renewedEvents: calendarPlan?.renewed?.length ?? 0,
+      status: calendarPlan ? "finalized" : "pending",
     },
     nextSeasonCar: {
       completedTargetSeasonSpecs: futureSpecs.length,

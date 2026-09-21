@@ -82,6 +82,10 @@ export function summarizeLongRunEcosystem(saveWorld, structuralReport = null) {
     .filter((row) => row?.workerType === "staff")
     .map((row) => numeric(row?.delta))
     .filter(Number.isFinite);
+  const calendarSeasons = Object.values(saveWorld.world?.calendarEvolution?.seasons ?? {});
+  const activePromoterContracts = Object.values(saveWorld.world?.calendarEvolution?.contracts ?? {})
+    .filter((row) => row?.status === "active");
+  const calendarRaceCounts = calendarSeasons.map((row) => numeric(row?.raceCount)).filter(Number.isFinite);
 
   return {
     structuralOk: structuralReport?.ok ?? null,
@@ -128,6 +132,11 @@ export function summarizeLongRunEcosystem(saveWorld, structuralReport = null) {
     transfers: saveWorld.history?.transfers?.length ?? 0,
     retirements: saveWorld.history?.retirements?.length ?? 0,
     dnfRate: classifications.length ? round(dnfs / classifications.length, 4) : 0,
+    calendarRaceCounts: distribution(calendarRaceCounts),
+    calendarEventsAdded: calendarSeasons.reduce((sum, row) => sum + (row?.added?.length ?? 0), 0),
+    calendarEventsDropped: calendarSeasons.reduce((sum, row) => sum + (row?.dropped?.length ?? 0), 0),
+    calendarContractsRenewed: calendarSeasons.reduce((sum, row) => sum + (row?.renewed?.length ?? 0), 0),
+    activePromoterContracts: activePromoterContracts.length,
   };
 }
 
@@ -166,6 +175,8 @@ export function runLongRunMatrix(historicalSnapshot, options = {}) {
   const driverAbilityMedians = runs.map((run) => run.ecosystem.activeDriverAbilities.median).filter(Number.isFinite);
   const staffAbilityMedians = runs.map((run) => run.ecosystem.activeStaffAbilities.median).filter(Number.isFinite);
   const dnfRates = runs.map((run) => run.ecosystem.dnfRate);
+  const calendarChanges = runs.map((run) => run.ecosystem.calendarEventsAdded + run.ecosystem.calendarEventsDropped);
+  const calendarRaceCountMedians = runs.map((run) => run.ecosystem.calendarRaceCounts.median).filter(Number.isFinite);
   const errors = runs.flatMap((run) => run.structural.errors.map((message) => `[${run.seed}] ${message}`));
   const warnings = runs.flatMap((run) => run.structural.warnings.map((message) => `[${run.seed}] ${message}`));
 
@@ -183,6 +194,7 @@ export function runLongRunMatrix(historicalSnapshot, options = {}) {
   if (runs.some((run) => run.ecosystem.activeDriverAges.count > 0 && run.ecosystem.activeDriverAges.median < 16)) warnings.push("Ecosystem signal: active-driver age distribution is implausibly young and should be audited.");
   if (runs.some((run) => run.ecosystem.activeDriverAbilities.count > 0 && run.ecosystem.activeDriverAbilities.median >= 95)) warnings.push("Ecosystem signal: driver development is saturating near the rating ceiling.");
   if (runs.some((run) => run.ecosystem.activeStaffAbilities.count > 0 && run.ecosystem.activeStaffAbilities.median >= 95)) warnings.push("Ecosystem signal: staff development is saturating near the rating ceiling.");
+  if (seasons >= 10 && runs.every((run) => run.ecosystem.calendarEventsAdded + run.ecosystem.calendarEventsDropped === 0)) warnings.push("Ecosystem signal: the calendar remained completely static across all long runs.");
 
   return {
     ok: runs.every((run) => run.ok),
@@ -203,6 +215,8 @@ export function runLongRunMatrix(historicalSnapshot, options = {}) {
       finalDriverAbilityMedian: distribution(driverAbilityMedians),
       finalStaffAbilityMedian: distribution(staffAbilityMedians),
       dnfRate: distribution(dnfRates),
+      calendarChanges: distribution(calendarChanges),
+      calendarRaceCountMedian: distribution(calendarRaceCountMedians),
     },
     errors,
     warnings,

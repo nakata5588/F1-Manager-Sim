@@ -4,8 +4,8 @@
   "updatedAt": "2026-09-21",
   "application": {
     "version": "0.1.0",
-    "developmentStage": "20",
-    "stageName": "Driver & Staff Development 2.0"
+    "developmentStage": "21",
+    "stageName": "Dynamic Calendar & Promoters"
   },
   "persistence": {
     "saveSchemaVersion": 2,
@@ -46,6 +46,10 @@
     "driverTalentReference": "historical_yearly_ratings_collapsed_to_static_attribute_ceilings",
     "driverCareerStages": "academy_prospect_rookie_developing_prime_veteran_decline",
     "driverAbilityPolicy": "ca_pa_derived_from_current_attributes_and_static_ceilings",
-    "futureDriverRatings": "not_loaded_as_scripted_yearly_progression"
+    "futureDriverRatings": "not_loaded_as_scripted_yearly_progression",
+    "calendarEvolutionAuthority": "world.calendarEvolution",
+    "activeCalendarAuthority": "world.calendar",
+    "futureHistoricalCalendarPolicy": "candidate_reference_not_script",
+    "promoterContractPolicy": "save_world_simulation_state"
   }
 }

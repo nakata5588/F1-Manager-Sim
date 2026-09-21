@@ -115,3 +115,16 @@ Race Weekend consumes Race Entry directly. It must not mutate Employment to make
 ### 8. Save schema evolution
 
 Save envelopes use an ordered migration chain before restoration. Migrations may normalize persisted structure and metadata, but must not rerun simulation outcomes. Historical Database provenance compatibility is checked separately after save-schema migration.
+
+
+### 9. Dynamic calendar authority
+
+The selected starting season's historical calendar is authoritative only for career start.
+
+After career start, `world.calendarEvolution` owns promoter contracts and future calendar planning. `world.calendar` remains the active race schedule consumed by the time engine and Race Weekend.
+
+Future historical calendars under `reference.futureStructure.calendars` are candidate/reference data only. They may inform available venues, structural race-count context and scheduling context, but they never mandate exact future race counts, venue changes or round order.
+
+The authority flow is:
+
+`Historical opening calendar -> Calendar Evolution / Promoters -> Finalised Save World plan -> Active world.calendar -> Race Weekend -> World History`

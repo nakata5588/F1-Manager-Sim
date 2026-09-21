@@ -23,6 +23,7 @@ export { driverMarketProjection, ensureDriverMarketState, evolveDriverMarketSeas
 export { chooseRivalTeam, createExternalDriverOffer, expireExternalOffers, listOpenExternalOffers, marketPressureForDriver, marketSummary } from "./game/management/market.js";
 export { boardProjection, boardStatus, ensureBoardState, evaluateBoard, initializeBoardTeam, renewBoardSeason, resolveBoardRequest, submitBoardRequest } from "./game/management/board.js";
 export { OFFSEASON_EVENT, completeOffseasonCycle, confirmOffseasonPlan, ensureOffseasonState, finalBoardReviews, offseasonProjection, openOffseasonCycle, prepareNewSeasonFromOffseason, refreshOffseasonCycle, setOffseasonPlan } from "./game/management/offseason.js";
+export { CALENDAR_EVENT, applyCalendarPlan, calendarEraProfile, calendarPlanFor, calendarPromoterProjection, ensureCalendarPromoterState, initializeCalendarPromoters, planDynamicCalendar } from "./game/management/calendarPromoters.js";
 export { acceptManagerJobOfferEvent, adjustManagerReputation, appointManager, createManagerJobOffer, decideManagerApplication, dismissManager, ensureManagerCareer, listManagerJobVacancies, MANAGER_EVENT, managerCareerProjection, submitManagerApplicationEvent } from "./game/management/managerCareer.js";
 export { ensureResponsibilities, responsibilityAreas, responsibilityOwner, responsibilityProjection, setResponsibility } from "./game/management/responsibilities.js";
 export { acceptStaffCounterEvent, buildStaffCounterTerms, evaluateStaffInterest, evaluateStaffOffer, listStaffContractNegotiations, listStaffRecruitmentCandidates, openStaffContractNegotiation, STAFF_NEGOTIATION_EVENT, staffRecruitmentSummary, submitStaffContractOfferEvent, withdrawStaffNegotiationEvent } from "./game/management/staffRecruitment.js";
@@ -99,3 +100,5 @@ export { RACE_TIMELINE_EVENT, createRaceTimelineSystem } from "./sim/systems/rac
 export { RACE_CONTROL_EVENT, createRaceControlSystem } from "./sim/systems/raceControl.js";
 export { CHAMPIONSHIP_EVENT, createChampionshipSystem, parsePointsSystem } from "./sim/systems/championship.js";
 export { createCoreWorldSystems } from "./sim/systems/coreWorldSystems.js";
+
+export { createCalendarPromoterSystem } from "./sim/systems/calendarPromoters.js";
