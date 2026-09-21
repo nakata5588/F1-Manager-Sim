@@ -8,6 +8,7 @@ import { createCareerLifecycleSystem } from "../src/sim/systems/careerLifecycle.
 import { createEmploymentMarketSystem } from "../src/sim/systems/employmentMarket.js";
 import { createEntityAvailabilitySystem } from "../src/sim/systems/entityAvailability.js";
 import { createTalentPipelineSystem } from "../src/sim/systems/talentPipeline.js";
+import { deriveDriverCurrentAbility } from "../src/game/management/talentProfile.js";
 
 function fixture(seed = "phase-40-hardening") {
   return {
@@ -66,9 +67,10 @@ test("a newly generated annual cohort is created after career development and do
   const cohort = save.world.management.talentPipeline.cohorts.find((row) => row.season === 1981);
   assert.equal(cohort.count, 3);
   for (const driverId of cohort.driverIds) {
-    const rating = save.world.driverRatings.find((row) => row.driver_id === driverId);
     const career = save.world.careerState.drivers[driverId];
-    assert.equal(career.currentAbility, rating.current_ability);
+    assert.equal(career.currentAbility, deriveDriverCurrentAbility(career.attributes, career.currentAbility));
+    assert.ok(career.potentialAbility >= career.currentAbility);
+    assert.equal(career.talentProfile.policy, "static_attribute_ceilings_dynamic_career_curve");
     assert.equal(career.lastDevelopmentSeason, undefined);
     assert.equal(career.status, "junior");
   }
