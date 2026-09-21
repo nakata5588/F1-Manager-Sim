@@ -6,7 +6,7 @@ Stage 20 makes career growth emerge from what people actually experience in the 
 
 The core flow is:
 
-`Participation / Employment / Organisation / Medical Events -> Development Evidence -> Season Resolution -> Dynamic CA / Attributes -> Career Consequences`
+`Historical starting/current reference + static attribute ceilings -> Career Stage -> Development Evidence -> Current Attributes -> Derived CA / PA -> Career Consequences`
 
 ## Authority boundaries
 
@@ -55,3 +55,25 @@ Controlled driver and staff profiles expose current-season development evidence.
 ## Long-run validation
 
 The ecosystem gate now tracks active driver/staff ability distributions, driver form, annual driver/staff development deltas, archived evidence seasons and total development records. Warnings detect rating saturation near the ceiling.
+
+
+## Static talent reference instead of annual ratings
+
+The runtime does not require `DriverRatings 1980`, `DriverRatings 1981`, `DriverRatings 1982` and so on to progress a career.
+
+At New Game materialisation, all historical rating rows available for a driver may be collapsed into one non-temporal talent reference:
+
+- the opening-season row can seed current attributes for drivers already active;
+- future rows may contribute only to a static per-attribute ceiling;
+- the individual future yearly rows are not loaded as scripted progression;
+- future drivers without an opening F1 rating are materialised internally from their talent ceiling and career stage.
+
+The current driver stages are:
+
+`Academy -> Prospect -> Rookie -> Developing -> Prime -> Veteran -> Decline`
+
+Stage transitions are influenced by age, natural maturation, opportunity, race/testing exposure, team environment, coaching, mentoring, confidence, form and injury burden. They are not fixed historical dates.
+
+Different attribute groups use different curves. Raw pace reaches its ceiling earlier and declines earlier; racecraft and consistency mature later; technical feedback and leadership can remain strong into the veteran phase.
+
+CA is derived from the driver's current skill attributes. PA is derived from the static skill ceilings. Neither is allowed to generate the underlying attributes.
