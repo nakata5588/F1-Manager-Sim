@@ -201,3 +201,12 @@ These do not require a save migration because the persisted cycle and plan shape
 Medium-risk changes include adding a new planning dimension or new checklist category. These can normally be introduced with defaults for older saves.
 
 Higher-risk changes are limited to changing the meaning or structure of persisted `world.management.offseason` records. Those changes should include a compatibility bridge. Historical IDs or source-lock corrections still belong to the database promotion process rather than this gameplay system.
+
+
+## Dynamic calendar readiness
+
+Stage 21 adds the next-season calendar to offseason readiness.
+
+The normal annual flow finalises the target-season promoter/calendar plan in November or December. Offseason projections expose whether that plan is still pending or finalised, together with the planned Grand Prix count and the number of event additions, removals and promoter renewals.
+
+The offseason does not copy the Historical Database's next calendar into Save World. Future historical calendar rows remain candidate/reference context for the Calendar & Promoters system.
