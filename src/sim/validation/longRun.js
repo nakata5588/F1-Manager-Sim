@@ -243,8 +243,10 @@ function calendarEvolutionHealth(saveWorld, expectedSeasons, errors, warnings) {
     const raceCount = numeric(summary.raceCount);
     if (raceCount === null || raceCount <= 0) errors.push(`Season ${season} has an invalid dynamic calendar race count.`);
     const profile = calendarEraProfile(season);
-    if (raceCount !== null && (raceCount < profile.minRounds || raceCount > profile.maxRounds)) {
-      errors.push(`Season ${season} calendar has ${raceCount} rounds outside era bounds ${profile.minRounds}-${profile.maxRounds}.`);
+    const minimum = numeric(summary.minimumViableRounds, profile.minRounds);
+    const maximum = numeric(summary.maximumViableRounds, profile.maxRounds);
+    if (raceCount !== null && (raceCount < minimum || raceCount > maximum)) {
+      errors.push(`Season ${season} calendar has ${raceCount} rounds outside active bounds ${minimum}-${maximum}.`);
     }
     const keys = summary.eventKeys ?? [];
     const duplicates = duplicateValues(keys.filter(Boolean));
