@@ -6,9 +6,9 @@ F1 Manager Sim is a long-form Formula One management and world simulation game. 
 
 ## Current development phase
 
-**Stage 20 — Driver & Staff Development 2.0**
+**Stage 21 — Dynamic Calendar & Promoters**
 
-The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market, a persistent physical technical lifecycle, dynamic governance/grid evolution, a playable season-to-season transition, renewable driver population, persistent world news/history/records, an era-safe team-organisation model, resumable career persistence and an explicit New Game selection flow.
+The first fully supported target season remains **1980**. The simulation foundation now combines historical/save boundaries, autonomous career systems, interactive race weekends, people/market dynamics, manager careers, Board pressure, an evolving commercial market, a persistent physical technical lifecycle, dynamic governance/grid evolution, dynamic calendar/promoter evolution, a playable season-to-season transition, renewable driver population, persistent world news/history/records, an era-safe team-organisation model, resumable career persistence and an explicit New Game selection flow.
 
 Current career path:
 
@@ -46,9 +46,15 @@ The financial-crisis lifecycle extends through:
 
 `Cash Pressure -> Warning -> Spending Freeze -> Owner Support / Bridge Finance -> Emergency -> Administration -> Recapitalisation / Ownership Change / Withdrawal`
 
+The calendar lifecycle extends through:
+
+`Historical Opening Calendar -> Promoter Contracts -> Annual Review -> Renew / Drop / Add -> Finalised Next-Season Calendar -> Race Weekends -> Persistent Calendar History`
+
 The people-development lifecycle extends through:
 
 `Static Talent Reference / Attribute Ceilings -> Academy -> Prospect -> Rookie -> Developing -> Prime -> Veteran -> Decline -> Current Attributes -> Derived CA / PA -> Career Consequence`
+
+Stage 21 makes the Formula One calendar part of the evolving Save World. The authentic starting-season schedule remains historical authority, but later historical calendars are structural reference/candidate data rather than scripted future schedules. `world.calendarEvolution` now owns simulated promoter contracts, annual renewals, event additions/removals and finalised next-season plans. November/December promoter review produces the target-season calendar before Season Rollover applies it, and World News/History records the resulting alternative calendar. Long-run validation now checks dynamic calendar health instead of requiring future seasons to reproduce real historical race counts.
 
 Stage 20 replaces age-led annual progression with evidence-led Driver & Staff Development 2.0. Future yearly driver ratings are collapsed at career bootstrap into one static talent reference per driver; the runtime never advances a pilot by loading a historical rating for the next year. `world.developmentState` now accumulates Save World evidence from race participation and teammate-relative performance, testing mileage, coaching, mentoring, organisational environment, staff workload/peer learning, morale, form, confidence and injury burden. Season transition consumes that evidence to evolve CA/PA and individual attributes without turning CA into a race-result score or allowing development to exceed PA. Stage 19 remains the financial-crisis foundation, Stage 18 remains the availability/replacement foundation and Stage 16.5 remains the integrity baseline.
 
@@ -109,6 +115,12 @@ The governance boundary is:
 
 `Historical future reference / Dynamic pressure -> Proposal / Application -> Vote / Review -> Enacted decision -> Save World consequence -> News / History`
 
+The calendar/promoter boundary is:
+
+`Historical opening calendar / future structural candidates -> world.calendarEvolution promoter contracts -> annual review -> finalised plan -> world.calendar active schedule -> Race Weekend / News / History`
+
+Future historical calendars may supply candidates and structural context, but they never mandate exact future race counts or venue outcomes.
+
 The season-transition boundary is:
 
 `Championship Complete -> Season Review -> Planning / Existing Management Systems -> Season Rollover -> Board & Finance Renewal -> Preseason -> First Race`
@@ -145,7 +157,7 @@ Temporary replacement never rewrites the absent driver's Employment contract sol
 
 `Finance_Model` is gameplay calibration only. Its estimated burn can inform opening planning/risk, but it is never posted as an invented monthly ledger cost; cashflow records only explicit/authoritative recurring expenses.
 
-See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/CAREER_PERSISTENCE_SAVE_LOAD.md`, `docs/INTEGRATED_NEW_GAME_FLOW.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/STAFF_ORGANISATION_DEPTH.md`, `docs/COMMERCIAL_FINANCIAL_DEPTH.md`, `docs/TEAM_FINANCIAL_CRISIS_OWNERSHIP.md`, `docs/DRIVER_STAFF_DEVELOPMENT_2.md`, `docs/DRIVER_AVAILABILITY_REPLACEMENT_MARKET.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/TECHNICAL_TEAM_EVOLUTION.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/REGULATIONS_GOVERNANCE_TEAM_EVOLUTION.md`, `docs/OFFSEASON_NEW_SEASON_PREPARATION.md`, `docs/TALENT_PIPELINE_GENERATED_DRIVERS.md`, `docs/WORLD_EVENTS_NEWS_HISTORY.md`, `docs/F1_WORLD_HISTORY_RECORDS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
+See `docs/ARCHITECTURE.md`, `docs/CAREER_BOOTSTRAP.md`, `docs/CAREER_PERSISTENCE_SAVE_LOAD.md`, `docs/INTEGRATED_NEW_GAME_FLOW.md`, `docs/DEVELOPER_PLAYTEST.md`, `docs/MANAGEMENT_CORE.md`, `docs/PEOPLE_AND_MARKET_DYNAMICS.md`, `docs/BOARD_MANAGER_STAFF.md`, `docs/STAFF_ORGANISATION_DEPTH.md`, `docs/COMMERCIAL_FINANCIAL_DEPTH.md`, `docs/TEAM_FINANCIAL_CRISIS_OWNERSHIP.md`, `docs/DRIVER_STAFF_DEVELOPMENT_2.md`, `docs/DYNAMIC_CALENDAR_PROMOTERS.md`, `docs/DRIVER_AVAILABILITY_REPLACEMENT_MARKET.md`, `docs/SPONSORS_AND_COMMERCIAL.md`, `docs/TECHNICAL_DEVELOPMENT_OPERATIONS.md`, `docs/TECHNICAL_TEAM_EVOLUTION.md`, `docs/SUPPLIERS_RELIABILITY_PRESEASON.md`, `docs/REGULATIONS_GOVERNANCE_TEAM_EVOLUTION.md`, `docs/OFFSEASON_NEW_SEASON_PREPARATION.md`, `docs/TALENT_PIPELINE_GENERATED_DRIVERS.md`, `docs/WORLD_EVENTS_NEWS_HISTORY.md`, `docs/F1_WORLD_HISTORY_RECORDS.md`, `docs/GLOBAL_SEASON_DATABASE_BOUNDARY.md`, `docs/ENTITY_VISIBILITY_BOUNDARY.md`, `docs/DATA_WORKFLOW.md`, `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_3_CANONICAL_PROMOTION.md` and `docs/database/F1_MANAGER_SIM_DATABASE_REBUILD_V1_2_5_TECHNICAL_SOURCE_LOCK_PROMOTION.md`.
 
 ## Historical data policy
 
@@ -173,6 +185,7 @@ Management, technical, governance and career systems are deliberately tolerant o
 - unknown historical supplier monetary values remain abstract rather than becoming invented costs;
 - technical specifications, reliability ratings, technical familiarity/identity, wear, failures, maintenance, preseason preparation and supplier agreements created after career start are simulation state;
 - future historical regulations are reference inputs only and require career governance before becoming active;
+- future historical calendars are structural candidates only; promoter contracts and annual Save World review decide future race counts, venue additions and removals;
 - future team identities are eligibility candidates, not scripted future grid members;
 - generated resources for newly admitted teams are explicit simulation baselines, not historical facts;
 - rebrands preserve stable team IDs;
