@@ -73,16 +73,20 @@ test("young drivers develop while old drivers decline across a season boundary",
   const systems = [createCareerLifecycleSystem(), createCareerDevelopmentSystem()];
   initializeSimulation(save, systems);
 
+  const youngBefore = structuredClone(save.world.careerState.drivers.YOUNG);
+  const veteranBefore = structuredClone(save.world.careerState.drivers.VETERAN);
   const result = advanceDays(save, 1, systems);
   const young = save.world.careerState.drivers.YOUNG;
   const veteran = save.world.careerState.drivers.VETERAN;
 
-  assert.ok(young.currentAbility > 60);
-  assert.ok(veteran.currentAbility < 82);
-  assert.ok(young.attributes.racecraft > 58);
-  assert.ok(veteran.attributes.pace < 84);
-  assert.equal(young.developmentPhase, "rapid-development");
+  assert.ok(young.currentAbility > youngBefore.currentAbility);
+  assert.ok(veteran.currentAbility < veteranBefore.currentAbility);
+  assert.ok(young.attributes.racecraft > youngBefore.attributes.racecraft);
+  assert.ok(veteran.attributes.pace < veteranBefore.attributes.pace);
+  assert.equal(young.developmentPhase, "rookie");
   assert.equal(veteran.developmentPhase, "decline");
+  assert.ok(young.talentProfile.ceilings.pace >= young.attributes.pace);
+  assert.ok(young.potentialAbility >= young.currentAbility);
   assert.ok(result.events.some((event) => event.type === CAREER_EVENT.DEVELOPED && event.payload.worker_id === "YOUNG"));
 });
 
