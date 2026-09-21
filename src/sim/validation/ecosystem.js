@@ -38,9 +38,21 @@ export function summarizeLongRunEcosystem(saveWorld, structuralReport = null) {
   const teamCash = Object.values(saveWorld.world?.teamState ?? {})
     .map((row) => numeric(row?.cash))
     .filter(Number.isFinite);
-  const activeDriverAges = Object.values(saveWorld.world?.careerState?.drivers ?? {})
-    .filter((row) => row?.status !== "retired")
+  const activeDriverStates = Object.values(saveWorld.world?.careerState?.drivers ?? {})
+    .filter((row) => row?.status !== "retired");
+  const activeStaffStates = Object.values(saveWorld.world?.careerState?.staff ?? {})
+    .filter((row) => row?.status !== "retired");
+  const activeDriverAges = activeDriverStates
     .map((row) => numeric(row?.age))
+    .filter(Number.isFinite);
+  const activeDriverAbilities = activeDriverStates
+    .map((row) => numeric(row?.currentAbility))
+    .filter(Number.isFinite);
+  const activeStaffAbilities = activeStaffStates
+    .map((row) => numeric(row?.currentAbility))
+    .filter(Number.isFinite);
+  const activeDriverForms = activeDriverStates
+    .map((row) => numeric(row?.form))
     .filter(Number.isFinite);
   const driverChampions = championIds(saveWorld, "driverStandings");
   const constructorChampions = championIds(saveWorld, "constructorStandings");
@@ -61,6 +73,15 @@ export function summarizeLongRunEcosystem(saveWorld, structuralReport = null) {
   }, {});
   const crisisExits = (saveWorld.world?.inactiveTeams ?? []).filter((row) =>
     /financial|administration/i.test(String(row?.exit_reason ?? ""))).length;
+  const developmentRows = (saveWorld.history?.development ?? []).filter((row) => row?.type === "worker_development");
+  const driverDevelopmentDeltas = developmentRows
+    .filter((row) => row?.workerType === "driver")
+    .map((row) => numeric(row?.delta))
+    .filter(Number.isFinite);
+  const staffDevelopmentDeltas = developmentRows
+    .filter((row) => row?.workerType === "staff")
+    .map((row) => numeric(row?.delta))
+    .filter(Number.isFinite);
 
   return {
     structuralOk: structuralReport?.ok ?? null,
@@ -87,6 +108,13 @@ export function summarizeLongRunEcosystem(saveWorld, structuralReport = null) {
     bridgeFinanceInterventions: crisisInterventions.filter((row) => row?.type === "bridge_finance" && row?.approved !== false).length,
     financialCrisisTeamExits: crisisExits,
     activeDriverAges: distribution(activeDriverAges),
+    activeDriverAbilities: distribution(activeDriverAbilities),
+    activeStaffAbilities: distribution(activeStaffAbilities),
+    activeDriverForm: distribution(activeDriverForms),
+    driverDevelopmentDeltas: distribution(driverDevelopmentDeltas),
+    staffDevelopmentDeltas: distribution(staffDevelopmentDeltas),
+    developmentSeasonsArchived: saveWorld.world?.developmentState?.history?.length ?? 0,
+    developmentRecords: developmentRows.length,
     generatedDrivers,
     freeDrivers: saveWorld.world?.employment?.freeAgents?.drivers?.length ?? 0,
     otherMotorsportDrivers: marketRows.filter((row) => row?.path === "other_motorsport").length,
@@ -135,6 +163,8 @@ export function runLongRunMatrix(historicalSnapshot, options = {}) {
   const administrations = runs.map((run) => run.ecosystem.teamsInAdministration);
   const ownershipChanges = runs.map((run) => run.ecosystem.ownershipChanges);
   const crisisExits = runs.map((run) => run.ecosystem.financialCrisisTeamExits);
+  const driverAbilityMedians = runs.map((run) => run.ecosystem.activeDriverAbilities.median).filter(Number.isFinite);
+  const staffAbilityMedians = runs.map((run) => run.ecosystem.activeStaffAbilities.median).filter(Number.isFinite);
   const dnfRates = runs.map((run) => run.ecosystem.dnfRate);
   const errors = runs.flatMap((run) => run.structural.errors.map((message) => `[${run.seed}] ${message}`));
   const warnings = runs.flatMap((run) => run.structural.warnings.map((message) => `[${run.seed}] ${message}`));
@@ -151,6 +181,8 @@ export function runLongRunMatrix(historicalSnapshot, options = {}) {
     return run.ecosystem.ownershipChanges / teamSeasons > 0.12;
   })) warnings.push("Ecosystem signal: ownership turnover exceeds 0.12 changes per active-team season and should be calibrated.");
   if (runs.some((run) => run.ecosystem.activeDriverAges.count > 0 && run.ecosystem.activeDriverAges.median < 16)) warnings.push("Ecosystem signal: active-driver age distribution is implausibly young and should be audited.");
+  if (runs.some((run) => run.ecosystem.activeDriverAbilities.count > 0 && run.ecosystem.activeDriverAbilities.median >= 95)) warnings.push("Ecosystem signal: driver development is saturating near the rating ceiling.");
+  if (runs.some((run) => run.ecosystem.activeStaffAbilities.count > 0 && run.ecosystem.activeStaffAbilities.median >= 95)) warnings.push("Ecosystem signal: staff development is saturating near the rating ceiling.");
 
   return {
     ok: runs.every((run) => run.ok),
@@ -168,6 +200,8 @@ export function runLongRunMatrix(historicalSnapshot, options = {}) {
       finalAdministrations: distribution(administrations),
       ownershipChanges: distribution(ownershipChanges),
       financialCrisisTeamExits: distribution(crisisExits),
+      finalDriverAbilityMedian: distribution(driverAbilityMedians),
+      finalStaffAbilityMedian: distribution(staffAbilityMedians),
       dnfRate: distribution(dnfRates),
     },
     errors,
