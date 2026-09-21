@@ -338,6 +338,22 @@ function updateWorker(saveWorld, type, id, state, event) {
   state.lastDevelopmentSeason = Number(event.payload?.season ?? saveWorld.clock.season);
   state.lastUpdated = event.date;
 
+  saveWorld.history ??= {};
+  saveWorld.history.development ??= [];
+  const developmentRecord = {
+    date: event.date,
+    season: state.lastDevelopmentSeason,
+    type: "worker_development",
+    workerType: type,
+    workerId: id,
+    age,
+    phase: state.developmentPhase,
+    currentAbilityBefore: rounded(before),
+    currentAbilityAfter: after,
+    delta: actualDelta,
+  };
+  saveWorld.history.development.push(developmentRecord);
+
   return {
     type: CAREER_EVENT.DEVELOPED,
     payload: {
