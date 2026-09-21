@@ -6,6 +6,7 @@ import {
   worldRecordsSummary,
 } from "../../game/worldNarrative.js";
 import { MANAGER_EVENT } from "../../game/management/managerCareer.js";
+import { CALENDAR_EVENT } from "../../game/management/calendarPromoters.js";
 import { REGULATION_EVENT } from "../../game/management/regulations.js";
 import { TEAM_EVOLUTION_EVENT } from "../../game/management/teamEvolution.js";
 import { FINANCIAL_CRISIS_EVENT } from "./financialCrisis.js";
@@ -419,6 +420,33 @@ function financialCrisisStory(saveWorld, event) {
   return null;
 }
 
+function calendarStory(saveWorld, event) {
+  const payload = event.payload ?? {};
+  const season = Number(payload.season ?? saveWorld.clock?.season);
+  const added = (payload.added ?? []).map((row) => row?.eventName ?? row?.eventKey).filter(Boolean);
+  const dropped = (payload.dropped ?? []).map((row) => row?.eventName ?? row?.eventKey).filter(Boolean);
+  const changeParts = [];
+  if (added.length) changeParts.push(`added ${added.join(", ")}`);
+  if (dropped.length) changeParts.push(`dropped ${dropped.join(", ")}`);
+  const summary = changeParts.length
+    ? `The promoter review ${changeParts.join("; ")}. Future historical calendars remain reference candidates rather than mandatory outcomes.`
+    : "The existing promoter network was retained after the annual calendar review.";
+
+  emitStory(saveWorld, event, {
+    storyKey: `calendar:${season}:finalized`,
+    historyType: "calendar_finalized",
+    category: "calendar",
+    importance: added.length || dropped.length ? "high" : "normal",
+    headline: `${season} Formula One calendar confirmed with ${payload.races ?? 0} Grands Prix`,
+    summary,
+    entities: [],
+    tags: ["calendar", "promoters"],
+    season,
+    data: payload,
+  });
+  return null;
+}
+
 function managerStory(saveWorld, event) {
   const payload = event.payload ?? {};
   const teamId = payload.team_id ?? null;
@@ -474,6 +502,7 @@ export function createWorldNarrativeSystem() {
       FINANCIAL_CRISIS_EVENT.RECOVERED,
       MANAGER_EVENT.APPOINTED,
       MANAGER_EVENT.DISMISSED,
+      CALENDAR_EVENT.SCHEDULE_FINALIZED,
     ],
     handle({ saveWorld, event }) {
       ensureWorldNarrative(saveWorld);
@@ -500,6 +529,7 @@ export function createWorldNarrativeSystem() {
       if ([REGULATION_EVENT.PROPOSAL_RESOLVED, REGULATION_EVENT.PACKAGE_ENACTED].includes(event.type)) return regulationStory(saveWorld, event);
       if ([TEAM_EVOLUTION_EVENT.ENTRY_ACCEPTED, TEAM_EVOLUTION_EVENT.ENTRY_REJECTED, TEAM_EVOLUTION_EVENT.TEAM_EXITED, TEAM_EVOLUTION_EVENT.TEAM_REBRANDED].includes(event.type)) return teamEvolutionStory(saveWorld, event);
       if ([FINANCIAL_CRISIS_EVENT.OWNERSHIP_CHANGED, FINANCIAL_CRISIS_EVENT.ADMINISTRATION, FINANCIAL_CRISIS_EVENT.RECOVERED].includes(event.type)) return financialCrisisStory(saveWorld, event);
+      if (event.type === CALENDAR_EVENT.SCHEDULE_FINALIZED) return calendarStory(saveWorld, event);
       if ([MANAGER_EVENT.APPOINTED, MANAGER_EVENT.DISMISSED].includes(event.type)) return managerStory(saveWorld, event);
       return null;
     },
