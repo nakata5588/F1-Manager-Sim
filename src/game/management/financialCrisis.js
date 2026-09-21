@@ -173,8 +173,8 @@ function deriveStage(row, finance) {
     return row.spendingFreeze === true && Number(row.recoveryMonths ?? 0) < 2 ? "watch" : "stable";
   }
   if (risk === "tight" && cash >= 0 && row.distressMonths < 2) return "watch";
-  if (row.negativeCashMonths >= 6 || row.distressMonths >= 10) return "administration";
-  if (row.negativeCashMonths >= 3 || row.distressMonths >= 6) return "emergency";
+  if (row.negativeCashMonths >= 9 || row.distressMonths >= 15) return "administration";
+  if (row.negativeCashMonths >= 4 || row.distressMonths >= 8) return "emergency";
   if (row.negativeCashMonths >= 2 || row.distressMonths >= 4) return "spending_freeze";
   if (cash < 0 || risk === "critical" || row.distressMonths >= 2) return "warning";
   return "watch";
@@ -267,7 +267,13 @@ function supportHeadroom(row) {
 function targetLiquidity(saveWorld, teamId) {
   const plan = financialPlanningProjection(saveWorld, teamId);
   if (!plan) return 250_000;
-  return Math.max(150_000, plan.reserveTarget * 0.75, plan.monthlyExpenses * 2.5);
+  const sixMonthDeficit = Math.max(0, -numeric(plan.monthlyNet, 0)) * 6;
+  return Math.max(
+    150_000,
+    plan.reserveTarget,
+    plan.monthlyExpenses * 3,
+    plan.reserveTarget + sixMonthDeficit,
+  );
 }
 
 export function attemptOwnerFunding(saveWorld, teamId, options = {}) {
@@ -317,9 +323,21 @@ export function arrangeBridgeFinance(saveWorld, teamId, options = {}) {
   const finance = saveWorld.world?.teamState?.[teamId];
   if (!finance) return { approved: false, amount: 0, reason: "finances_unavailable" };
   const plan = financialPlanningProjection(saveWorld, teamId);
+  const existingDebt = Math.max(0, numeric(row.debtPrincipal, 0));
+  const debtCeiling = Math.max(
+    250_000,
+    Math.max(0, numeric(finance.openingCash, 0)) * 0.5,
+    Math.max(0, numeric(plan?.monthlyExpenses, 0)) * 6,
+  );
+  if (existingDebt >= debtCeiling) {
+    return { approved: false, amount: 0, reason: "bridge_debt_capacity_exhausted" };
+  }
   const cash = numeric(finance.cash, 0);
   const target = Math.max(100_000, (plan?.monthlyExpenses ?? 0) * 2, (plan?.reserveTarget ?? 0) * 0.45);
-  const amount = roundMoney(Math.max(125_000, target - cash));
+  const amount = roundMoney(Math.min(
+    Math.max(125_000, target - cash),
+    Math.max(125_000, debtCeiling - existingDebt),
+  ));
   const reputation = teamReputation(saveWorld, teamId);
   const crisisPremium = row.stage === "administration" ? 0.06 : row.stage === "emergency" ? 0.04 : 0.025;
   const annualRate = clamp(0.065 + crisisPremium + (60 - reputation) / 1000, 0.07, 0.2);
@@ -327,7 +345,7 @@ export function arrangeBridgeFinance(saveWorld, teamId, options = {}) {
   finance.cash = roundMoney(cash + amount);
   row.debtPrincipal = roundMoney(numeric(row.debtPrincipal, 0) + amount);
   row.debtAnnualRate = Number(annualRate.toFixed(4));
-  row.debtTermMonths = row.stage === "administration" ? 60 : 48;
+  row.debtTermMonths = row.stage === "administration" ? 84 : 72;
   row.lastBridgeFinanceAt = options.date ?? saveWorld.clock?.date ?? null;
   row.lastInterventionAt = row.lastBridgeFinanceAt;
   const intervention = recordIntervention(saveWorld, teamId, "bridge_finance", {
@@ -415,6 +433,7 @@ export function attemptOwnershipRescue(saveWorld, teamId, options = {}) {
   const injection = roundMoney(Math.max(
     500_000,
     (plan?.monthlyExpenses ?? 0) * 12,
+    Math.max(0, -(plan?.monthlyNet ?? 0)) * 18 + (plan?.reserveTarget ?? 0),
     (plan?.reserveTarget ?? 0) * 2 - cash,
     Math.max(0, numeric(finance.openingCash, 0)),
   ));
