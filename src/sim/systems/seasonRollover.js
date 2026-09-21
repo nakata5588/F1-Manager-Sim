@@ -49,8 +49,7 @@ export function createSeasonRolloverSystem() {
       } else {
         plan = calendarPlanFor(saveWorld, season);
         const previousCalendar = saveWorld.world?.calendar ?? [];
-        const referenceRows = saveWorld.reference?.futureStructure?.calendars?.[String(season)] ?? [];
-        if (!plan && (previousCalendar.length || referenceRows.length)) {
+        if (!plan && previousCalendar.length) {
           plan = planDynamicCalendar(saveWorld, season, {
             previousCalendar,
             date: event.date,
