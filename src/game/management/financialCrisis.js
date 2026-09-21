@@ -369,7 +369,8 @@ export function applyCrisisDebtService(saveWorld, teamId, payment, date = saveWo
 export function mandateOwnershipSale(saveWorld, teamId, source = "crisis_response") {
   const row = ensureFinancialCrisisTeam(saveWorld, teamId);
   const lastChange = row.lastOwnershipChangeAt;
-  if (lastChange && monthsSince(lastChange, saveWorld.clock?.date) < 24) return structuredClone(row);
+  if (lastChange && monthsSince(lastChange, saveWorld.clock?.date) < 60) return structuredClone(row);
+  if (Number(row.distressMonths ?? 0) < 12 && Number(row.administrationMonths ?? 0) < 4) return structuredClone(row);
   row.saleMandate = true;
   row.lastOwnershipReviewAt = saveWorld.clock?.date ?? null;
   recordIntervention(saveWorld, teamId, "ownership_sale_mandate", {
@@ -384,7 +385,7 @@ export function attemptOwnershipRescue(saveWorld, teamId, options = {}) {
   const finance = saveWorld.world?.teamState?.[teamId];
   if (!finance) return { acquired: false, reason: "finances_unavailable" };
   const currentDate = options.date ?? saveWorld.clock?.date;
-  if (options.force !== true && row.lastOwnershipChangeAt && monthsSince(row.lastOwnershipChangeAt, currentDate) < 36) {
+  if (options.force !== true && row.lastOwnershipChangeAt && monthsSince(row.lastOwnershipChangeAt, currentDate) < 72) {
     return { acquired: false, reason: "ownership_stability_period" };
   }
   const state = ensureFinancialCrisisState(saveWorld);
@@ -413,12 +414,12 @@ export function attemptOwnershipRescue(saveWorld, teamId, options = {}) {
   const cash = numeric(finance.cash, 0);
   const injection = roundMoney(Math.max(
     500_000,
-    (plan?.monthlyExpenses ?? 0) * 8,
-    (plan?.reserveTarget ?? 0) * 1.5 - cash,
-    Math.max(0, numeric(finance.openingCash, 0)) * 0.75,
+    (plan?.monthlyExpenses ?? 0) * 12,
+    (plan?.reserveTarget ?? 0) * 2 - cash,
+    Math.max(0, numeric(finance.openingCash, 0)),
   ));
   const debtBefore = Math.max(0, numeric(row.debtPrincipal, 0));
-  const refinanced = roundMoney(debtBefore * (0.55 + rng.next() * 0.25));
+  const refinanced = roundMoney(debtBefore * (0.7 + rng.next() * 0.2));
   row.debtPrincipal = roundMoney(Math.max(0, debtBefore - refinanced));
   finance.cash = roundMoney(cash + injection);
   row.owner = {
@@ -433,7 +434,7 @@ export function attemptOwnershipRescue(saveWorld, teamId, options = {}) {
     supportIndex: indices.supportIndex,
     patienceIndex: indices.patienceIndex,
     riskAppetite: indices.riskAppetite,
-    supportBudget: roundMoney(Math.max(500_000, injection * (1.5 + indices.supportIndex / 100))),
+    supportBudget: roundMoney(Math.max(750_000, injection * (2 + indices.supportIndex / 100))),
     supportUsed: 0,
   };
   row.saleMandate = false;
@@ -444,7 +445,7 @@ export function attemptOwnershipRescue(saveWorld, teamId, options = {}) {
   row.administrationMonths = 0;
   row.failedOwnershipReviews = 0;
   row.lastOwnershipChangeAt = options.date ?? saveWorld.clock?.date ?? null;
-  row.stage = "warning";
+  row.stage = "watch";
   row.stageSince = options.date ?? saveWorld.clock?.date ?? null;
   row.spendingFreeze = true;
   row.freezeReason = "post_acquisition_restructuring";
