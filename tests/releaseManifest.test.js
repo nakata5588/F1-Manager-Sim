@@ -28,4 +28,8 @@ test("release manifest points at current save/database/circuit authorities", asy
   assert.equal(manifest.policies.developmentEvidenceAuthority, "world.developmentState");
   assert.equal(manifest.policies.careerRatingAuthority, "world.careerState");
   assert.equal(manifest.policies.developmentPotentialPolicy, "dynamic_attributes_ca_capped_by_pa");
+  assert.equal(manifest.policies.driverTalentAuthority, "world.careerState.drivers[*].talentProfile");
+  assert.equal(manifest.policies.driverTalentReference, "historical_yearly_ratings_collapsed_to_static_attribute_ceilings");
+  assert.equal(manifest.policies.driverAbilityPolicy, "ca_pa_derived_from_current_attributes_and_static_ceilings");
+  assert.equal(manifest.policies.futureDriverRatings, "not_loaded_as_scripted_yearly_progression");
 });
