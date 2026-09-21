@@ -270,6 +270,20 @@ test("confidence changes potential realization without bypassing PA", () => {
   assert.equal(highDev.payload.confidence, 80);
 });
 
+test("driver CA and PA are derived from current attributes and static ceilings", () => {
+  const { save } = initialized();
+  const young = save.world.careerState.drivers.YOUNG;
+  assert.equal(young.talentProfile.policy, "static_attribute_ceilings_dynamic_career_curve");
+  assert.equal(young.careerStage, "rookie");
+  assert.ok(young.talentProfile.ceilings.pace >= young.attributes.pace);
+  assert.ok(young.potentialAbility >= young.currentAbility);
+  const potentialBefore = young.potentialAbility;
+  const ceilingBefore = young.talentProfile.ceilings.pace;
+  young.attributes.pace = Math.max(1, young.attributes.pace - 5);
+  assert.equal(young.potentialAbility, potentialBefore);
+  assert.equal(young.talentProfile.ceilings.pace, ceilingBefore);
+});
+
 test("development evidence and dynamic form survive save-world structured cloning", () => {
   const { save, systems } = initialized();
   dispatchSimulationEvents(save, [{

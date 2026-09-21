@@ -1,3 +1,4 @@
+import { initializeDriverTalentProfile } from "../../game/management/talentProfile.js";
 import { SIM_EVENT } from "../timeEngine.js";
 import { ENTITY_EVENT } from "./entityAvailability.js";
 
@@ -48,8 +49,8 @@ function number(value) {
 
 function buildState(saveWorld, type, profile, status, date) {
   const id = profileId(type, profile);
-  const rating = ratingFor(saveWorld, type, id);
-  return {
+  const rating = ratingFor(saveWorld, type, id) ?? {};
+  const row = {
     status,
     age: ageOnDate(profile, date),
     currentAbility: number(rating?.current_ability ?? profile?.current_ability),
@@ -60,6 +61,13 @@ function buildState(saveWorld, type, profile, status, date) {
     activeSince: date,
     lastUpdated: date,
   };
+  if (type === "driver") {
+    initializeDriverTalentProfile(saveWorld, id, row, profile, rating, {
+      status,
+      hasOpeningReference: status !== "junior",
+    });
+  }
+  return row;
 }
 
 function ensureCareerState(saveWorld) {
@@ -84,14 +92,14 @@ export function registerCareerProfile(saveWorld, type, profile, options = {}) {
   return target[id];
 }
 
-function initializeCollection(saveWorld, type, profiles, date) {
+function initializeCollection(saveWorld, type, profiles, date, status = "active") {
   const state = ensureCareerState(saveWorld);
   const target = type === "driver" ? state.drivers : state.staff;
   let created = 0;
   for (const profile of profiles ?? []) {
     const id = profileId(type, profile);
     if (!id || target[id]) continue;
-    registerCareerProfile(saveWorld, type, profile, { status: "active", date });
+    registerCareerProfile(saveWorld, type, profile, { status, date });
     created += 1;
   }
   return created;
@@ -141,11 +149,12 @@ export function createCareerLifecycleSystem() {
     eventTypes: [SIM_EVENT.CAREER_STARTED, SIM_EVENT.SEASON_STARTED, ENTITY_EVENT.ELIGIBLE],
     handle({ saveWorld, event }) {
       if (event.type === SIM_EVENT.CAREER_STARTED) {
-        const drivers = initializeCollection(saveWorld, "driver", saveWorld.world?.drivers, event.date);
-        const staff = initializeCollection(saveWorld, "staff", saveWorld.world?.staff, event.date);
+        const drivers = initializeCollection(saveWorld, "driver", saveWorld.world?.drivers, event.date, "active");
+        const futureDrivers = initializeCollection(saveWorld, "driver", saveWorld.world?.futureDrivers, event.date, "junior");
+        const staff = initializeCollection(saveWorld, "staff", saveWorld.world?.staff, event.date, "active");
         return {
           type: CAREER_EVENT.INITIALIZED,
-          payload: { drivers, staff },
+          payload: { drivers, futureDrivers, staff },
         };
       }
 
