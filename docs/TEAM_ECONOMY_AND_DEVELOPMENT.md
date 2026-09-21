@@ -27,6 +27,7 @@ On each month boundary the economy system records:
 - staff salaries;
 - facility maintenance;
 - operating costs;
+- dynamic owner operating support from an active post-acquisition guarantee when applicable;
 - emergency crisis-debt interest and principal service when applicable;
 - monthly net result;
 - closing cash;
