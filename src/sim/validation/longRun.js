@@ -181,13 +181,18 @@ function developmentHealth(saveWorld, errors, warnings) {
   const checkWorker = (type, id, state) => {
     const current = numeric(state?.currentAbility);
     const potential = numeric(state?.potentialAbility);
-    if (current !== null && (current < 1 || current > 100)) {
+    // Legacy historical rows can legitimately have no sourced CA/PA. The
+    // lifecycle stores those as null; Number(null) would otherwise turn
+    // "unknown" into an invented zero and make validation reject valid saves.
+    const hasCurrent = state?.currentAbility !== null && state?.currentAbility !== undefined && state?.currentAbility !== "";
+    const hasPotential = state?.potentialAbility !== null && state?.potentialAbility !== undefined && state?.potentialAbility !== "";
+    if (hasCurrent && current !== null && (current < 1 || current > 100)) {
       errors.push(`${type} ${id} has currentAbility outside 1-100: ${current}.`);
     }
-    if (potential !== null && (potential < 1 || potential > 100)) {
+    if (hasPotential && potential !== null && (potential < 1 || potential > 100)) {
       errors.push(`${type} ${id} has potentialAbility outside 1-100: ${potential}.`);
     }
-    if (state?.lastDevelopmentSeason !== undefined && current !== null && potential !== null && current > potential + 0.01) {
+    if (state?.lastDevelopmentSeason !== undefined && hasCurrent && hasPotential && current !== null && potential !== null && current > potential + 0.01) {
       errors.push(`${type} ${id} exceeded potentialAbility after development (${current} > ${potential}).`);
     }
     for (const [field, value] of Object.entries(state?.attributes ?? {})) {
