@@ -241,6 +241,25 @@ function maybeAutomaticIntervention(saveWorld, event, assessment, controlled) {
   }
 
   if (stage === "administration") {
+    const recentAcquisition = row.lastOwnershipChangeAt
+      && monthsSince(row.lastOwnershipChangeAt, event.date) < 60;
+    if (recentAcquisition && monthsSince(row.lastOwnerFundingAt, event.date) >= 6) {
+      const ownerResult = attemptOwnerFunding(saveWorld, teamId, {
+        date: event.date,
+        source: isControlled ? "post_acquisition_owner_support" : "ai_post_acquisition_support",
+      });
+      const ownerEvent = fundingEvent(ownerResult, teamId, isControlled ? "post_acquisition_owner_support" : "ai_post_acquisition_support");
+      if (ownerEvent) output.push(ownerEvent);
+      if (!ownerResult.approved && monthsSince(row.lastBridgeFinanceAt, event.date) >= 6) {
+        const bridgeResult = arrangeBridgeFinance(saveWorld, teamId, {
+          date: event.date,
+          source: isControlled ? "post_acquisition_bridge_finance" : "ai_post_acquisition_bridge",
+        });
+        const debtEvent = bridgeEvent(bridgeResult, teamId, isControlled ? "post_acquisition_bridge_finance" : "ai_post_acquisition_bridge");
+        if (debtEvent) output.push(debtEvent);
+      }
+    }
+
     if (row.administrationMonths === 1) {
       output.push({
         type: FINANCIAL_CRISIS_EVENT.ADMINISTRATION,
@@ -255,7 +274,7 @@ function maybeAutomaticIntervention(saveWorld, event, assessment, controlled) {
     if (!row.saleMandate && row.administrationMonths >= 2) {
       mandateOwnershipSale(saveWorld, teamId, isControlled ? "administrator_sale_process" : "ai_team_crisis_policy");
     }
-    if (row.saleMandate && monthsSince(row.lastOwnershipReviewAt, event.date) >= 2) {
+    if (row.saleMandate && monthsSince(row.lastOwnershipReviewAt, event.date) >= 3) {
       const result = attemptOwnershipRescue(saveWorld, teamId, {
         date: event.date,
         source: isControlled ? "administrator_sale_process" : "ai_team_crisis_policy",
@@ -266,10 +285,10 @@ function maybeAutomaticIntervention(saveWorld, event, assessment, controlled) {
 
     const refreshed = ensureFinancialCrisisTeam(saveWorld, teamId, event.date);
     const ownershipCooldownComplete = !refreshed.lastOwnershipChangeAt
-      || monthsSince(refreshed.lastOwnershipChangeAt, event.date) >= 36;
+      || monthsSince(refreshed.lastOwnershipChangeAt, event.date) >= 72;
     if (!isControlled
       && refreshed.stage === "administration"
-      && refreshed.administrationMonths >= 10
+      && refreshed.administrationMonths >= 14
       && Number(refreshed.failedOwnershipReviews ?? 0) >= 3
       && ownershipCooldownComplete) {
       output.push(...exitEvents(saveWorld, teamId, "financial_administration_unresolved"));
