@@ -30,8 +30,8 @@ function saveWorld() {
       staffRatings: [{ staff_id: "S1", leadership: 80 }],
       careerState: {
         drivers: {
-          D1: { currentAbility: 81, potentialAbility: 84, reputation: 78, morale: 62, attributes: { racecraft: 83 } },
-          D2: { currentAbility: 79, potentialAbility: 80, reputation: 76, morale: 55, attributes: {} },
+          D1: { currentAbility: 81, potentialAbility: 84, reputation: 78, morale: 62, attributes: { racecraft: 83 }, talentProfile: { version: 1, careerStage: "prime", stageProgress: 0.72, ceilings: { pace: 92, racecraft: 90 }, policy: "static_attribute_ceilings_dynamic_career_curve" } },
+          D2: { currentAbility: 79, potentialAbility: 80, reputation: 76, morale: 55, attributes: {}, talentProfile: { version: 1, careerStage: "veteran", stageProgress: 0.31, ceilings: { pace: 88, racecraft: 86 }, policy: "static_attribute_ceilings_dynamic_career_curve" } },
         },
         staff: { S1: { attributes: { leadership: 82 } } },
       },
@@ -64,6 +64,8 @@ test("controlled driver profile exposes current Save World state and known attri
   assert.equal(profile.employment.teamName, "Dynamic Team");
   assert.equal(profile.careerState.currentAbility, 81);
   assert.equal(profile.attributes.racecraft, 83);
+  assert.deepEqual(profile.talent, { careerStage: "prime", stageProgress: 0.72 });
+  assert.equal(Object.hasOwn(profile.talent, "ceilings"), false);
 });
 
 test("visible rival profile does not leak exact private ratings", () => {
@@ -73,6 +75,8 @@ test("visible rival profile does not leak exact private ratings", () => {
   assert.equal(profile.controlled, false);
   assert.equal(profile.attributes, null);
   assert.equal(profile.careerState, null);
+  assert.deepEqual(profile.talent, { careerStage: "veteran", stageProgress: 0.31 });
+  assert.equal(Object.hasOwn(profile.talent, "ceilings"), false);
   assert.ok(profile.scoutingKnowledge >= 0 && profile.scoutingKnowledge <= 100);
 });
 
