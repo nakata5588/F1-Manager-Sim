@@ -244,10 +244,17 @@ function calculateAbilityDelta(saveWorld, type, id, state, current, potential, a
 
   const morale = numeric(state.morale, 50);
   const form = numeric(state.form, 0);
+  const mentality = type === "driver"
+    ? saveWorld.world?.management?.people?.drivers?.[id]?.mentality
+    : saveWorld.world?.management?.people?.staff?.[id]?.mentality;
+  const confidence = numeric(mentality?.confidence, 50);
   delta += clamp((morale - 50) / 100, -0.25, 0.25);
   delta += clamp(form / 100, -0.15, 0.15);
+  // Confidence influences how effectively existing potential is realised, but
+  // it cannot create talent beyond PA and remains a secondary signal.
+  delta += clamp((confidence - 50) / 160, -0.22, 0.22);
   delta += (rng.next() - 0.5) * 0.5;
-  return { delta, rng, evidence: evidence.evidence };
+  return { delta, rng, evidence: evidence.evidence, confidence };
 }
 
 function ensureAttributes(state, type, rating, profile) {
@@ -319,7 +326,7 @@ function updateWorker(saveWorld, type, id, state, event) {
   const age = numeric(state.age);
   const before = inferredCurrentAbility(type, state, rating, profile);
   const potential = inferredPotentialAbility(type, state, rating, profile, before, age);
-  const { delta: rawDelta, rng, evidence } = calculateAbilityDelta(saveWorld, type, id, state, before, potential, age, event);
+  const { delta: rawDelta, rng, evidence, confidence } = calculateAbilityDelta(saveWorld, type, id, state, before, potential, age, event);
   const upperBound = Math.max(before, potential);
   const after = rounded(clamp(before + rawDelta, 1, upperBound));
   const actualDelta = rounded(after - before);
@@ -364,6 +371,7 @@ function updateWorker(saveWorld, type, id, state, event) {
       current_ability_before: rounded(before),
       current_ability_after: after,
       delta: actualDelta,
+      confidence: rounded(numeric(confidence, 50)),
       evidence: type === "driver" ? {
         race_starts: numeric(evidence?.raceStarts, 0),
         testing_mileage: rounded(numeric(evidence?.testingMileage, 0)),
