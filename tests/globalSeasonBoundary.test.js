@@ -156,9 +156,12 @@ test("Save World keeps pre-career history and hidden future structure outside th
   assert.equal(save.world.futureEntities.some((row) => row.entity_id === "D2"), true);
 });
 
-test("season rollover consumes hidden historical calendar structure and does not repeat the previous race count", () => {
+test("season rollover treats hidden historical calendars as candidates rather than scripted future schedules", () => {
   const snapshot = createSeasonSnapshot(globalDatabase(), 1980);
-  const save = createSaveWorld(snapshot, { createdAt: "1980-01-01T00:00:00.000Z" });
+  const save = createSaveWorld(snapshot, {
+    createdAt: "1980-01-01T00:00:00.000Z",
+    seed: "global-season-boundary",
+  });
   const system = createSeasonRolloverSystem();
 
   const output = system.handle({
@@ -166,12 +169,13 @@ test("season rollover consumes hidden historical calendar structure and does not
     event: { date: "1981-01-01", payload: { season: 1981, previousSeason: 1980 } },
   });
 
-  assert.equal(save.world.calendar.length, 3);
-  assert.equal(save.world.calendar[0].generation_source, "global_historical_calendar_reference");
-  assert.equal(save.world.calendar[0].winner_driver_id, undefined);
-  assert.ok(save.world.tracks.some((row) => row.track_id === "TR2"));
-  assert.equal(output.payload.calendar_source, "global_historical_calendar_reference");
-  assert.equal(output.payload.races, 3);
+  assert.ok(save.world.calendar.length > 0);
+  assert.ok(save.world.calendar.every((row) => row.generation_source === "dynamic_calendar_promoter_system"));
+  assert.ok(save.world.calendar.every((row) => row.winner_driver_id === undefined));
+  assert.equal(output.payload.calendar_source, "dynamic_calendar_promoter_system");
+  assert.equal(output.payload.calendar_reference_races, 3);
+  assert.equal(save.world.calendarEvolution.plans["1981"].referencePolicy, "historical_future_calendar_is_candidate_not_script");
+  assert.equal(save.world.calendarEvolution.seasons["1981"].raceCount, save.world.calendar.length);
 });
 
 test("the same Global Database can materialize a 2000 start without exposing 2001 results", () => {
