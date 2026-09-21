@@ -66,7 +66,7 @@ function person(profile) {
     : "";
   const developmentCard = development
     ? `<article class="profile-card wide"><h2>Development Evidence</h2>${profile.type === "driver"
-      ? `${detail("Race starts", development.raceStarts ?? 0)}${detail("Testing mileage", Number(development.testingMileage ?? 0).toFixed(2))}${detail("Teammate performance", Number(development.averageTeammatePerformanceDelta ?? 0).toFixed(2))}${detail("Coaching", Number(development.averageCoaching ?? 0).toFixed(1))}${detail("Mentoring", Number(development.averageMentoring ?? 0).toFixed(1))}${detail("Injury burden", Number(development.injuryBurden ?? 0).toFixed(2))}`
+      ? `${detail("Career stage", human(profile.talent?.careerStage ?? "unknown"))}${detail("Stage progress", profile.talent ? `${Math.round(Number(profile.talent.stageProgress ?? 0) * 100)}%` : "—")}${detail("Race starts", development.raceStarts ?? 0)}${detail("Testing mileage", Number(development.testingMileage ?? 0).toFixed(2))}${detail("Teammate performance", Number(development.averageTeammatePerformanceDelta ?? 0).toFixed(2))}${detail("Coaching", Number(development.averageCoaching ?? 0).toFixed(1))}${detail("Mentoring", Number(development.averageMentoring ?? 0).toFixed(1))}${detail("Injury burden", Number(development.injuryBurden ?? 0).toFixed(2))}`
       : `${detail("Employed months", development.employedMonths ?? 0)}${detail("Race weekends", development.raceWeekends ?? 0)}${detail("Test sessions", development.testSessions ?? 0)}${detail("Department effectiveness", Number(development.averageDepartmentEffectiveness ?? 1).toFixed(2))}${detail("Peer learning", Number(development.averagePeerLearning ?? 0).toFixed(1))}`}</article>`
     : "";
   return `<main class="profile-shell">
