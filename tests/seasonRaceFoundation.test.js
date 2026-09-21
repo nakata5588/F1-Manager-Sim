@@ -205,5 +205,6 @@ test("a 1980-only season package can roll into 1981 and race again without histo
   assert.equal(result.saveWorld.world.championship.season, 1981);
   assert.equal(result.saveWorld.world.championship.racesCompleted, 1);
   assert.equal(result.saveWorld.world.calendar[0].generated, true);
-  assert.equal(result.saveWorld.world.calendar[0].generation_source, "previous_season_calendar");
+  assert.equal(result.saveWorld.world.calendar[0].generation_source, "dynamic_calendar_promoter_system");
+  assert.equal(result.saveWorld.world.calendarEvolution.plans["1981"].referencePolicy, "historical_future_calendar_is_candidate_not_script");
 });
