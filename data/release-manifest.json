@@ -4,8 +4,8 @@
   "updatedAt": "2026-09-21",
   "application": {
     "version": "0.1.0",
-    "developmentStage": "19",
-    "stageName": "Team Financial Crisis & Ownership"
+    "developmentStage": "20",
+    "stageName": "Driver & Staff Development 2.0"
   },
   "persistence": {
     "saveSchemaVersion": 2,
@@ -37,6 +37,10 @@
     "temporaryRaceReplacement": "race_entry_only_no_employment_mutation",
     "financialCrisisAuthority": "world.financialCrisis",
     "ownershipChangePolicy": "save_world_dynamic_preserve_team_id",
-    "insolvencyExitAuthority": "team.financial-crisis"
+    "insolvencyExitAuthority": "team.financial-crisis",
+    "developmentEvidenceAuthority": "world.developmentState",
+    "careerRatingAuthority": "world.careerState",
+    "developmentPotentialPolicy": "dynamic_attributes_ca_capped_by_pa",
+    "racePerformancePolicy": "attributes_plus_car_team_circuit_conditions_strategy_reliability_not_ca_only"
   }
 }
