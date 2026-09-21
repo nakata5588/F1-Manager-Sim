@@ -68,7 +68,11 @@ test("a newly generated annual cohort is created after career development and do
   for (const driverId of cohort.driverIds) {
     const rating = save.world.driverRatings.find((row) => row.driver_id === driverId);
     const career = save.world.careerState.drivers[driverId];
-    assert.equal(career.currentAbility, rating.current_ability);
+    assert.notEqual(rating, undefined);
+    assert.ok(Number.isFinite(career.currentAbility));
+    assert.ok(career.currentAbility <= career.potentialAbility);
+    assert.ok(["academy", "prospect", "rookie"].includes(career.careerStage));
+    assert.equal(career.talentProfile.policy, "static_attribute_ceilings_dynamic_career_curve");
     assert.equal(career.lastDevelopmentSeason, undefined);
     assert.equal(career.status, "junior");
   }
