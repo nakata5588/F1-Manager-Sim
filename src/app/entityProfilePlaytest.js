@@ -156,7 +156,11 @@ function personProfileProjection(saveWorld, type, id) {
     profile.availability = driverAvailabilityProjection(saveWorld, id);
     profile.marketPath = driverMarketProjection(saveWorld, id);
     profile.development = developmentProjection(saveWorld, "driver", id);
-    profile.talent = driverTalentProjection(saveWorld, id);
+    const talent = driverTalentProjection(saveWorld, id);
+    profile.talent = talent ? {
+      careerStage: talent.careerStage,
+      stageProgress: talent.stageProgress,
+    } : null;
     profile.recentResults = recentDriverResults(saveWorld, id);
   } else {
     profile.recruitment = staffRecruitmentEligibility(saveWorld, id);
