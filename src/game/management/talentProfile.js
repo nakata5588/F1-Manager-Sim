@@ -192,6 +192,9 @@ function deriveCeilings(saveWorld, driverId, rating, reference, stage, progress)
   );
   const gap = Math.max(0, potentialAbility - currentAbility);
   const ceilings = {};
+  const hasReferenceSignal = Number(reference?.sourceRows ?? 0) > 0
+    || numeric(rating?.current_ability) !== null
+    || DRIVER_SKILL_FIELDS.some((field) => sourceAttribute(rating, field) !== null);
 
   for (const field of DRIVER_SKILL_FIELDS) {
     const current = sourceAttribute(rating, field, currentAbility);
@@ -200,9 +203,12 @@ function deriveCeilings(saveWorld, driverId, rating, reference, stage, progress)
     const group = driverAttributeGroup(field);
     const gapMultiplier = group === "raw" ? 1.05 : group === "craft" ? 1 : group === "technical" ? 0.94 : 0.96;
     const stageFactor = Math.max(0.38, driverStageFactor(stage, progress, field));
-    const inferredFromStage = current / stageFactor;
+    const inferredFromStage = hasReferenceSignal ? current / stageFactor : current;
     const inferredFromGap = current + gap * gapMultiplier;
-    ceilings[field] = round(clamp(Math.max(current, explicit ?? 0, collapsed ?? 0, inferredFromStage, inferredFromGap), 1, 100));
+    const neutralUnknownCeiling = hasReferenceSignal
+      ? 0
+      : 58 + deterministicTrait(saveWorld, driverId, `unknown-ceiling:${field}`, -5, 8);
+    ceilings[field] = round(clamp(Math.max(current, explicit ?? 0, collapsed ?? 0, inferredFromStage, inferredFromGap, neutralUnknownCeiling), 1, 100));
   }
 
   return ceilings;
