@@ -112,8 +112,21 @@ Historical source ratings seed the opening career state only. After Career Start
 
 Development resolution remains deterministic for the same save seed and evidence, but two careers can diverge naturally because opportunity, performance, injuries, teams, coaches and morale diverge.
 
-CA/PA are not exposed as a universal performance formula. Individual dynamic attributes remain the inputs used by race, technical and management systems.
+CA/PA are not exposed as a universal performance formula. Individual dynamic attributes remain the inputs used by race, technical and management systems. From Stage 20 onward, driver CA is derived from current attributes and driver PA is derived from static attribute ceilings.
 
 ## Future work
 
 Later development passes can add explicit rehabilitation programmes, training plans, driver academies, staff education/certification and richer role-specific testing allocation without replacing the Stage 20 evidence boundary.
+
+
+## Driver career-stage rating curve
+
+Drivers now progress through:
+
+`Academy -> Prospect -> Rookie -> Developing -> Prime -> Veteran -> Decline`
+
+Each skill has a static talent ceiling. Career stage determines how much of that ceiling is currently reachable, and the Development Ledger determines how quickly the driver moves toward the stage target.
+
+Raw pace/qualifying mature and decline earlier. Racecraft, consistency and tyre management can keep improving later. Technical feedback, adaptability and leadership use a later curve.
+
+For future historical drivers, the Global Database's yearly rating history is never replayed season-by-season. The materializer collapses available historical rows into a single static talent reference, preserving talent information without scripting the real career trajectory.
