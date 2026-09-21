@@ -146,7 +146,10 @@ export function runLongRunMatrix(historicalSnapshot, options = {}) {
   if (runs.some((run) => run.ecosystem.openVacancies > run.ecosystem.activeTeams * 8)) warnings.push("Ecosystem signal: at least one run ended with unusually high vacancy pressure.");
   if (runs.some((run) => run.ecosystem.distressedTeamShare >= 0.5)) warnings.push("Ecosystem signal: at least half of active teams are financially distressed in one or more long runs; economy/crisis calibration should be reviewed.");
   if (runs.some((run) => run.ecosystem.teamsInAdministration >= Math.max(3, Math.ceil(run.ecosystem.activeTeams * 0.25)))) warnings.push("Ecosystem signal: too many active teams remain in administration at the endpoint.");
-  if (runs.some((run) => run.ecosystem.ownershipChanges > seasons)) warnings.push("Ecosystem signal: ownership turnover is unusually high and should be calibrated.");
+  if (runs.some((run) => {
+    const teamSeasons = Math.max(1, run.ecosystem.activeTeams * seasons);
+    return run.ecosystem.ownershipChanges / teamSeasons > 0.12;
+  })) warnings.push("Ecosystem signal: ownership turnover exceeds 0.12 changes per active-team season and should be calibrated.");
   if (runs.some((run) => run.ecosystem.activeDriverAges.count > 0 && run.ecosystem.activeDriverAges.median < 16)) warnings.push("Ecosystem signal: active-driver age distribution is implausibly young and should be audited.");
 
   return {
