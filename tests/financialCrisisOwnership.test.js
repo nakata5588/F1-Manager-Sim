@@ -175,6 +175,35 @@ test("ownership rescue recapitalises the same stable team identity", () => {
   assert.equal(save.world.teams.some((row) => row.team_id === "T1"), true);
 });
 
+test("new ownership can commit temporary operating support through the normal Team Economy ledger", () => {
+  const save = world();
+  initializeFinancialCrisisWorld(save);
+  save.world.teamState.T1.cash = -1_000_000;
+  save.world.teamState.T1.projectedMonthlyIncome = 25_000;
+  save.world.teamState.T1.projectedMonthlyExpenses = 225_000;
+  const crisis = ensureFinancialCrisisTeam(save, "T1");
+  crisis.stage = "administration";
+  crisis.saleMandate = true;
+
+  const rescue = attemptOwnershipRescue(save, "T1", { force: true, date: "1980-09-01", source: "test" });
+  assert.equal(rescue.acquired, true);
+  assert.ok(crisis.ownerOperatingGuarantee?.monthlyAmount > 0);
+  assert.equal(crisis.ownerOperatingGuarantee?.monthsRemaining, 36);
+
+  const systems = [createTeamEconomySystem()];
+  const events = dispatchSimulationEvents(save, [{
+    type: SIM_EVENT.MONTH_STARTED,
+    date: "1980-10-01",
+    payload: { year: 1980, month: 10 },
+  }], systems);
+  const close = events.find((event) => event.type === "team.finance_month_closed" && event.payload.teamId === "T1");
+
+  assert.ok(close);
+  assert.ok(close.payload.breakdown.ownerOperatingSupport > 0);
+  assert.equal(crisis.ownerOperatingGuarantee.monthsRemaining, 35);
+  assert.ok(crisis.ownerOperatingGuarantee.paidToDate > 0);
+});
+
 test("controlled team can withdraw in administration and manager career continues unemployed", () => {
   const save = world({ teamCount: 11, controlled: true });
   initializeRegulationState(save);
