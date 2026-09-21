@@ -252,10 +252,10 @@ function maybeAutomaticIntervention(saveWorld, event, assessment, controlled) {
       });
     }
 
-    if (!row.saleMandate && (!isControlled || row.administrationMonths >= 2)) {
+    if (!row.saleMandate && row.administrationMonths >= 2) {
       mandateOwnershipSale(saveWorld, teamId, isControlled ? "administrator_sale_process" : "ai_team_crisis_policy");
     }
-    if (row.saleMandate && monthsSince(row.lastOwnershipReviewAt, event.date) >= 1) {
+    if (row.saleMandate && monthsSince(row.lastOwnershipReviewAt, event.date) >= 2) {
       const result = attemptOwnershipRescue(saveWorld, teamId, {
         date: event.date,
         source: isControlled ? "administrator_sale_process" : "ai_team_crisis_policy",
@@ -265,7 +265,13 @@ function maybeAutomaticIntervention(saveWorld, event, assessment, controlled) {
     }
 
     const refreshed = ensureFinancialCrisisTeam(saveWorld, teamId, event.date);
-    if (!isControlled && refreshed.stage === "administration" && refreshed.administrationMonths >= 4) {
+    const ownershipCooldownComplete = !refreshed.lastOwnershipChangeAt
+      || monthsSince(refreshed.lastOwnershipChangeAt, event.date) >= 36;
+    if (!isControlled
+      && refreshed.stage === "administration"
+      && refreshed.administrationMonths >= 10
+      && Number(refreshed.failedOwnershipReviews ?? 0) >= 3
+      && ownershipCooldownComplete) {
       output.push(...exitEvents(saveWorld, teamId, "financial_administration_unresolved"));
     } else if (isControlled && refreshed.withdrawalRequested) {
       output.push(...exitEvents(saveWorld, teamId, "voluntary_financial_withdrawal"));
