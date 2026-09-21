@@ -41,11 +41,10 @@ export function createCalendarPromoterSystem() {
       const targetSeason = Number(saveWorld.clock?.season) + 1;
       if (calendarPlanFor(saveWorld, targetSeason)) return null;
       const currentCalendar = saveWorld.world?.calendar ?? [];
-      const referenceCalendar = saveWorld.reference?.futureStructure?.calendars?.[String(targetSeason)] ?? [];
       // Some focused domain tests intentionally have no racing calendar. Stage 21
-      // must remain additive there rather than turning an unrelated season change
-      // into a calendar-planning failure.
-      if (!currentCalendar.length && !referenceCalendar.length) return null;
+      // must remain additive there rather than inventing a schedule from hidden
+      // future reference data alone.
+      if (!currentCalendar.length) return null;
       const plan = planDynamicCalendar(saveWorld, targetSeason, { date: event.date });
       return {
         type: CALENDAR_EVENT.SCHEDULE_FINALIZED,
