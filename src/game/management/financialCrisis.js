@@ -24,6 +24,19 @@ function clamp(value, minimum, maximum) {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
+function monthIndex(date) {
+  const year = Number(String(date ?? "").slice(0, 4));
+  const month = Number(String(date ?? "").slice(5, 7));
+  if (!Number.isInteger(year) || !Number.isInteger(month)) return null;
+  return year * 12 + month;
+}
+
+function monthsSince(date, current) {
+  const from = monthIndex(date);
+  const to = monthIndex(current);
+  return from === null || to === null ? Infinity : Math.max(0, to - from);
+}
+
 function teamProfile(saveWorld, teamId) {
   return (saveWorld.world?.teams ?? []).find((row) => String(row?.team_id ?? row?.id ?? "") === String(teamId)) ?? {};
 }
