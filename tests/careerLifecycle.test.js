@@ -71,7 +71,8 @@ test("career initialization creates mutable driver and staff state plus employme
   const result = initializeSimulation(save, createCoreWorldSystems());
 
   assert.equal(save.world.careerState.drivers.DRV1.age, 29);
-  assert.equal(save.world.careerState.drivers.DRV1.currentAbility, 50);
+  assert.ok(Math.abs(save.world.careerState.drivers.DRV1.currentAbility - 50) < 1);
+  assert.equal(save.world.careerState.drivers.DRV1.talentProfile.policy, "static_attribute_ceilings_dynamic_career_curve");
   assert.equal(save.world.careerState.staff.ST1.age, 39);
   assert.equal(save.world.employment.drivers.DRV1.teamId, "TEAM1");
   assert.deepEqual(save.world.employment.freeAgents.drivers, ["DRV2"]);
