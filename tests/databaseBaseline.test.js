@@ -51,7 +51,7 @@ test("accepted baseline calendar reference is variable rather than a repeated 14
   assert.ok(new Set(Object.values(counts)).size > 1);
 });
 
-test("season rollover follows the accepted baseline race counts when hidden calendar reference exists", async () => {
+test("season rollover uses baseline future calendars as structural signals without replaying their exact race counts", async () => {
   const baseline = await loadBaseline();
   const counts = baseline.referenceCalendarRaceCounts;
   const calendars = Object.fromEntries(
@@ -60,6 +60,7 @@ test("season rollover follows the accepted baseline race counts when hidden cale
       .map(([year, count]) => [year, calendarRows(Number(year), count)]),
   );
   const save = {
+    meta: { seed: "database-baseline-calendar" },
     clock: { season: 1980, date: "1980-12-31" },
     world: {
       season: 1980,
@@ -72,6 +73,7 @@ test("season rollover follows the accepted baseline race counts when hidden cale
   const system = createSeasonRolloverSystem();
 
   for (let season = 1981; season <= 1990; season += 1) {
+    save.clock = { season, date: `${season}-01-01` };
     const output = system.handle({
       saveWorld: save,
       event: {
@@ -79,8 +81,12 @@ test("season rollover follows the accepted baseline race counts when hidden cale
         payload: { season, previousSeason: season - 1 },
       },
     });
-    assert.equal(save.world.calendar.length, counts[String(season)], `wrong race count for ${season}`);
-    assert.equal(output.payload.races, counts[String(season)]);
-    assert.equal(output.payload.calendar_source, "global_historical_calendar_reference");
+    assert.ok(save.world.calendar.length > 0, `calendar disappeared in ${season}`);
+    assert.equal(output.payload.calendar_source, "dynamic_calendar_promoter_system");
+    assert.equal(output.payload.calendar_reference_races, counts[String(season)]);
+    assert.ok(save.world.calendar.every((row) => row.generation_source === "dynamic_calendar_promoter_system"));
+    assert.equal(save.world.calendarEvolution.seasons[String(season)].raceCount, save.world.calendar.length);
   }
+
+  assert.equal(save.world.calendarEvolution.plans["1981"].referencePolicy, "historical_future_calendar_is_candidate_not_script");
 });
