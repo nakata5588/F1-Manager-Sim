@@ -199,6 +199,7 @@ function closeMonth(saveWorld, event) {
   for (const teamId of Object.keys(state).sort()) {
     const team = state[teamId];
     const sponsors = sponsorIncome(saveWorld, teamId, season);
+    const ownerOperatingSupport = consumeOwnerOperatingSupport(saveWorld, teamId, event.date);
     const driverSalaries = assignmentSalary(saveWorld, teamId, "driver", season);
     const staffSalaries = assignmentSalary(saveWorld, teamId, "staff", season);
     const maintenance = facilityMaintenance(saveWorld, teamId);
