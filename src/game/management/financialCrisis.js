@@ -140,6 +140,7 @@ export function ensureFinancialCrisisTeam(saveWorld, teamId, date = saveWorld.cl
     lastInterventionAt: null,
     lastOwnerFundingAt: null,
     lastBridgeFinanceAt: null,
+    ownerOperatingGuarantee: null,
     lastOwnershipReviewAt: null,
     lastOwnershipChangeAt: null,
     failedOwnershipReviews: 0,
@@ -323,6 +324,10 @@ export function arrangeBridgeFinance(saveWorld, teamId, options = {}) {
   const finance = saveWorld.world?.teamState?.[teamId];
   if (!finance) return { approved: false, amount: 0, reason: "finances_unavailable" };
   const plan = financialPlanningProjection(saveWorld, teamId);
+  const currentDate = options.date ?? saveWorld.clock?.date;
+  if (row.lastBridgeFinanceAt && monthsSince(row.lastBridgeFinanceAt, currentDate) < 18) {
+    return { approved: false, amount: 0, reason: "bridge_finance_cooldown" };
+  }
   const existingDebt = Math.max(0, numeric(row.debtPrincipal, 0));
   const debtCeiling = Math.max(
     250_000,
@@ -456,6 +461,14 @@ export function attemptOwnershipRescue(saveWorld, teamId, options = {}) {
     supportBudget: roundMoney(Math.max(750_000, injection * (2 + indices.supportIndex / 100))),
     supportUsed: 0,
   };
+  const monthlyGuarantee = roundMoney(Math.max(0, -numeric(plan?.monthlyNet, 0)) * 1.05);
+  row.ownerOperatingGuarantee = monthlyGuarantee > 0 ? {
+    source: "save_world_new_owner_operating_guarantee",
+    monthlyAmount: monthlyGuarantee,
+    monthsRemaining: 36,
+    committedAt: options.date ?? saveWorld.clock?.date ?? null,
+    paidToDate: 0,
+  } : null;
   row.saleMandate = false;
   row.withdrawalRequested = false;
   row.negativeCashMonths = 0;
@@ -526,6 +539,21 @@ export function submitFinancialCrisisResponse(saveWorld, teamId, action, options
   };
 }
 
+export function consumeOwnerOperatingSupport(saveWorld, teamId, date = saveWorld.clock?.date) {
+  const row = ensureFinancialCrisisTeam(saveWorld, teamId, date);
+  const guarantee = row.ownerOperatingGuarantee;
+  if (!guarantee || Number(guarantee.monthsRemaining ?? 0) <= 0) return 0;
+  const amount = Math.max(0, roundMoney(guarantee.monthlyAmount));
+  if (amount <= 0) {
+    guarantee.monthsRemaining = 0;
+    return 0;
+  }
+  guarantee.monthsRemaining = Math.max(0, Number(guarantee.monthsRemaining ?? 0) - 1);
+  guarantee.paidToDate = roundMoney(numeric(guarantee.paidToDate, 0) + amount);
+  guarantee.lastPaidAt = date ?? null;
+  return amount;
+}
+
 export function financialCrisisProjection(saveWorld, teamId) {
   if (!teamId) return null;
   const row = ensureFinancialCrisisTeam(saveWorld, teamId);
@@ -544,6 +572,7 @@ export function financialCrisisProjection(saveWorld, teamId) {
     saleMandate: Boolean(row.saleMandate),
     withdrawalRequested: Boolean(row.withdrawalRequested),
     owner: structuredClone(row.owner),
+    ownerOperatingGuarantee: structuredClone(row.ownerOperatingGuarantee),
     lastAssessment: structuredClone(row.lastAssessment),
     availableResponses: ["stable", "watch"].includes(row.stage)
       ? []
