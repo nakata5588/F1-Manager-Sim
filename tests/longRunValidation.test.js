@@ -20,23 +20,27 @@ async function loadV08Snapshot() {
   });
 }
 
-test("real SeasonPack 1980 v0.8 survives ten autonomous seasons with coherent fallback continuity", async () => {
+test("real SeasonPack 1980 v0.8 survives ten autonomous seasons with coherent dynamic-calendar continuity", async () => {
   const snapshot = await loadV08Snapshot();
   const result = runLongRunValidation(snapshot, {
     seasons: 10,
     seed: "seasonpack-1980-ten-season-soak",
   });
 
-  // SeasonPack-only mode has no Global future calendar reference, so the normal
-  // rollover fallback intentionally carries the 1980 14-race template forward.
-  // Database baseline tests separately assert that a Season Database with Global
-  // reference consumes the real variable race counts instead.
+  // SeasonPack-only mode has no Global future calendar reference. Stage 21 no
+  // longer freezes the opening 14-race template: promoter contracts may renew,
+  // fail or return while the calendar stays inside era-aware continuity bounds.
   assert.equal(result.report.ok, true, result.report.errors.join("\n"));
   assert.equal(result.report.metrics.finalSeason, 1990);
-  assert.equal(result.report.metrics.races, 140);
   assert.equal(result.report.metrics.archivedChampionships, 10);
   assert.equal(result.checkpoints.length, 10);
-  assert.ok(result.checkpoints.every((row) => row.races === 14));
+  assert.equal(
+    result.report.metrics.races,
+    result.checkpoints.reduce((sum, row) => sum + row.races, 0),
+  );
+  assert.ok(result.checkpoints.every((row) => row.races >= 10 && row.races <= 18));
+  assert.ok(result.report.metrics.calendarPlanSeasons >= 10);
+  assert.ok(result.report.metrics.activePromoterContracts > 0);
   assert.ok(result.report.metrics.currentRaceEntries > 0);
 });
 
