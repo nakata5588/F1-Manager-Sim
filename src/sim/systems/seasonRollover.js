@@ -48,16 +48,25 @@ export function createSeasonRolloverSystem() {
         calendarSource = "active_world_existing";
       } else {
         plan = calendarPlanFor(saveWorld, season);
-        if (!plan) {
+        const previousCalendar = saveWorld.world?.calendar ?? [];
+        const referenceRows = saveWorld.reference?.futureStructure?.calendars?.[String(season)] ?? [];
+        if (!plan && (previousCalendar.length || referenceRows.length)) {
           plan = planDynamicCalendar(saveWorld, season, {
-            previousCalendar: saveWorld.world?.calendar ?? [],
+            previousCalendar,
             date: event.date,
           });
           plannedJustInTime = true;
         }
-        calendar = structuredClone(plan.calendar ?? []);
-        calendarSource = "dynamic_calendar_promoter_system";
-        applyCalendarPlan(saveWorld, season, event.date);
+        if (plan) {
+          calendar = structuredClone(plan.calendar ?? []);
+          calendarSource = "dynamic_calendar_promoter_system";
+          applyCalendarPlan(saveWorld, season, event.date);
+        } else {
+          // Calendar-less focused Save Worlds existed before Stage 21 and remain
+          // valid for non-racing domain tests/systems.
+          calendar = [];
+          calendarSource = "no_calendar_available";
+        }
       }
 
       const referencedTracksAdded = materializeReferencedTracks(saveWorld, calendar);
