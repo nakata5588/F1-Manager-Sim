@@ -36,11 +36,13 @@ Opening ownership is represented by a deterministic gameplay profile containing 
 
 These values are explicitly `derived_gameplay_ownership_profile`. They do not claim historically exact owner wealth, intentions or future decisions.
 
-An owner may inject emergency capital. Repeated rescues consume the available support budget and become less likely.
+An owner may inject emergency capital. Repeated rescues consume the available support budget and become less likely. A newly completed ownership rescue may also include a 36-month Save World operating guarantee sized against the team's current recurring deficit; that support is posted through normal Team Economy income rather than silently changing costs.
 
 ## Bridge finance
 
 If owner support is unavailable or insufficient, a team in emergency can arrange bridge finance.
+
+Bridge finance is deliberately not an endlessly renewable cash source: an existing debt-capacity ceiling and an 18-month facility cooldown apply before another bridge can be raised.
 
 Bridge finance creates explicit Save World debt with:
 
@@ -105,6 +107,7 @@ Long-run ecosystem validation now reports:
 - owner-funding interventions;
 - bridge-finance interventions;
 - ownership changes;
+- ownership-change rate per active-team season;
 - financial-crisis team exits;
 - ordinary distressed-team share.
 
