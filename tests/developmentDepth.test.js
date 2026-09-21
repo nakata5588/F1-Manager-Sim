@@ -229,6 +229,47 @@ test("annual development consumes the completed season evidence, stays below PA,
   assert.equal(driverDevelopmentEvidence(save, "YOUNG").raceStarts, 0);
 });
 
+test("confidence changes potential realization without bypassing PA", () => {
+  const low = initialized("1980-12-31");
+  const high = initialized("1980-12-31");
+
+  for (const target of [low.save, high.save]) {
+    target.world.developmentState.drivers.YOUNG.raceStarts = 10;
+    target.world.developmentState.drivers.YOUNG.raceFinishes = 9;
+    target.world.developmentState.drivers.YOUNG.teamEnvironmentMonths = 10;
+    target.world.developmentState.drivers.YOUNG.teamEnvironmentTotal = 10;
+    target.world.developmentState.drivers.YOUNG.coachingMonths = 10;
+    target.world.developmentState.drivers.YOUNG.coachingTotal = 750;
+    target.world.management ??= {};
+    target.world.management.people ??= { drivers: {}, staff: {} };
+    target.world.management.people.drivers ??= {};
+    target.world.management.people.drivers.YOUNG = {
+      mentality: { confidence: 50, morale: 50 },
+    };
+  }
+
+  low.save.world.management.people.drivers.YOUNG.mentality.confidence = 20;
+  high.save.world.management.people.drivers.YOUNG.mentality.confidence = 80;
+
+  const lowEvents = dispatchSimulationEvents(low.save, [{
+    type: SIM_EVENT.SEASON_STARTED,
+    date: "1981-01-01",
+    payload: { previousSeason: 1980, season: 1981 },
+  }], low.systems);
+  const highEvents = dispatchSimulationEvents(high.save, [{
+    type: SIM_EVENT.SEASON_STARTED,
+    date: "1981-01-01",
+    payload: { previousSeason: 1980, season: 1981 },
+  }], high.systems);
+
+  const lowDev = lowEvents.find((event) => event.type === CAREER_EVENT.DEVELOPED && event.payload.worker_id === "YOUNG");
+  const highDev = highEvents.find((event) => event.type === CAREER_EVENT.DEVELOPED && event.payload.worker_id === "YOUNG");
+  assert.ok(high.save.world.careerState.drivers.YOUNG.currentAbility > low.save.world.careerState.drivers.YOUNG.currentAbility);
+  assert.ok(high.save.world.careerState.drivers.YOUNG.currentAbility <= high.save.world.careerState.drivers.YOUNG.potentialAbility);
+  assert.equal(lowDev.payload.confidence, 20);
+  assert.equal(highDev.payload.confidence, 80);
+});
+
 test("development evidence and dynamic form survive save-world structured cloning", () => {
   const { save, systems } = initialized();
   dispatchSimulationEvents(save, [{
