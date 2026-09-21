@@ -85,6 +85,10 @@ test("future eligible driver is activated into the live career pool without scri
   const systems = createCoreWorldSystems({ controlledTeamIds: ["TEAM1"] });
   initializeSimulation(save, systems);
 
+  assert.equal(save.world.drivers.some((driver) => driver.driver_id === "DRV3"), false);
+  assert.equal(save.world.careerState.drivers.DRV3.status, "junior");
+  assert.equal(save.world.careerState.drivers.DRV3.careerStage, "prospect");
+  assert.ok(save.world.careerState.drivers.DRV3.talentProfile);
   const result = advanceDays(save, 1, systems);
   assert.ok(result.events.some((event) => event.type === ENTITY_EVENT.ELIGIBLE && event.payload.entity_id === "DRV3"));
   assert.ok(result.events.some((event) => event.type === CAREER_EVENT.PROFILE_ACTIVATED && event.payload.entity_id === "DRV3"));
