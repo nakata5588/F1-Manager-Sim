@@ -1,58 +1,14 @@
+import {
+  applyCalendarPlan,
+  calendarPlanFor,
+  initializeCalendarPromoters,
+  planDynamicCalendar,
+} from "../../game/management/calendarPromoters.js";
 import { SIM_EVENT } from "../timeEngine.js";
 
 export const SEASON_EVENT = Object.freeze({
   ROLLED_OVER: "season.rolled_over",
 });
-
-function shiftDateToYear(value, year) {
-  const text = String(value ?? "").slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
-  const [, monthText, dayText] = text.split("-");
-  const month = Number(monthText);
-  const day = Number(dayText);
-  const candidate = new Date(Date.UTC(year, month - 1, day));
-  if (candidate.getUTCMonth() !== month - 1) candidate.setUTCDate(0);
-  return candidate.toISOString().slice(0, 10);
-}
-
-function generatedGpId(race, season, index) {
-  const round = Number(race.round);
-  const suffix = race.track_id ?? race.circuit_id ?? race.gp_name ?? `race-${index + 1}`;
-  return `${season}:${Number.isFinite(round) ? round : index + 1}:${String(suffix).replace(/\s+/g, "-").toLowerCase()}`;
-}
-
-function generateCalendar(previousCalendar, season) {
-  return [...(previousCalendar ?? [])]
-    .sort((a, b) => Number(a.round ?? 999) - Number(b.round ?? 999))
-    .map((race, index) => ({
-      ...structuredClone(race),
-      source_gp_id: race.source_gp_id ?? race.gp_id ?? null,
-      gp_id: generatedGpId(race, season, index),
-      year: season,
-      race_date: shiftDateToYear(race.race_date ?? race.date, season),
-      generated: true,
-      generation_source: "previous_season_calendar",
-    }));
-}
-
-function referenceCalendar(saveWorld, season) {
-  const rows = saveWorld.reference?.futureStructure?.calendars?.[String(season)];
-  return Array.isArray(rows) ? rows : [];
-}
-
-function materializeReferenceCalendar(rows, season) {
-  return [...rows]
-    .sort((a, b) => Number(a.round ?? 999) - Number(b.round ?? 999))
-    .map((race, index) => ({
-      ...structuredClone(race),
-      year: season,
-      round: Number(race.round ?? index + 1),
-      gp_id: race.gp_id ?? race.race_id ?? generatedGpId(race, season, index),
-      generated: false,
-      historical_structure_reference: true,
-      generation_source: "global_historical_calendar_reference",
-    }));
-}
 
 function materializeReferencedTracks(saveWorld, calendar) {
   const required = new Set(calendar.map((row) => row.track_id ?? row.circuit_id).filter(Boolean));
@@ -78,22 +34,30 @@ export function createSeasonRolloverSystem() {
     handle({ saveWorld, event }) {
       const season = Number(event.payload?.season ?? saveWorld.clock.season);
       const previousSeason = Number(event.payload?.previousSeason ?? season - 1);
-      const existingCurrent = (saveWorld.world?.calendar ?? []).filter((row) => Number(row.year) === season);
-      const previous = (saveWorld.world?.calendar ?? []).filter((row) => Number(row.year) === previousSeason);
-      const references = referenceCalendar(saveWorld, season);
+      const existingCurrent = (saveWorld.world?.calendar ?? []).filter((row) => Number(row.year ?? row.season) === season);
+
+      initializeCalendarPromoters(saveWorld, event.date);
 
       let calendar;
       let calendarSource;
+      let plan = null;
+      let plannedJustInTime = false;
+
       if (existingCurrent.length) {
         calendar = existingCurrent;
         calendarSource = "active_world_existing";
-      } else if (references.length) {
-        calendar = materializeReferenceCalendar(references, season);
-        calendarSource = "global_historical_calendar_reference";
       } else {
-        const template = previous.length ? previous : saveWorld.world?.calendar ?? [];
-        calendar = generateCalendar(template, season);
-        calendarSource = "previous_season_calendar_fallback";
+        plan = calendarPlanFor(saveWorld, season);
+        if (!plan) {
+          plan = planDynamicCalendar(saveWorld, season, {
+            previousCalendar: saveWorld.world?.calendar ?? [],
+            date: event.date,
+          });
+          plannedJustInTime = true;
+        }
+        calendar = structuredClone(plan.calendar ?? []);
+        calendarSource = "dynamic_calendar_promoter_system";
+        applyCalendarPlan(saveWorld, season, event.date);
       }
 
       const referencedTracksAdded = materializeReferencedTracks(saveWorld, calendar);
@@ -104,10 +68,16 @@ export function createSeasonRolloverSystem() {
         season,
         previousSeason,
         date: event.date,
-        calendarGenerated: calendarSource === "previous_season_calendar_fallback",
+        calendarGenerated: calendarSource === "dynamic_calendar_promoter_system",
         calendarSource,
         races: calendar.length,
         referencedTracksAdded,
+        calendarTargetRaces: plan?.targetRaceCount ?? null,
+        calendarReferenceRaces: plan?.referenceRaceCount ?? null,
+        calendarAdded: structuredClone(plan?.added ?? []),
+        calendarDropped: structuredClone(plan?.dropped ?? []),
+        calendarRenewed: structuredClone(plan?.renewed ?? []),
+        calendarPlannedJustInTime: plannedJustInTime,
       });
 
       return {
@@ -115,10 +85,16 @@ export function createSeasonRolloverSystem() {
         payload: {
           season,
           previous_season: previousSeason,
-          calendar_generated: calendarSource === "previous_season_calendar_fallback",
+          calendar_generated: calendarSource === "dynamic_calendar_promoter_system",
           calendar_source: calendarSource,
           races: calendar.length,
           referenced_tracks_added: referencedTracksAdded,
+          calendar_target_races: plan?.targetRaceCount ?? null,
+          calendar_reference_races: plan?.referenceRaceCount ?? null,
+          calendar_added: structuredClone(plan?.added ?? []),
+          calendar_dropped: structuredClone(plan?.dropped ?? []),
+          calendar_renewed: structuredClone(plan?.renewed ?? []),
+          calendar_planned_just_in_time: plannedJustInTime,
         },
       };
     },
