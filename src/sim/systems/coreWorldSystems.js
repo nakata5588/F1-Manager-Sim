@@ -4,6 +4,7 @@ import { createTalentRecruitmentSystem } from "./talentRecruitment.js";
 import { createEntityAvailabilitySystem } from "./entityAvailability.js";
 import { createCareerLifecycleSystem } from "./careerLifecycle.js";
 import { createCareerDevelopmentSystem } from "./careerDevelopment.js";
+import { createDevelopmentSignalsSystem } from "./developmentSignals.js";
 import { createRetirementSystem } from "./retirement.js";
 import { createRetirementEmploymentSystem } from "./retirementEmployment.js";
 import { createAiEmploymentDecisionSystem, createEmploymentMarketSystem } from "./employmentMarket.js";
@@ -58,6 +59,7 @@ export function createCoreWorldSystems(options = {}) {
       durationSeasons: options.talentProgrammeDurationSeasons,
     }),
     createCareerDevelopmentSystem(),
+    createDevelopmentSignalsSystem(),
     createRetirementSystem(),
     createContractMilestoneSystem(),
     createTransferVacancySystem(),

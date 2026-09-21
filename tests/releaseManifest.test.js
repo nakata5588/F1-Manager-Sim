@@ -25,4 +25,7 @@ test("release manifest points at current save/database/circuit authorities", asy
   assert.equal(manifest.policies.financialCrisisAuthority, "world.financialCrisis");
   assert.equal(manifest.policies.ownershipChangePolicy, "save_world_dynamic_preserve_team_id");
   assert.equal(manifest.policies.insolvencyExitAuthority, "team.financial-crisis");
+  assert.equal(manifest.policies.developmentEvidenceAuthority, "world.developmentState");
+  assert.equal(manifest.policies.careerRatingAuthority, "world.careerState");
+  assert.equal(manifest.policies.developmentPotentialPolicy, "dynamic_attributes_ca_capped_by_pa");
 });

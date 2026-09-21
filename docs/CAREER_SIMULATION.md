@@ -14,6 +14,32 @@ Race performance will continue to emerge from individual attributes plus car, te
 
 The career system therefore evolves both a CA reference and individual dynamic attributes.
 
+## Development 2.0 evidence
+
+Stage 20 adds a persistent Save World evidence layer under `world.developmentState`.
+
+For drivers it records, by season:
+
+- race starts and finishes;
+- practice/qualifying exposure;
+- teammate-relative race and qualifying performance;
+- preseason testing sessions and role-weighted mileage;
+- team/organisation environment;
+- staff coaching quality;
+- veteran mentoring for younger drivers;
+- injury days and severity burden.
+
+For staff it records:
+
+- employed months;
+- race-weekend exposure;
+- preseason test participation;
+- department effectiveness;
+- workload factor;
+- peer learning from more experienced colleagues in the same functional department.
+
+Morale, form and confidence remain separate dynamic people/career states. They influence how effectively existing potential is realised, but they do not manufacture potential or directly determine race results.
+
 ## Annual driver development
 
 At each season transition:
@@ -25,14 +51,18 @@ At each season transition:
 - racecraft, consistency, technical feedback, pressure handling and leadership can continue improving while raw speed is flattening;
 - crash likelihood can improve with experience;
 - free agents develop more slowly than employed drivers;
-- morale and form influence development slightly and regress toward neutral between seasons;
+- meaningful race/testing opportunity improves the chance of realising potential;
+- strong coaching, organisation and mentoring can accelerate learning without creating ability beyond PA;
+- teammate-relative performance contributes a controlled learning signal rather than rewarding finishing position in isolation;
+- injury burden can slow development and accelerate loss of raw pace;
+- morale, form and confidence influence development slightly and regress toward neutral between seasons;
 - a seeded noise component prevents identical career curves while keeping saves reproducible.
 
 No historical future rating is copied into the Save World after career start.
 
 ## Staff development
 
-Staff careers use a slower curve than drivers. Technical performance can plateau while leadership, communication, negotiation and other experience-led skills continue to improve.
+Staff careers use a slower curve than drivers. Technical performance can plateau while leadership, communication, negotiation and other experience-led skills continue to improve. Stage 20 also makes staff growth depend on real employment, department quality/workload, race/test exposure and peer learning rather than age alone.
 
 ## Retirement
 
@@ -76,6 +106,14 @@ Development and retirement random streams are derived from:
 
 This allows a simulation to be reproduced while still permitting different saves from the same historical starting database to create different futures.
 
+## Authority and historical policy
+
+Historical source ratings seed the opening career state only. After Career Start, `world.careerState` is the mutable rating/attribute authority and `world.developmentState` is the evidence authority.
+
+Development resolution remains deterministic for the same save seed and evidence, but two careers can diverge naturally because opportunity, performance, injuries, teams, coaches and morale diverge.
+
+CA/PA are not exposed as a universal performance formula. Individual dynamic attributes remain the inputs used by race, technical and management systems.
+
 ## Future work
 
-Later systems will feed career evolution more deeply with race participation, performance, injury after-effects, rehabilitation, morale, team quality, development programmes, testing mileage and reputation changes. The annual model is intentionally modular so those inputs can be added without coupling it to a specific Master Database or Season Database schema.
+Later development passes can add explicit rehabilitation programmes, training plans, driver academies, staff education/certification and richer role-specific testing allocation without replacing the Stage 20 evidence boundary.

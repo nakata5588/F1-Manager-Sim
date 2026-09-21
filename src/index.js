@@ -17,6 +17,7 @@ export { buildDriverScoutingReport, completeDriverScoutingAssignment, driverScou
 export { acceptDriverContractCounterEvent, CONTRACT_NEGOTIATION_EVENT, contractNegotiationSummary, ensureContractNegotiationState, evaluateDriverContractOffer, listContractNegotiations, openDriverContractNegotiation, submitDriverContractOfferEvent, transferCompensationRequirement, withdrawDriverContractNegotiationEvent } from "./game/management/contracts.js";
 export { activeCompetingOffers, adjustRelationship, ensurePeopleState, ensurePersonState, ensureRelationship, ensureRepresentative, evaluateDriverTransferInterest, peopleSummary, personProfile, personProjection } from "./game/management/people.js";
 export { DRIVER_AVAILABILITY_EVENT, driverAvailabilityProjection, ensureDriverAvailabilityState, ensureDriverMedicalState, initializeDriverAvailability, isDriverRaceAvailable, recoverDueDrivers, resolveDriverInjury } from "./game/management/driverAvailability.js";
+export { archiveDevelopmentSeason, developmentProjection, driverDevelopmentEvidence, ensureDevelopmentState, ensureDriverDevelopmentSeason, ensureStaffDevelopmentSeason, resetDevelopmentSeason, staffDevelopmentEvidence } from "./game/management/development.js";
 export { driverMarketProjection, ensureDriverMarketState, evolveDriverMarketSeason, holdReplacementDriverFromMarket, initializeDriverMarket, markDriverF1Employed, markDriverF1FreeAgent, markDriverRetired, releaseReplacementDriverToMarket, replacementDriverCandidates } from "./game/management/driverMarket.js";
 export { chooseRivalTeam, createExternalDriverOffer, expireExternalOffers, listOpenExternalOffers, marketPressureForDriver, marketSummary } from "./game/management/market.js";
 export { boardProjection, boardStatus, ensureBoardState, evaluateBoard, initializeBoardTeam, renewBoardSeason, resolveBoardRequest, submitBoardRequest } from "./game/management/board.js";
@@ -62,6 +63,7 @@ export { ENTITY_EVENT, createEntityAvailabilitySystem } from "./sim/systems/enti
 export { ageOnDate, CAREER_EVENT, createCareerLifecycleSystem, registerCareerProfile } from "./sim/systems/careerLifecycle.js";
 export { advanceGeneratedTalent, createTalentPipelineSystem, ensureTalentPipelineState, generateTalentCohort, TALENT_EVENT, talentPipelineSummary } from "./sim/systems/talentPipeline.js";
 export { createCareerDevelopmentSystem } from "./sim/systems/careerDevelopment.js";
+export { DEVELOPMENT_SIGNAL_EVENT, createDevelopmentSignalsSystem } from "./sim/systems/developmentSignals.js";
 export { createRetirementSystem, retirementProbability } from "./sim/systems/retirement.js";
 export { createRetirementEmploymentSystem } from "./sim/systems/retirementEmployment.js";
 export { EMPLOYMENT_EVENT, createAiEmploymentDecisionSystem, createEmploymentMarketSystem } from "./sim/systems/employmentMarket.js";

@@ -55,6 +55,7 @@ function person(profile) {
   const employment = profile.employment ?? {};
   const team = employment.teamId ? entityLink("team", employment.teamId, employment.teamName ?? employment.teamId) : "Free agent";
   const recent = profile.recentResults ?? [];
+  const development = profile.development ?? null;
   const availability = profile.availability ?? null;
   const marketPath = profile.marketPath ?? null;
   const medical = profile.type === "driver" && availability
@@ -62,6 +63,11 @@ function person(profile) {
     : "";
   const market = profile.type === "driver"
     ? `<article class="profile-card"><h2>Driver Market</h2>${detail("Career path", human(marketPath?.path ?? "unknown"))}${detail("Last F1 season", marketPath?.lastF1Season ?? "—")}${detail("F1 free since", marketPath?.f1FreeSince ?? "—")}${availability?.activeReplacement ? detail("Replacement duty", availability.activeReplacement.teamId ?? "Active") : detail("Replacement duty", "None")}</article>`
+    : "";
+  const developmentCard = development
+    ? `<article class="profile-card wide"><h2>Development Evidence</h2>${profile.type === "driver"
+      ? `${detail("Race starts", development.raceStarts ?? 0)}${detail("Testing mileage", Number(development.testingMileage ?? 0).toFixed(2))}${detail("Teammate performance", Number(development.averageTeammatePerformanceDelta ?? 0).toFixed(2))}${detail("Coaching", Number(development.averageCoaching ?? 0).toFixed(1))}${detail("Mentoring", Number(development.averageMentoring ?? 0).toFixed(1))}${detail("Injury burden", Number(development.injuryBurden ?? 0).toFixed(2))}`
+      : `${detail("Employed months", development.employedMonths ?? 0)}${detail("Race weekends", development.raceWeekends ?? 0)}${detail("Test sessions", development.testSessions ?? 0)}${detail("Department effectiveness", Number(development.averageDepartmentEffectiveness ?? 1).toFixed(2))}${detail("Peer learning", Number(development.averagePeerLearning ?? 0).toFixed(1))}`}</article>`
     : "";
   return `<main class="profile-shell">
     <section class="profile-hero">
@@ -72,7 +78,7 @@ function person(profile) {
     <section class="profile-grid">
       <article class="profile-card"><h2>Career Status</h2>${detail("Role", human(employment.role))}${detail("Status", human(employment.status))}${detail("Contract until", employment.contractUntil)}${profile.type === "driver" ? detail("Scouting knowledge", `${Math.round(profile.scoutingKnowledge ?? 0)}%`) : detail("Recruitment", profile.recruitment?.eligible ? "Available through staff market" : human(profile.recruitment?.reason))}</article>
       <article class="profile-card"><h2>Current State</h2>${profile.careerState ? `${detail("Current ability", profile.careerState.currentAbility)}${detail("Potential ability", profile.careerState.potentialAbility)}${detail("Reputation", profile.careerState.reputation)}${detail("Morale", profile.careerState.morale)}` : '<p class="profile-muted">Detailed information is available for people employed by your team.</p>'}</article>
-      ${medical}${market}
+      ${medical}${market}${developmentCard}
       <article class="profile-card wide"><h2>Attributes</h2>${attributes(profile.attributes)}</article>
       ${profile.type === "driver" ? `<article class="profile-card wide"><h2>Recent Race Results</h2>${recent.length ? `<div class="profile-list">${recent.map((row) => `<div class="profile-list-row"><div><strong>${escapeHtml(row.raceName)}</strong><div class="profile-muted">${humanDate(row.date)}${row.teamId ? ` · ${entityLink("team", row.teamId, row.teamName ?? row.teamId)}` : ""}</div></div><span>P${row.position ?? "—"}</span><span>${row.points ?? 0} pts</span></div>`).join("")}</div>` : '<p class="profile-muted">No archived race results yet.</p>'}</article>` : ""}
     </section>

@@ -1,6 +1,10 @@
 import { createRng } from "../random.js";
 import { SIM_EVENT } from "../timeEngine.js";
 import { CAREER_EVENT } from "./careerLifecycle.js";
+import {
+  driverDevelopmentEvidence,
+  staffDevelopmentEvidence,
+} from "../../game/management/development.js";
 
 const DRIVER_RAW_PACE = new Set(["pace", "qualifying", "start_launch"]);
 const DRIVER_EXPERIENCE = new Set([
@@ -155,6 +159,72 @@ function employmentFactor(saveWorld, type, id, positiveDelta) {
   return assignments?.[id]?.status === "employed" ? 1 : 0.76;
 }
 
+function driverEvidenceModifier(saveWorld, id, age, positiveDelta) {
+  const evidence = driverDevelopmentEvidence(saveWorld, id);
+  const raceExposure = clamp(numeric(evidence.raceStarts, 0) / 12, 0, 1);
+  const testingExposure = clamp(numeric(evidence.testingMileage, 0) / 3, 0, 1);
+  const environment = clamp(numeric(evidence.averageTeamEnvironment, 1), 0.4, 1.2);
+  const coaching = clamp((numeric(evidence.averageCoaching, 50) - 50) / 50, -0.5, 1);
+  const performance = clamp(numeric(evidence.averageTeammatePerformanceDelta, 0) / 8, -1, 1);
+  const qualifying = clamp(numeric(evidence.averageTeammateQualifyingDelta, 0) / 4, -1, 1);
+  const mentoring = age !== null && age <= 27
+    ? clamp(numeric(evidence.averageMentoring, 0) / 100, 0, 1)
+      * clamp(numeric(evidence.mentoringMonths, 0) / 6, 0, 1)
+    : 0;
+  const injuryPenalty = clamp(
+    numeric(evidence.injuryBurden, 0) * 0.28 + numeric(evidence.injuryDays, 0) / 360,
+    0,
+    1.4,
+  );
+
+  let multiplier = 1;
+  let additive = 0;
+  if (positiveDelta) {
+    const opportunity = 0.72 + raceExposure * 0.2 + testingExposure * 0.08;
+    const environmentFactor = clamp(0.78 + environment * 0.22 + coaching * 0.08, 0.72, 1.16);
+    multiplier = opportunity * environmentFactor;
+    additive += performance * 0.22 + qualifying * 0.12 + mentoring * 0.38;
+  } else {
+    // Activity and good environments can soften decline but never reverse the
+    // physical age curve by themselves.
+    multiplier = clamp(1 - raceExposure * 0.08 - testingExposure * 0.03, 0.86, 1);
+    additive += performance * 0.06;
+  }
+  additive -= injuryPenalty * (positiveDelta ? 0.42 : 0.28);
+  return { multiplier, additive, evidence };
+}
+
+function staffEvidenceModifier(saveWorld, id, positiveDelta) {
+  const evidence = staffDevelopmentEvidence(saveWorld, id);
+  const employmentExposure = clamp(numeric(evidence.employedMonths, 0) / 12, 0, 1);
+  const raceExposure = clamp(numeric(evidence.raceWeekends, 0) / 12, 0, 1);
+  const testExposure = clamp(numeric(evidence.testSessions, 0) / 3, 0, 1);
+  const department = clamp(numeric(evidence.averageDepartmentEffectiveness, 1), 0.4, 1.2);
+  const workload = clamp(numeric(evidence.averageWorkloadFactor, 1), 0.55, 1.05);
+  const peerLearning = clamp(numeric(evidence.averagePeerLearning, 0) / 100, 0, 1)
+    * clamp(numeric(evidence.peerLearningMonths, 0) / 6, 0, 1);
+
+  if (!positiveDelta) {
+    return {
+      multiplier: clamp(1 - employmentExposure * 0.04, 0.92, 1),
+      additive: 0,
+      evidence,
+    };
+  }
+
+  return {
+    multiplier: clamp(
+      (0.7 + employmentExposure * 0.22 + raceExposure * 0.05 + testExposure * 0.03)
+        * (0.82 + department * 0.18)
+        * (0.9 + workload * 0.1),
+      0.62,
+      1.18,
+    ),
+    additive: peerLearning * 0.28,
+    evidence,
+  };
+}
+
 function calculateAbilityDelta(saveWorld, type, id, state, current, potential, age, event) {
   const base = type === "driver" ? driverBaseDelta(age) : staffBaseDelta(age);
   const rng = createRng(`${saveWorld.meta.seed}|${event.payload?.season ?? saveWorld.clock.season}|career-development|${type}|${id}`);
@@ -167,12 +237,24 @@ function calculateAbilityDelta(saveWorld, type, id, state, current, potential, a
     delta *= employmentFactor(saveWorld, type, id, true);
   }
 
+  const evidence = type === "driver"
+    ? driverEvidenceModifier(saveWorld, id, age, base > 0)
+    : staffEvidenceModifier(saveWorld, id, base > 0);
+  delta = delta * evidence.multiplier + evidence.additive;
+
   const morale = numeric(state.morale, 50);
   const form = numeric(state.form, 0);
+  const mentality = type === "driver"
+    ? saveWorld.world?.management?.people?.drivers?.[id]?.mentality
+    : saveWorld.world?.management?.people?.staff?.[id]?.mentality;
+  const confidence = numeric(mentality?.confidence, 50);
   delta += clamp((morale - 50) / 100, -0.25, 0.25);
   delta += clamp(form / 100, -0.15, 0.15);
+  // Confidence influences how effectively existing potential is realised, but
+  // it cannot create talent beyond PA and remains a secondary signal.
+  delta += clamp((confidence - 50) / 160, -0.22, 0.22);
   delta += (rng.next() - 0.5) * 0.5;
-  return { delta, rng };
+  return { delta, rng, evidence: evidence.evidence, confidence };
 }
 
 function ensureAttributes(state, type, rating, profile) {
@@ -186,7 +268,7 @@ function ensureAttributes(state, type, rating, profile) {
   return state.attributes;
 }
 
-function evolveDriverAttributes(attributes, age, abilityDelta, rng) {
+function evolveDriverAttributes(attributes, age, abilityDelta, rng, evidence = {}) {
   for (const field of DRIVER_ATTRIBUTES) {
     const before = numeric(attributes[field]);
     if (before === null) continue;
@@ -199,24 +281,40 @@ function evolveDriverAttributes(attributes, age, abilityDelta, rng) {
       delta = maturity + abilityDelta * 0.12 + (rng.next() - 0.5) * 0.18;
     } else if (DRIVER_RAW_PACE.has(field)) {
       const agePenalty = age !== null && age >= 34 ? -0.12 : 0;
-      delta = abilityDelta * 1.08 + agePenalty + (rng.next() - 0.5) * 0.22;
+      const injuryPenalty = clamp(numeric(evidence.injuryBurden, 0) * 0.08, 0, 0.28);
+      delta = abilityDelta * 1.08 + agePenalty - injuryPenalty + (rng.next() - 0.5) * 0.22;
     } else if (DRIVER_EXPERIENCE.has(field)) {
       const experienceBonus = age !== null && age <= 35 ? 0.28 : age !== null && age <= 40 ? 0.08 : -0.08;
-      delta = abilityDelta * 0.46 + experienceBonus + (rng.next() - 0.5) * 0.2;
+      const raceLearning = clamp(numeric(evidence.raceStarts, 0) / 20, 0, 0.35);
+      const mentoring = ["leadership", "team_player", "technical_feedback"].includes(field)
+        ? clamp(numeric(evidence.averageMentoring, 0) / 100, 0, 1) * 0.18
+        : 0;
+      delta = abilityDelta * 0.46 + experienceBonus + raceLearning + mentoring + (rng.next() - 0.5) * 0.2;
     } else {
-      delta = abilityDelta * 0.72 + (rng.next() - 0.5) * 0.2;
+      const testing = ["technical_feedback", "adaptability", "car_development_impact"].includes(field)
+        ? clamp(numeric(evidence.testingMileage, 0) / 4, 0, 0.28)
+        : 0;
+      delta = abilityDelta * 0.72 + testing + (rng.next() - 0.5) * 0.2;
     }
     attributes[field] = rounded(clamp(before + delta, 1, 100));
   }
 }
 
-function evolveStaffAttributes(attributes, age, abilityDelta, rng) {
+function evolveStaffAttributes(attributes, age, abilityDelta, rng, evidence = {}) {
   for (const field of STAFF_ATTRIBUTES) {
     const before = numeric(attributes[field]);
     if (before === null) continue;
     const experienceBonus = STAFF_EXPERIENCE.has(field) && age !== null && age <= 62 ? 0.16 : 0;
     const multiplier = STAFF_EXPERIENCE.has(field) ? 0.68 : 0.9;
-    const delta = abilityDelta * multiplier + experienceBonus + (rng.next() - 0.5) * 0.16;
+    const operationalLearning = clamp(
+      numeric(evidence.raceWeekends, 0) / 24 + numeric(evidence.testSessions, 0) / 18,
+      0,
+      0.3,
+    );
+    const peerLearning = STAFF_EXPERIENCE.has(field)
+      ? clamp(numeric(evidence.averagePeerLearning, 0) / 100, 0, 1) * 0.12
+      : 0;
+    const delta = abilityDelta * multiplier + experienceBonus + operationalLearning + peerLearning + (rng.next() - 0.5) * 0.16;
     attributes[field] = rounded(clamp(before + delta, 1, 100));
   }
 }
@@ -228,17 +326,16 @@ function updateWorker(saveWorld, type, id, state, event) {
   const age = numeric(state.age);
   const before = inferredCurrentAbility(type, state, rating, profile);
   const potential = inferredPotentialAbility(type, state, rating, profile, before, age);
-  const { delta: rawDelta, rng } = calculateAbilityDelta(saveWorld, type, id, state, before, potential, age, event);
-  const positiveUpper = potential > before ? potential : before;
-  const upperBound = Math.max(100, positiveUpper, before);
+  const { delta: rawDelta, rng, evidence, confidence } = calculateAbilityDelta(saveWorld, type, id, state, before, potential, age, event);
+  const upperBound = Math.max(before, potential);
   const after = rounded(clamp(before + rawDelta, 1, upperBound));
   const actualDelta = rounded(after - before);
 
   state.currentAbility = after;
   state.potentialAbility = potential;
   const attributes = ensureAttributes(state, type, rating, profile);
-  if (type === "driver") evolveDriverAttributes(attributes, age, actualDelta, rng);
-  else evolveStaffAttributes(attributes, age, actualDelta, rng);
+  if (type === "driver") evolveDriverAttributes(attributes, age, actualDelta, rng, evidence);
+  else evolveStaffAttributes(attributes, age, actualDelta, rng, evidence);
 
   const morale = numeric(state.morale, 50);
   const form = numeric(state.form, 0);
@@ -247,6 +344,22 @@ function updateWorker(saveWorld, type, id, state, event) {
   state.developmentPhase = phaseFor(type, age);
   state.lastDevelopmentSeason = Number(event.payload?.season ?? saveWorld.clock.season);
   state.lastUpdated = event.date;
+
+  saveWorld.history ??= {};
+  saveWorld.history.development ??= [];
+  const developmentRecord = {
+    date: event.date,
+    season: state.lastDevelopmentSeason,
+    type: "worker_development",
+    workerType: type,
+    workerId: id,
+    age,
+    phase: state.developmentPhase,
+    currentAbilityBefore: rounded(before),
+    currentAbilityAfter: after,
+    delta: actualDelta,
+  };
+  saveWorld.history.development.push(developmentRecord);
 
   return {
     type: CAREER_EVENT.DEVELOPED,
@@ -258,6 +371,21 @@ function updateWorker(saveWorld, type, id, state, event) {
       current_ability_before: rounded(before),
       current_ability_after: after,
       delta: actualDelta,
+      confidence: rounded(numeric(confidence, 50)),
+      evidence: type === "driver" ? {
+        race_starts: numeric(evidence?.raceStarts, 0),
+        testing_mileage: rounded(numeric(evidence?.testingMileage, 0)),
+        teammate_performance_delta: rounded(numeric(evidence?.averageTeammatePerformanceDelta, 0)),
+        mentoring: rounded(numeric(evidence?.averageMentoring, 0)),
+        coaching: rounded(numeric(evidence?.averageCoaching, 0)),
+        injury_burden: rounded(numeric(evidence?.injuryBurden, 0)),
+      } : {
+        employed_months: numeric(evidence?.employedMonths, 0),
+        race_weekends: numeric(evidence?.raceWeekends, 0),
+        test_sessions: numeric(evidence?.testSessions, 0),
+        department_effectiveness: rounded(numeric(evidence?.averageDepartmentEffectiveness, 1)),
+        peer_learning: rounded(numeric(evidence?.averagePeerLearning, 0)),
+      },
     },
   };
 }

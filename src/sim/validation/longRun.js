@@ -177,6 +177,55 @@ function financialCrisisHealth(saveWorld, errors) {
   }
 }
 
+function developmentHealth(saveWorld, errors, warnings) {
+  const checkWorker = (type, id, state) => {
+    const current = numeric(state?.currentAbility);
+    const potential = numeric(state?.potentialAbility);
+    // Legacy historical rows can legitimately have no sourced CA/PA. The
+    // lifecycle stores those as null; Number(null) would otherwise turn
+    // "unknown" into an invented zero and make validation reject valid saves.
+    const hasCurrent = state?.currentAbility !== null && state?.currentAbility !== undefined && state?.currentAbility !== "";
+    const hasPotential = state?.potentialAbility !== null && state?.potentialAbility !== undefined && state?.potentialAbility !== "";
+    if (hasCurrent && current !== null && (current < 1 || current > 100)) {
+      errors.push(`${type} ${id} has currentAbility outside 1-100: ${current}.`);
+    }
+    if (hasPotential && potential !== null && (potential < 1 || potential > 100)) {
+      errors.push(`${type} ${id} has potentialAbility outside 1-100: ${potential}.`);
+    }
+    if (state?.lastDevelopmentSeason !== undefined && hasCurrent && hasPotential && current !== null && potential !== null && current > potential + 0.01) {
+      errors.push(`${type} ${id} exceeded potentialAbility after development (${current} > ${potential}).`);
+    }
+    for (const [field, value] of Object.entries(state?.attributes ?? {})) {
+      const number = numeric(value);
+      if (number !== null && (number < 1 || number > 100)) {
+        errors.push(`${type} ${id} attribute ${field} is outside 1-100: ${number}.`);
+      }
+    }
+  };
+
+  for (const [id, state] of Object.entries(saveWorld.world?.careerState?.drivers ?? {})) checkWorker("driver", id, state);
+  for (const [id, state] of Object.entries(saveWorld.world?.careerState?.staff ?? {})) checkWorker("staff", id, state);
+
+  const history = (saveWorld.history?.development ?? []).filter((row) => row?.type === "worker_development");
+  if (!history.length) warnings.push("Development history contains no annual worker-development records.");
+  for (const row of history) {
+    if (numeric(row?.delta) === null) errors.push(`Development history for ${row?.workerType ?? "worker"} ${row?.workerId ?? "?"} has an invalid delta.`);
+  }
+
+  for (const [id, row] of Object.entries(saveWorld.world?.developmentState?.drivers ?? {})) {
+    for (const field of ["raceStarts", "raceFinishes", "practiceWindows", "testingSessions", "testingMileage", "injuryDays", "injuryBurden"]) {
+      const value = numeric(row?.[field], 0);
+      if (value < 0) errors.push(`Driver development evidence ${id} has negative ${field}.`);
+    }
+  }
+  for (const [id, row] of Object.entries(saveWorld.world?.developmentState?.staff ?? {})) {
+    for (const field of ["employedMonths", "raceWeekends", "testSessions", "departmentMonths", "peerLearningMonths"]) {
+      const value = numeric(row?.[field], 0);
+      if (value < 0) errors.push(`Staff development evidence ${id} has negative ${field}.`);
+    }
+  }
+}
+
 function raceCountsForSeasons(saveWorld, expectedSeasons) {
   const grouped = groupBySeason(saveWorld.history?.races ?? []);
   return Object.fromEntries(expectedSeasons.map((season) => [season, (grouped.get(season) ?? []).length]));
@@ -236,11 +285,13 @@ export function validateLongRunWorld(saveWorld, options = {}) {
   raceEntryHealth(saveWorld, errors);
   employmentHealth(saveWorld, errors);
   financialCrisisHealth(saveWorld, errors);
+  developmentHealth(saveWorld, errors, warnings);
 
   checkFiniteObject(saveWorld.world?.teamState, "world.teamState", errors);
   checkFiniteObject(saveWorld.world?.carState, "world.carState", errors);
   checkFiniteObject(saveWorld.world?.careerState, "world.careerState", errors);
   checkFiniteObject(saveWorld.world?.financialCrisis, "world.financialCrisis", errors);
+  checkFiniteObject(saveWorld.world?.developmentState, "world.developmentState", errors);
 
   const championshipSeasons = (saveWorld.history?.championships ?? []).map((row) => Number(row.season)).filter(Number.isInteger);
   const transfers = saveWorld.history?.transfers?.length ?? 0;
@@ -275,6 +326,8 @@ export function validateLongRunWorld(saveWorld, options = {}) {
       teamsInAdministration: Object.values(saveWorld.world?.financialCrisis?.teams ?? {}).filter((row) => row?.stage === "administration").length,
       ownershipChanges: saveWorld.world?.financialCrisis?.ownershipChanges?.length ?? 0,
       crisisDebt: Object.values(saveWorld.world?.financialCrisis?.teams ?? {}).reduce((sum, row) => sum + Math.max(0, numeric(row?.debtPrincipal, 0)), 0),
+      developmentSeasonsArchived: saveWorld.world?.developmentState?.history?.length ?? 0,
+      developmentRecords: (saveWorld.history?.development ?? []).filter((row) => row?.type === "worker_development").length,
       freeStaff: saveWorld.world?.employment?.freeAgents?.staff?.length ?? 0,
       openVacancies: (saveWorld.world?.employment?.vacancies ?? []).filter((row) => row.status === "open").length,
     },
