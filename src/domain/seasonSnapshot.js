@@ -115,6 +115,64 @@ const FUTURE_OUTCOME_FIELDS = new Set([
   "position", "points", "champion", "championship_position", "podium", "race_winner",
 ]);
 
+const DRIVER_TALENT_FIELDS = [
+  "pace", "qualifying", "start_launch", "racecraft", "wet_skill", "consistency",
+  "tire_management", "tyre_management", "race_intelligence", "technical_feedback",
+  "adaptability", "ers_fuel_management", "mentality", "pressure_handling",
+  "leadership", "team_player", "car_development_impact",
+];
+
+function numericTalent(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function buildDriverTalentReferences(database, season, driverIds) {
+  const rows = database.driverRatings ?? [];
+  return [...driverIds].sort().map((driverId) => {
+    const history = rows.filter((row) => String(row?.driver_id ?? "") === String(driverId));
+    const opening = history.find((row) => Number(row?.year) === Number(season)) ?? null;
+    const ceilings = {};
+    for (const field of DRIVER_TALENT_FIELDS) {
+      const values = history.map((row) => numericTalent(row?.[field])).filter((value) => value !== null);
+      if (values.length) ceilings[field] = Math.max(...values);
+    }
+    const potentials = history.flatMap((row) => [
+      numericTalent(row?.potential_ability),
+      numericTalent(row?.current_ability),
+    ]).filter((value) => value !== null);
+    const behaviour = {};
+    for (const field of ["aggression", "agression", "crash_likelihood"]) {
+      const value = numericTalent(opening?.[field] ?? history[0]?.[field]);
+      if (value !== null) behaviour[field] = value;
+    }
+    const openingAttributes = {};
+    if (opening) {
+      for (const field of DRIVER_TALENT_FIELDS) {
+        const value = numericTalent(opening?.[field]);
+        if (value !== null) openingAttributes[field] = value;
+      }
+    }
+    const years = history.map((row) => Number(row?.year)).filter(Number.isInteger).sort((a, b) => a - b);
+    return {
+      driver_id: driverId,
+      referenceSeason: Number(season),
+      source: history.length
+        ? "historical_ratings_collapsed_static_talent_reference"
+        : "no_historical_rating_reference",
+      sourceYearRange: years.length ? [years[0], years.at(-1)] : [],
+      sourceRows: history.length,
+      potentialAbility: potentials.length ? Math.max(...potentials) : null,
+      ceilings,
+      openingCurrentAbility: numericTalent(opening?.current_ability),
+      openingAttributes,
+      behaviour,
+      policy: "future_yearly_ratings_collapsed_not_scripted",
+    };
+  });
+}
+
 function stripFutureOutcomes(row) {
   return Object.fromEntries(Object.entries(row ?? {}).filter(([key]) => !FUTURE_OUTCOME_FIELDS.has(String(key).toLowerCase())));
 }
@@ -309,6 +367,8 @@ export function createSeasonSnapshot(database, year) {
   const futureDriverIds = new Set(futureEntities.filter((row) => entityType(row) === "driver").map(entityId));
   const futureStaffIds = new Set(futureEntities.filter((row) => entityType(row) === "staff").map(entityId));
   const futureTeamIds = new Set(futureEntities.filter((row) => ["team", "constructor", "organisation", "organization"].includes(entityType(row))).map(entityId));
+  const allCareerDriverIds = new Set([...currentDriverIds, ...futureDriverIds]);
+  const driverTalentReferences = buildDriverTalentReferences(database, season, allCareerDriverIds);
 
   const teamFinancials = (database.teamFinancials ?? []).filter((row) => activeTeamIds.has(row.team_id) && activeInSeason(row, season));
   const sponsorContracts = (database.sponsorContracts ?? []).filter((row) => activeTeamIds.has(row.team_id) && activeInSeason(row, season));
@@ -335,6 +395,7 @@ export function createSeasonSnapshot(database, year) {
     teamBrands,
     drivers,
     driverRatings,
+    driverTalentReferences,
     contracts,
     staff,
     staffRatings,
