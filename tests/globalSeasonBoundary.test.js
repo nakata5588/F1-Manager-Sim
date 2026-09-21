@@ -38,7 +38,10 @@ function globalDatabase() {
     ],
     driverRatings: [
       { year: 1979, driver_id: "D0", pace: 65 },
-      { year: 1980, driver_id: "D1", pace: 80 },
+      { year: 1980, driver_id: "D1", current_ability: 78, potential_ability: 86, pace: 80, racecraft: 76, consistency: 75 },
+      { year: 1981, driver_id: "D2", current_ability: 55, potential_ability: 88, pace: 62, racecraft: 54, consistency: 52 },
+      { year: 1982, driver_id: "D2", current_ability: 64, potential_ability: 91, pace: 74, racecraft: 65, consistency: 61 },
+      { year: 1983, driver_id: "D2", current_ability: 72, potential_ability: 92, pace: 82, racecraft: 75, consistency: 72 },
       { year: 2000, driver_id: "D3", pace: 82 },
     ],
     driverCareer: [
@@ -128,6 +131,17 @@ test("1980 Season Database contains past history, active 1980 state and hidden s
   assert.ok(snapshot.futureDrivers.some((row) => row.driver_id === "D2"));
   assert.equal(snapshot.futureDrivers.find((row) => row.driver_id === "D2").team_id, undefined);
   assert.equal(snapshot.drivers.find((row) => row.driver_id === "D1").career_end_year, undefined);
+
+  const futureTalent = snapshot.driverTalentReferences.find((row) => row.driver_id === "D2");
+  assert.ok(futureTalent);
+  assert.equal(futureTalent.source, "historical_ratings_collapsed_static_talent_reference");
+  assert.equal(futureTalent.sourceRows, 3);
+  assert.deepEqual(futureTalent.sourceYearRange, [1981, 1983]);
+  assert.equal(futureTalent.ceilings.pace, 82);
+  assert.equal(futureTalent.ceilings.racecraft, 75);
+  assert.equal(futureTalent.potentialAbility, 92);
+  assert.equal(futureTalent.openingCurrentAbility, null);
+  assert.equal(snapshot.driverRatings.some((row) => row.driver_id === "D2"), false);
 });
 
 test("Save World keeps pre-career history and hidden future structure outside the mutable active world", () => {
