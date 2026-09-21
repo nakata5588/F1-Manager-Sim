@@ -1,7 +1,7 @@
 {
   "format": "f1-manager-sim-release-manifest",
   "schemaVersion": 1,
-  "updatedAt": "2026-09-20",
+  "updatedAt": "2026-09-21",
   "application": {
     "version": "0.1.0",
     "developmentStage": "19",
